@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  opengauss:
+    image: enmotech/opengauss:5.0.0
+    container_name: chest-xray-db-dev
+    environment:
+      GS_PASSWORD: ${DEV_DB_PASSWORD:-xrag-dev-db-password-change-me}
+      GS_DB: chest_xray_db
+      GS_USERNAME: ${DEV_DB_USER:-gaussdb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - opengauss-dev-data:/var/lib/opengauss
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - chest-xray-dev-network
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: chest-xray-minio-dev
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${DEV_MINIO_USER:-xrag-dev-minio}
+      MINIO_ROOT_PASSWORD: ${DEV_MINIO_PASSWORD:-xrag-dev-minio-password-change-me}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-dev-data:/data
+    networks:
+      - chest-xray-dev-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: chest-xray-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - chest-xray-dev-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+volumes:
+  opengauss-dev-data:
+    driver: local
+  minio-dev-data:
+    driver: local
+  redis-dev-data:
+    driver: local
+
+networks:
+  chest-xray-dev-network:
+    driver: bridge

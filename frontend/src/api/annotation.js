@@ -1,0 +1,17 @@
+import request from '@/utils/request'
+
+export const listAnnotations = (imageId) =>
+  request({ url: `/annotations/image/${imageId}`, method: 'get' })
+
+export const createAnnotation = (data) =>
+  request({ url: '/annotations', method: 'post', data })
+
+export const deleteAnnotation = (id) =>
+  request({ url: `/annotations/${id}`, method: 'delete' })
+
+export const generateAiAnnotations = (imageId, reportId, aiLabels) =>
+  request({
+    url: `/annotations/ai/${imageId}/${reportId}`,
+    method: 'post',
+    params: { aiLabels }
+  })

@@ -1,0 +1,60 @@
+spring:
+  datasource:
+    url: jdbc:opengauss://${DB_HOST:opengauss}:${DB_PORT:5432}/${DB_NAME:chest_xray_db}
+    username: ${DB_USER:gaussdb}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.opengauss.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: ${REDIS_PORT:6379}
+    timeout: 3000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+
+minio:
+  endpoint: ${MINIO_ENDPOINT}
+  access-key: ${MINIO_USER}
+  secret-key: ${MINIO_PASSWORD}
+  bucket-name: chest-xray-images
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 7200
+  refresh-expiration: 604800
+
+app:
+  security:
+    expose-docs: false
+    expose-actuator: false
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+ai:
+  qwen:
+    api-key: ${QWEN_API_KEY}
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: qwen-vl-plus
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY}
+    base-url: https://api.deepseek.com
+
+logging:
+  level:
+    com.hospital.xray: INFO

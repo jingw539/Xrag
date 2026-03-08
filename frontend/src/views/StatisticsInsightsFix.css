@@ -1,0 +1,7 @@
+/* 修复AI智能问答区域 - 删除左侧色块 */
+.insight-item.insight-warning,
+.insight-item.insight-info,
+.insight-item.insight-success,
+.insight-item.insight-danger {
+  border-left: none !important;
+}

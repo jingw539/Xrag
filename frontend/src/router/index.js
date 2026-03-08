@@ -1,0 +1,54 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+
+const resolveHomePath = (userStore) => {
+  if (userStore.isAdmin) return '/users'
+  if (userStore.isQC) return '/statistics'
+  return '/cases'
+}
+
+const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/',
+    name: 'Layout',
+    component: () => import('@/views/Layout.vue'),
+    redirect: () => resolveHomePath(useUserStore()),
+    meta: { requiresAuth: true },
+    children: [
+      { path: 'cases', name: 'Workstation', component: () => import('@/views/Workstation.vue'), meta: { requiresDoctor: true } },
+      { path: 'typical-cases', name: 'TypicalCaseList', component: () => import('@/views/TypicalCaseList.vue'), meta: { requiresDoctor: true } },
+      { path: 'alerts', name: 'AlertList', component: () => import('@/views/AlertList.vue') },
+      { path: 'statistics', name: 'Statistics', component: () => import('@/views/Statistics.vue') },
+      { path: 'users', name: 'UserManagement', component: () => import('@/views/UserManagement.vue'), meta: { requiresAdmin: true } },
+      { path: 'config', name: 'SystemConfig', component: () => import('@/views/SystemConfig.vue'), meta: { requiresAdmin: true } },
+      { path: 'logs', name: 'OperationLog', component: () => import('@/views/OperationLog.vue'), meta: { requiresQC: true } }
+    ]
+  }
+]
+
+const router = createRouter({ history: createWebHistory(), routes })
+
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore()
+  if (to.meta.requiresAuth !== false && !userStore.token) {
+    next('/login')
+  } else if (to.path === '/login' && userStore.token) {
+    next(resolveHomePath(userStore))
+  } else if (to.meta.requiresAdmin && !userStore.isAdmin) {
+    next(resolveHomePath(userStore))
+  } else if (to.meta.requiresQC && !userStore.isAdminOrQC) {
+    next(resolveHomePath(userStore))
+  } else if (to.meta.requiresDoctor && !userStore.isDoctor) {
+    next(resolveHomePath(userStore))
+  } else {
+    next()
+  }
+})
+
+export default router

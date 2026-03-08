@@ -1,0 +1,26 @@
+# Environment variables
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker volumes
+data/
+
+# Build outputs
+frontend/node_modules/
+frontend/dist/
+backend/target/
+
+# Python cache
+ai_service/__pycache__/
+*.pyc
