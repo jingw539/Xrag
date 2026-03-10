@@ -24,7 +24,10 @@ export default [
       "vue/attributes-order": "off",
       "vue/html-closing-bracket-newline": "off",
       "vue/html-indent": "off",
+      "vue/html-self-closing": "off",
       "vue/max-attributes-per-line": "off",
+      "vue/multiline-html-element-content-newline": "off",
+      "vue/no-lone-template": "off",
       "vue/singleline-html-element-content-newline": "off",
       "vue/first-attribute-linebreak": "off",
       "vue/multi-word-component-names": "off"
