@@ -25,7 +25,6 @@ public class ReportDetailVO {
     private LocalDateTime signTime;
     private LocalDateTime aiGenerateTime;
     private LocalDateTime createdAt;
-    private EvalResultVO latestEval;
     private List<ReportEditHistoryVO> editHistory;
     private List<TermCorrectionVO> termCorrections;
 }
