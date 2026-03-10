@@ -51,6 +51,7 @@ ssh/
 test-assets/
 test-results/
 .kiro/
+.kiro/specs/
 CODE_SUMMARY_FOR_REVIEW.md
 COMPLETE_EVALUATION_GUIDE.md
 CPU_DEPLOYMENT_ANALYSIS.md
@@ -82,6 +83,10 @@ test_inference_fix.sh
 verify_clip_structure.py
 debug_image_processor.py
 fix_clip_encoder.py
+
+# Markdown (keep repo README)
+*.md
+!/README.md
 
 # Backend test/tools scripts not for deployment
 backend/_*.py
