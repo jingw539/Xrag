@@ -22,6 +22,7 @@ env:
   REMOTE_PORT: 8080
   REMOTE_CONTAINER_NAME_FRONTEND: xrag-frontend
   REMOTE_FRONTEND_PORT: 80
+  REMOTE_FRONTEND_FALLBACK_PORT: 8081
 
 jobs:
   build-and-deploy:
@@ -172,6 +173,16 @@ jobs:
              (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
              docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
              --network host $IMAGE_REPO:$IMAGE_TAG && \
+             sleep 2 && \
+             if ! docker ps --format '{{.Names}}' | grep -q '^${REMOTE_CONTAINER_NAME_FRONTEND}\$'; then \
+               echo 'frontend container not running with host network, retry with port mapping' && \
+               (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
+               port=${REMOTE_FRONTEND_PORT} && fallback=${REMOTE_FRONTEND_FALLBACK_PORT} && \
+               if [ \"\$port\" = '80' ]; then port=\"\$fallback\"; fi && \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
+               -p \"\$port\":80 $IMAGE_REPO:$IMAGE_TAG && \
+               echo \"frontend running on port \$port\"; \
+             fi && \
              if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi && \
              docker image prune -f >/dev/null 2>&1 || true"
 
@@ -186,5 +197,15 @@ jobs:
              (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
              docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
              --network host $IMAGE_REPO:$IMAGE_TAG && \
+             sleep 2 && \
+             if ! docker ps --format '{{.Names}}' | grep -q '^${REMOTE_CONTAINER_NAME_FRONTEND}\$'; then \
+               echo 'frontend container not running with host network, retry with port mapping' && \
+               (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
+               port=${REMOTE_FRONTEND_PORT} && fallback=${REMOTE_FRONTEND_FALLBACK_PORT} && \
+               if [ \"\$port\" = '80' ]; then port=\"\$fallback\"; fi && \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
+               -p \"\$port\":80 $IMAGE_REPO:$IMAGE_TAG && \
+               echo \"frontend running on port \$port\"; \
+             fi && \
              if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi && \
              docker image prune -f >/dev/null 2>&1 || true"
