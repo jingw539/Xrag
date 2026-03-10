@@ -168,22 +168,29 @@ jobs:
           IMAGE_REPO="${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKER_IMAGE_NAME_FRONTEND }}"
           IMAGE_TAG="${GITHUB_SHA}"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -p "${SERVER_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
-            "old_image=\$(docker inspect -f '{{.Image}}' ${REMOTE_CONTAINER_NAME_FRONTEND} 2>/dev/null || true) && \
-             docker pull $IMAGE_REPO:$IMAGE_TAG && \
-             (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
-             docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
-             --network host $IMAGE_REPO:$IMAGE_TAG && \
-             sleep 2 && \
-             if ! docker ps --format '{{.Names}}' | grep -q '^${REMOTE_CONTAINER_NAME_FRONTEND}\$'; then \
-               echo 'frontend container not running with host network, retry with port mapping' && \
-               (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
-               port=${REMOTE_FRONTEND_PORT} && fallback=${REMOTE_FRONTEND_FALLBACK_PORT} && \
-               if [ \"\$port\" = '80' ]; then port=\"\$fallback\"; fi && \
-               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
-               -p \"\$port\":80 $IMAGE_REPO:$IMAGE_TAG && \
-               echo \"frontend running on port \$port\"; \
-             fi && \
-             if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi && \
+            "set -e; \
+             old_image=\$(docker inspect -f '{{.Image}}' ${REMOTE_CONTAINER_NAME_FRONTEND} 2>/dev/null || true); \
+             docker pull $IMAGE_REPO:$IMAGE_TAG; \
+             (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true); \
+             port_in_use=\$((command -v ss >/dev/null 2>&1 && ss -ltnp | grep -q ':80 ') || (command -v netstat >/dev/null 2>&1 && netstat -tlnp 2>/dev/null | grep -q ':80 '); echo \$?); \
+             choose_port() { for p in ${REMOTE_FRONTEND_PORT} ${REMOTE_FRONTEND_FALLBACK_PORT} 8082 8083 8084 8085; do \
+                 if (command -v ss >/dev/null 2>&1 && ! ss -ltn | awk '{print \$4}' | grep -q \":\$p\$\" ) || \
+                    (command -v netstat >/dev/null 2>&1 && ! netstat -tln 2>/dev/null | awk '{print \$4}' | grep -q \":\$p\$\" ); then echo \$p; return; fi; \
+               done; echo ${REMOTE_FRONTEND_FALLBACK_PORT}; }; \
+             if [ \"\$port_in_use\" -ne 0 ]; then \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p 80:80 $IMAGE_REPO:$IMAGE_TAG; \
+               echo \"frontend running on port 80\"; \
+             else \
+               use_port=\$(choose_port); \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p \"\$use_port\":80 $IMAGE_REPO:$IMAGE_TAG; \
+               echo \"frontend running on port \$use_port\"; \
+               if command -v nginx >/dev/null 2>&1; then \
+                 cat >/etc/nginx/conf.d/xrag-frontend.conf <<'EOF'\nserver {\n  listen 80;\n  server_name _;\n  location / {\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n    proxy_pass http://127.0.0.1:__FRONTEND_PORT__;\n  }\n}\nEOF\n; \
+                 sed -i \"s/__FRONTEND_PORT__/\$use_port/g\" /etc/nginx/conf.d/xrag-frontend.conf; \
+                 nginx -t && (systemctl reload nginx 2>/dev/null || nginx -s reload) || true; \
+               fi; \
+             fi; \
+             if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi; \
              docker image prune -f >/dev/null 2>&1 || true"
 
       - name: Deploy frontend via SSH with password
@@ -192,20 +199,27 @@ jobs:
           IMAGE_REPO="${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKER_IMAGE_NAME_FRONTEND }}"
           IMAGE_TAG="${GITHUB_SHA}"
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p "${SERVER_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
-            "old_image=\$(docker inspect -f '{{.Image}}' ${REMOTE_CONTAINER_NAME_FRONTEND} 2>/dev/null || true) && \
-             docker pull $IMAGE_REPO:$IMAGE_TAG && \
-             (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
-             docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
-             --network host $IMAGE_REPO:$IMAGE_TAG && \
-             sleep 2 && \
-             if ! docker ps --format '{{.Names}}' | grep -q '^${REMOTE_CONTAINER_NAME_FRONTEND}\$'; then \
-               echo 'frontend container not running with host network, retry with port mapping' && \
-               (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true) && \
-               port=${REMOTE_FRONTEND_PORT} && fallback=${REMOTE_FRONTEND_FALLBACK_PORT} && \
-               if [ \"\$port\" = '80' ]; then port=\"\$fallback\"; fi && \
-               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
-               -p \"\$port\":80 $IMAGE_REPO:$IMAGE_TAG && \
-               echo \"frontend running on port \$port\"; \
-             fi && \
-             if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi && \
+            "set -e; \
+             old_image=\$(docker inspect -f '{{.Image}}' ${REMOTE_CONTAINER_NAME_FRONTEND} 2>/dev/null || true); \
+             docker pull $IMAGE_REPO:$IMAGE_TAG; \
+             (docker rm -f ${REMOTE_CONTAINER_NAME_FRONTEND} >/dev/null 2>&1 || true); \
+             port_in_use=\$((command -v ss >/dev/null 2>&1 && ss -ltnp | grep -q ':80 ') || (command -v netstat >/dev/null 2>&1 && netstat -tlnp 2>/dev/null | grep -q ':80 '); echo \$?); \
+             choose_port() { for p in ${REMOTE_FRONTEND_PORT} ${REMOTE_FRONTEND_FALLBACK_PORT} 8082 8083 8084 8085; do \
+                 if (command -v ss >/dev/null 2>&1 && ! ss -ltn | awk '{print \$4}' | grep -q \":\$p\$\" ) || \
+                    (command -v netstat >/dev/null 2>&1 && ! netstat -tln 2>/dev/null | awk '{print \$4}' | grep -q \":\$p\$\" ); then echo \$p; return; fi; \
+               done; echo ${REMOTE_FRONTEND_FALLBACK_PORT}; }; \
+             if [ \"\$port_in_use\" -ne 0 ]; then \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p 80:80 $IMAGE_REPO:$IMAGE_TAG; \
+               echo \"frontend running on port 80\"; \
+             else \
+               use_port=\$(choose_port); \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p \"\$use_port\":80 $IMAGE_REPO:$IMAGE_TAG; \
+               echo \"frontend running on port \$use_port\"; \
+               if command -v nginx >/dev/null 2>&1; then \
+                 cat >/etc/nginx/conf.d/xrag-frontend.conf <<'EOF'\nserver {\n  listen 80;\n  server_name _;\n  location / {\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n    proxy_pass http://127.0.0.1:__FRONTEND_PORT__;\n  }\n}\nEOF\n; \
+                 sed -i \"s/__FRONTEND_PORT__/\$use_port/g\" /etc/nginx/conf.d/xrag-frontend.conf; \
+                 nginx -t && (systemctl reload nginx 2>/dev/null || nginx -s reload) || true; \
+               fi; \
+             fi; \
+             if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi; \
              docker image prune -f >/dev/null 2>&1 || true"
