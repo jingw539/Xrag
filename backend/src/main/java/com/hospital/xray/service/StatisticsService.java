@@ -10,12 +10,4 @@ public interface StatisticsService {
     StatisticsVO getOverview();
 
     List<Map<String, Object>> getReportTrend(String startDate, String endDate, String groupBy);
-
-    List<Map<String, Object>> getEvalTrend(String startDate, String endDate, String groupBy);
-
-    List<Map<String, Object>> getModelVersionComparison();
-
-    List<Map<String, Object>> getPerLabelStats();
-
-    List<Map<String, Object>> getQualityIssues(int limit);
 }

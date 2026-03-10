@@ -7,8 +7,6 @@ import com.hospital.xray.dto.*;
 import com.hospital.xray.entity.*;
 import com.hospital.xray.exception.BusinessException;
 import com.hospital.xray.mapper.*;
-import com.hospital.xray.service.AsyncTaskService;
-import com.hospital.xray.service.EvalService;
 import com.hospital.xray.service.ImageService;
 import com.hospital.xray.service.ReportService;
 import com.hospital.xray.service.RetrievalService;
@@ -18,8 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -42,14 +38,10 @@ public class ReportServiceImpl implements ReportService {
     private final AiModelInfoMapper aiModelInfoMapper;
     private final RetrievalLogMapper retrievalLogMapper;
     private final CaseInfoMapper caseInfoMapper;
-    private final EvalResultMapper evalResultMapper;
-    private final CriticalAlertMapper criticalAlertMapper;
     private final AiServiceClient aiServiceClient;
     private final ImageService imageService;
     private final RetrievalService retrievalService;
-    private final EvalService evalService;
     private final TermService termService;
-    private final AsyncTaskService asyncTaskService;
 
     @Override
     @Transactional
@@ -126,14 +118,6 @@ public class ReportServiceImpl implements ReportService {
             caseInfoMapper.updateById(caseInfo);
         }
 
-        final Long newReportId = report.getReportId();
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                asyncTaskService.triggerEvalAsync(newReportId);
-            }
-        });
-
         return getById(report.getReportId());
     }
 
@@ -160,17 +144,6 @@ public class ReportServiceImpl implements ReportService {
         dto.setImageId(imageId);
         dto.setTopK(3);
         return generate(dto, doctorId);
-    }
-
-    private void cleanupReport(ReportInfo report) {
-        Long reportId = report.getReportId();
-        editHistoryMapper.delete(new LambdaQueryWrapper<ReportEditHistory>()
-                .eq(ReportEditHistory::getReportId, reportId));
-        evalResultMapper.delete(new LambdaQueryWrapper<EvalResult>()
-                .eq(EvalResult::getReportId, reportId));
-        criticalAlertMapper.delete(new LambdaQueryWrapper<CriticalAlert>()
-                .eq(CriticalAlert::getReportId, reportId));
-        reportInfoMapper.deleteById(reportId);
     }
 
     @Override
@@ -360,10 +333,6 @@ public class ReportServiceImpl implements ReportService {
         }
         vo.setEditHistory(getEditHistory(r.getReportId()));
         try {
-            List<EvalResultVO> evals = evalService.getByReportId(r.getReportId());
-            vo.setLatestEval(evals.isEmpty() ? null : evals.get(evals.size() - 1));
-        } catch (Exception ignored) {}
-        try {
             vo.setTermCorrections(termService.getByReportId(r.getReportId()));
         } catch (Exception ignored) {}
         return vo;
@@ -422,27 +391,13 @@ public class ReportServiceImpl implements ReportService {
         assertDoctorOwnsCase(report != null ? report.getCaseId() : null, false);
         if (report == null) throw new BusinessException(404, "Report not found");
 
-        EvalResult eval = evalResultMapper.selectList(
-                new LambdaQueryWrapper<EvalResult>()
-                        .eq(EvalResult::getReportId, reportId)
-                        .orderByDesc(EvalResult::getEvalTime)
-                        .last("LIMIT 1")
-        ).stream().findFirst().orElse(null);
-
-        List<String> missingLabels = (eval != null && StringUtils.hasText(eval.getMissingLabels()))
-                ? Arrays.asList(eval.getMissingLabels().replaceAll("[\\[\\]]", "").split(",\\s*"))
-                : Collections.emptyList();
-        List<String> extraLabels = (eval != null && StringUtils.hasText(eval.getExtraLabels()))
-                ? Arrays.asList(eval.getExtraLabels().replaceAll("[\\[\\]]", "").split(",\\s*"))
-                : Collections.emptyList();
-
         return aiServiceClient.getReviewAdvice(
                 report.getFinalFindings(),
                 report.getFinalImpression(),
                 report.getQualityGrade(),
-                eval != null && eval.getF1Score() != null ? eval.getF1Score().doubleValue() : null,
-                missingLabels,
-                extraLabels
+                null,
+                Collections.emptyList(),
+                Collections.emptyList()
         );
     }
 
