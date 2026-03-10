@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="layout-root">
     <aside :class="['sidebar', { 'is-collapsed': collapsed }]">
       <div class="sidebar-logo">
-        <span v-show="!collapsed" class="logo-text">胸部X光智能辅助诊断系</span>
+        <span v-show="!collapsed" class="logo-text">胸部X光智能辅助诊断系统</span>
       </div>
 
       <el-scrollbar class="sidebar-scroll">
@@ -28,7 +28,7 @@
           </template>
 
           <template v-if="!userStore.isAdmin">
-<el-menu-item index="/statistics">
+            <el-menu-item index="/statistics">
               <el-icon><DataAnalysis /></el-icon>
               <template #title>质控统计</template>
             </el-menu-item>
@@ -97,7 +97,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="logout">
-                  <el-icon><SwitchButton /></el-icon> 退出登?                </el-dropdown-item>
+                  <el-icon><SwitchButton /></el-icon> 退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -122,18 +122,18 @@ const router = useRouter()
 const userStore = useUserStore()
 const collapsed = ref(false)
 const PAGE_NAME_MAP = {
-  '/cases': '?????',
-  '/typical-cases': '?????',
-  '/statistics': '????',
-  '/users': '????',
-  '/config': '????',
-  '/logs': '????'
+  '/cases': '诊断工作',
+  '/typical-cases': '典型病例',
+  '/statistics': '质控统计',
+  '/users': '用户管理',
+  '/config': '系统配置',
+  '/logs': '操作日志'
 }
 
 const currentPageName = computed(() => PAGE_NAME_MAP[route.path] || '')
 
 const roleLabel = computed(() => {
-  const map = { ADMIN: '???', QC: '???', DOCTOR: '??' }
+  const map = { ADMIN: '管理员', QC: '质控', DOCTOR: '医生' }
   return map[userStore.userInfo.roleCode] || userStore.userInfo.roleCode
 })
 const handleCommand = async (command) => {
