@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "用户认证", description = "登录、登出、Token刷新")
+@Tag(name = "用户认证", description = "登录、登出、Token 刷新")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -32,7 +32,7 @@ public class AuthController {
         return Result.success(authService.login(loginDTO));
     }
 
-    @Operation(summary = "刷新Access Token")
+    @Operation(summary = "刷新 Access Token")
     @PostMapping("/refresh")
     public Result<AccessTokenVO> refresh(@Valid @RequestBody RefreshTokenDTO dto) {
         return Result.success(authService.refreshToken(dto.getRefreshToken()));

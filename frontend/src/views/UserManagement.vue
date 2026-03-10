@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-wrap">
     <el-card class="full-card">
       <template #header>
@@ -12,7 +12,7 @@
 
       <el-table class="admin-table" :data="users" v-loading="loading" border>
         <el-table-column prop="username" label="用户名" width="130" />
-        <el-table-column prop="realName" label="真实姓名" width="120" />
+        <el-table-column prop="realName" label="姓名" width="120" />
         <el-table-column prop="roleCode" label="角色" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="{ ADMIN: 'danger', QC: 'warning', DOCTOR: 'primary' }[row.roleCode]" size="small">
@@ -56,7 +56,7 @@
       <el-form-item label="用户名" prop="username">
         <el-input v-model="form.username" :disabled="!!editingId" />
       </el-form-item>
-      <el-form-item label="真实姓名" prop="realName">
+      <el-form-item label="姓名" prop="realName">
         <el-input v-model="form.realName" />
       </el-form-item>
       <el-form-item v-if="!editingId" label="角色" prop="roleCode">
@@ -71,11 +71,11 @@
           v-model="form.password"
           type="password"
           show-password
-          placeholder="至少8位，包含字母、数字、特殊字符"
+          placeholder="至少 8 位，包含字母、数字和特殊字符"
         />
       </el-form-item>
       <el-form-item label="科室">
-        <el-input v-model="form.department" placeholder="如：影像科" />
+        <el-input v-model="form.department" placeholder="例如：影像科" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -91,9 +91,9 @@
           v-model="newPwd"
           type="password"
           show-password
-          placeholder="至少8位，包含字母、数字、特殊字符(@#$%^&+=!)"
+          placeholder="至少 8 位，包含字母、数字和特殊字符，如 @#$%^&+=!"
         />
-        <div class="pwd-tip">至少8位，需同时包含字母、数字与特殊字符 @#$%^&+=!</div>
+        <div class="pwd-tip">至少 8 位，需同时包含字母、数字与特殊字符 @#$%^&+=!</div>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -106,6 +106,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Avatar, Plus } from '@element-plus/icons-vue'
 import { createUser, deleteUser, listUsers, resetPassword, toggleUserStatus, updateUser } from '@/api/user'
 
 const loading = ref(false)
@@ -123,7 +124,7 @@ const query = reactive({ page: 1, pageSize: 20 })
 const form = reactive({ username: '', realName: '', roleCode: 'DOCTOR', password: '', department: '' })
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
+  realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   roleCode: [{ required: true, message: '请选择角色', trigger: 'change' }],
   password: [{ required: true, message: '请输入初始密码', trigger: 'blur' }]
 }
@@ -199,7 +200,7 @@ const handleResetPwd = async () => {
     return
   }
   await resetPassword(pwdTargetId.value, newPwd.value)
-  ElMessage.success('密码已重置')
+  ElMessage.success('密码重置成功')
   pwdVisible.value = false
 }
 
@@ -207,7 +208,7 @@ const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确认删除用户“${row.realName || row.username}”吗？`, '删除用户', { type: 'warning' })
     await deleteUser(row.userId)
-    ElMessage.success('用户已删除')
+    ElMessage.success('用户删除成功')
     fetchList()
   } catch (_) {
   }
@@ -222,7 +223,7 @@ onMounted(fetchList)
 .page-wrap {
   min-height: 100%;
   padding: 20px;
-  background: #0e1621;
+  background: #0d1420;
   color: #d0dcf0;
   box-sizing: border-box;
   display: flex;
@@ -235,14 +236,14 @@ onMounted(fetchList)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(111, 134, 166, 0.24);
-  background: #1a2535;
+  border: 1px solid rgba(111, 134, 166, 0.16);
+  background: #0d1420;
   box-shadow: none;
 }
 
 :deep(.full-card .el-card__header) {
-  border-bottom: 1px solid rgba(111, 134, 166, 0.24);
-  background: #1a2535;
+  border-bottom: 1px solid rgba(111, 134, 166, 0.16);
+  background: #0d1420;
 }
 
 :deep(.full-card .el-card__body) {
@@ -251,7 +252,7 @@ onMounted(fetchList)
   flex-direction: column;
   overflow: hidden;
   padding: 16px 20px 20px;
-  background: #1a2535;
+  background: #0d1420;
 }
 
 :deep(.full-card .el-table) {
@@ -287,12 +288,12 @@ onMounted(fetchList)
 }
 
 :deep(.admin-table) {
-  --el-table-bg-color: #121c2a;
-  --el-table-tr-bg-color: #121c2a;
-  --el-table-row-striped-bg-color: #121c2a;
-  --el-table-row-hover-bg-color: #1c2a3d;
-  --el-table-header-bg-color: #182538;
-  --el-table-border-color: rgba(111, 134, 166, 0.22);
+  --el-table-bg-color: #0f1923;
+  --el-table-tr-bg-color: #0f1923;
+  --el-table-row-striped-bg-color: #0f1923;
+  --el-table-row-hover-bg-color: rgba(111, 134, 166, 0.12);
+  --el-table-header-bg-color: rgba(13, 20, 32, 0.95);
+  --el-table-border-color: rgba(111, 134, 166, 0.16);
   --el-table-text-color: #d0dcf0;
   --el-table-header-text-color: #9fb3cc;
 }
@@ -301,10 +302,54 @@ onMounted(fetchList)
 :deep(.admin-table th.el-table__cell),
 :deep(.admin-table tr),
 :deep(.admin-table td.el-table__cell) {
-  background: #121c2a !important;
+  background: #0f1923 !important;
 }
 
-:deep(.el-pagination),
+/* 分页：按钮、页码去白底 */
+:deep(.el-pagination) {
+  color: #d0dcf0;
+}
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next),
+:deep(.el-pagination .el-pager li) {
+  background: #0f1923 !important;
+  color: #d0dcf0 !important;
+  border: 1px solid rgba(111, 134, 166, 0.2) !important;
+}
+:deep(.el-pagination .el-pager li.is-active) {
+  background: rgba(64, 158, 255, 0.35) !important;
+  color: #fff !important;
+  border-color: rgba(64, 158, 255, 0.5) !important;
+}
+:deep(.el-pagination .btn-prev:not(:disabled):hover),
+:deep(.el-pagination .btn-next:not(:disabled):hover),
+:deep(.el-pagination .el-pager li:not(.is-active):hover) {
+  background: rgba(111, 134, 166, 0.2) !important;
+  color: #e8f0ff !important;
+}
+
+/* 角色标签去白底 */
+:deep(.admin-table .el-tag) {
+  background: rgba(111, 134, 166, 0.2) !important;
+  border-color: rgba(111, 134, 166, 0.35) !important;
+  color: #d0dcf0 !important;
+}
+:deep(.admin-table .el-tag.el-tag--primary) {
+  background: rgba(64, 158, 255, 0.25) !important;
+  border-color: rgba(64, 158, 255, 0.4) !important;
+  color: #7eb8ff !important;
+}
+:deep(.admin-table .el-tag.el-tag--danger) {
+  background: rgba(245, 108, 108, 0.2) !important;
+  border-color: rgba(245, 108, 108, 0.4) !important;
+  color: #f89898 !important;
+}
+:deep(.admin-table .el-tag.el-tag--warning) {
+  background: rgba(230, 162, 60, 0.2) !important;
+  border-color: rgba(230, 162, 60, 0.4) !important;
+  color: #e6c078 !important;
+}
+
 :deep(.el-form-item__label),
 :deep(.el-dialog__title),
 :deep(.el-descriptions__label),
@@ -317,5 +362,134 @@ onMounted(fetchList)
 :deep(.el-select__wrapper) {
   background: #111a27;
   box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.22) inset;
+}
+</style>
+
+<style scoped>
+.page-wrap {
+  background: var(--xrag-bg) !important;
+  color: var(--xrag-text) !important;
+}
+
+.full-card {
+  background: var(--xrag-bg) !important;
+  border-color: var(--xrag-border) !important;
+  box-shadow: var(--xrag-shadow) !important;
+}
+
+:deep(.full-card .el-card__header),
+:deep(.full-card .el-card__body) {
+  background: var(--xrag-bg) !important;
+  border-color: var(--xrag-border) !important;
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-form-item__label),
+:deep(.el-dialog__title),
+:deep(.el-empty__description),
+:deep(.el-pagination__total),
+:deep(.el-pagination__jump),
+:deep(.el-table .cell),
+:deep(.el-descriptions__label),
+:deep(.el-descriptions__content) {
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner),
+:deep(.el-select__wrapper),
+:deep(.el-date-editor.el-input__wrapper) {
+  background: rgba(233, 238, 245, 0.05) !important;
+  border-color: var(--xrag-border-strong) !important;
+  box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.18) inset !important;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner),
+:deep(.el-select__placeholder),
+:deep(.el-select__selected-item),
+:deep(.el-range-input),
+:deep(.el-switch__label) {
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-button--default),
+:deep(.el-button.is-link),
+:deep(.el-button.is-plain) {
+  background: rgba(233, 238, 245, 0.06) !important;
+  border-color: rgba(111, 134, 166, 0.28) !important;
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-button--default:hover),
+:deep(.el-button.is-link:hover),
+:deep(.el-button.is-plain:hover) {
+  background: rgba(74, 158, 255, 0.10) !important;
+  border-color: rgba(74, 158, 255, 0.28) !important;
+  color: #f4f8ff !important;
+}
+
+:deep(.el-button--primary) {
+  background: linear-gradient(180deg, #4A9EFF 0%, #3A86E8 100%) !important;
+  border-color: #4A9EFF !important;
+  color: #fff !important;
+}
+
+:deep(.el-table),
+:deep(.el-table__inner-wrapper),
+:deep(.el-table tr),
+:deep(.el-table th.el-table__cell),
+:deep(.el-table td.el-table__cell),
+:deep(.el-table__body),
+:deep(.el-table__header),
+:deep(.el-table__empty-block),
+:deep(.el-descriptions__body),
+:deep(.el-descriptions__table) {
+  background: var(--xrag-panel) !important;
+  color: var(--xrag-text) !important;
+  border-color: var(--xrag-border) !important;
+}
+
+:deep(.el-table--border::before),
+:deep(.el-table--border::after),
+:deep(.el-table__inner-wrapper::before),
+:deep(.el-table td.el-table__cell),
+:deep(.el-table th.el-table__cell),
+:deep(.el-descriptions__cell) {
+  border-color: rgba(111, 134, 166, 0.24) !important;
+}
+
+:deep(.el-table__body tr:hover > td.el-table__cell) {
+  background: rgba(111, 134, 166, 0.12) !important;
+}
+
+:deep(.el-tag),
+:deep(.el-badge__content) {
+  background: rgba(111, 134, 166, 0.2) !important;
+  color: var(--xrag-text) !important;
+  border-color: rgba(111, 134, 166, 0.35) !important;
+}
+
+:deep(.el-dialog),
+:deep(.el-dialog__header),
+:deep(.el-dialog__body),
+:deep(.el-dialog__footer) {
+  background: var(--xrag-panel) !important;
+  color: var(--xrag-text) !important;
+  border-color: var(--xrag-border) !important;
+}
+
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next),
+:deep(.el-pagination .el-pager li) {
+  background: rgba(233, 238, 245, 0.06) !important;
+  border-color: rgba(111, 134, 166, 0.28) !important;
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  background: rgba(74, 158, 255, 0.24) !important;
+  border-color: rgba(74, 158, 255, 0.42) !important;
+  color: #ffffff !important;
 }
 </style>

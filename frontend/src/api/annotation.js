@@ -6,6 +6,9 @@ export const listAnnotations = (imageId) =>
 export const createAnnotation = (data) =>
   request({ url: '/annotations', method: 'post', data })
 
+export const updateAnnotation = (id, data) =>
+  request({ url: `/annotations/${id}`, method: 'put', data })
+
 export const deleteAnnotation = (id) =>
   request({ url: `/annotations/${id}`, method: 'delete' })
 

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-wrap">
     <el-card class="full-card">
       <template #header>
@@ -53,14 +53,7 @@
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        class="pagination"
-        :current-page="query.page"
-        :page-size="query.pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        @current-change="v => { query.page = v; fetchList() }"
-      />
+      <el-pagination class="pagination" :current-page="query.page" :page-size="query.pageSize" :total="total" layout="total, prev, pager, next" @current-change="v => { query.page = v; fetchList() }" />
     </el-card>
   </div>
 </template>
@@ -99,7 +92,7 @@ const formatDate = (val) => (val ? val.replace('T', ' ').substring(0, 16) : '-')
 
 const handleUnmark = async (row) => {
   try {
-    await ElMessageBox.confirm(`确认将「${row.examNo}」从典型病例库移除？`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm(`确认将“${row.examNo}”从典型病例库移除吗？`, '提示', { type: 'warning' })
   } catch (_) {
     return
   }
@@ -110,7 +103,6 @@ const handleUnmark = async (row) => {
 
 onMounted(fetchList)
 </script>
-
 <style scoped>
 .page-wrap {
   padding: 20px;
@@ -119,7 +111,7 @@ onMounted(fetchList)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #0E1621;
+  background: #0d1420;
 }
 
 .full-card {
@@ -127,15 +119,15 @@ onMounted(fetchList)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #1A2535;
-  border: 1px solid rgba(111, 134, 166, 0.28);
+  background: #0d1420;
+  border: 1px solid rgba(111, 134, 166, 0.16);
   box-shadow: none;
 }
 
 :deep(.full-card .el-card__header),
 :deep(.full-card .el-card__body) {
-  background: #1A2535;
-  border-color: rgba(111, 134, 166, 0.24);
+  background: #0d1420;
+  border-color: rgba(111, 134, 166, 0.16);
   color: #D0DCF0;
 }
 
@@ -204,9 +196,9 @@ onMounted(fetchList)
 :deep(.el-table__body),
 :deep(.el-table__header),
 :deep(.el-table__empty-block) {
-  background: #1A2535;
+  background: #0f1923 !important;
   color: #D0DCF0;
-  border-color: rgba(111, 134, 166, 0.24);
+  border-color: rgba(111, 134, 166, 0.16);
 }
 
 :deep(.el-table--border::before),
@@ -218,11 +210,11 @@ onMounted(fetchList)
 }
 
 :deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) {
-  background: rgba(233, 238, 245, 0.04);
+  background: #0f1923 !important;
 }
 
 :deep(.el-table__body tr:hover > td.el-table__cell) {
-  background: rgba(74, 158, 255, 0.09);
+  background: rgba(111, 134, 166, 0.12) !important;
 }
 
 :deep(.el-button),
@@ -254,16 +246,32 @@ onMounted(fetchList)
 
 :deep(.el-tag),
 :deep(.el-badge__content) {
-  background: rgba(233, 238, 245, 0.08);
-  color: #EAF2FF;
-  border-color: rgba(111, 134, 166, 0.24);
+  background: rgba(111, 134, 166, 0.2) !important;
+  color: #d0dcf0 !important;
+  border-color: rgba(111, 134, 166, 0.35) !important;
+}
+:deep(.el-tag.el-tag--primary) {
+  background: rgba(64, 158, 255, 0.25) !important;
+  border-color: rgba(64, 158, 255, 0.4) !important;
+  color: #7eb8ff !important;
+}
+:deep(.el-tag.el-tag--danger) {
+  background: rgba(245, 108, 108, 0.2) !important;
+  border-color: rgba(245, 108, 108, 0.4) !important;
+  color: #f89898 !important;
 }
 
-:deep(.el-pagination),
-:deep(.el-pagination button),
-:deep(.el-pager li) {
-  background: transparent;
-  color: #D0DCF0;
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next),
+:deep(.el-pagination .el-pager li) {
+  background: #0f1923 !important;
+  color: #d0dcf0 !important;
+  border: 1px solid rgba(111, 134, 166, 0.2) !important;
+}
+:deep(.el-pagination .el-pager li.is-active) {
+  background: rgba(64, 158, 255, 0.35) !important;
+  color: #fff !important;
+  border-color: rgba(64, 158, 255, 0.5) !important;
 }
 
 /* ===== Final button cleanup ===== */

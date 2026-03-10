@@ -1,25 +1,15 @@
-spring:
+﻿spring:
   datasource:
-    url: jdbc:opengauss://${DB_HOST:opengauss}:${DB_PORT:5432}/${DB_NAME:chest_xray_db}
+    url: jdbc:postgresql://${DB_HOST:opengauss}:${DB_PORT:5432}/${DB_NAME:chest_xray_db}
     username: ${DB_USER:gaussdb}
     password: ${DB_PASSWORD}
-    driver-class-name: org.opengauss.Driver
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-
-  redis:
-    host: ${REDIS_HOST:redis}
-    port: ${REDIS_PORT:6379}
-    timeout: 3000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 2
 
 mybatis-plus:
   configuration:
@@ -42,9 +32,9 @@ jwt:
 
 app:
   security:
-    expose-docs: false
+    expose-docs: true
     expose-actuator: false
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost,http://127.0.0.1,http://localhost:5173,http://127.0.0.1:5173}
 
 ai:
   qwen:

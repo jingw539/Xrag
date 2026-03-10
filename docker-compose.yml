@@ -12,7 +12,6 @@ services:
       - "5432:5432"
     volumes:
       - opengauss-data:/var/lib/opengauss
-      - ./init-db:/docker-entrypoint-initdb.d
     networks:
       - chest-xray-network
     restart: unless-stopped
@@ -38,18 +37,6 @@ services:
       timeout: 20s
       retries: 3
 
-  redis:
-    image: redis:7-alpine
-    container_name: chest-xray-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - chest-xray-network
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-
   backend:
     build:
       context: ./backend
@@ -65,8 +52,6 @@ services:
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_USER: ${MINIO_USER:?MINIO_USER is required}
       MINIO_PASSWORD: ${MINIO_PASSWORD:?MINIO_PASSWORD is required}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1}
       QWEN_API_KEY: ${QWEN_API_KEY}
@@ -76,20 +61,6 @@ services:
     depends_on:
       - opengauss
       - minio
-      - redis
-    networks:
-      - chest-xray-network
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: chest-xray-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
     networks:
       - chest-xray-network
     restart: unless-stopped
@@ -98,8 +69,6 @@ volumes:
   opengauss-data:
     driver: local
   minio-data:
-    driver: local
-  redis-data:
     driver: local
 
 networks:

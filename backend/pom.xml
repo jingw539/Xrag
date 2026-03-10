@@ -16,7 +16,7 @@
     <artifactId>chest-xray-backend</artifactId>
     <version>1.0.0</version>
     <name>Chest X-Ray Backend</name>
-    <description>胸部X光智能辅助诊断系统后端</description>
+    <description>Chest X-Ray Backend Service</description>
 
     <properties>
         <java.version>17</java.version>
@@ -42,13 +42,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        
-        <dependency>
+<dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
@@ -113,7 +107,14 @@
             <version>0.4.20</version>
         </dependency>
 
-        <!-- Knife4j (包含Swagger) -->
+        <!-- DICOM metadata parsing -->
+        <dependency>
+            <groupId>org.dcm4che</groupId>
+            <artifactId>dcm4che-core</artifactId>
+            <version>5.33.0</version>
+        </dependency>
+
+        <!-- Knife4j (閸栧懎鎯圫wagger) -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
@@ -139,6 +140,14 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>dcm4che</id>
+            <name>dcm4che Repository</name>
+            <url>https://dcm4che.org/maven2/</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

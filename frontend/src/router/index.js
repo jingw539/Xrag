@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const resolveHomePath = (userStore) => {
@@ -22,6 +22,7 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: 'cases', name: 'Workstation', component: () => import('@/views/Workstation.vue'), meta: { requiresDoctor: true } },
+      { path: 'cases/:id', name: 'CaseDetail', component: () => import('@/views/CaseDetail.vue'), meta: { requiresDoctor: true } },
       { path: 'typical-cases', name: 'TypicalCaseList', component: () => import('@/views/TypicalCaseList.vue'), meta: { requiresDoctor: true } },
       { path: 'alerts', name: 'AlertList', component: () => import('@/views/AlertList.vue') },
       { path: 'statistics', name: 'Statistics', component: () => import('@/views/Statistics.vue') },
@@ -52,3 +53,4 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
+

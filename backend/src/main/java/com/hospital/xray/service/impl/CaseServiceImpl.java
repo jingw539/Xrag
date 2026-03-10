@@ -30,8 +30,6 @@ import io.minio.RemoveObjectArgs;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -49,7 +47,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 病例服务实现类
+ * 闂佹眹鍎遍幊宥囨閵夆晛瀚夌€广儱鎳庨～銈夋倵閸︻厼浠ф鐐叉川閻?
  */
 @Slf4j
 @Service
@@ -75,33 +73,33 @@ public class CaseServiceImpl implements CaseService {
     
     @Override
     public PageResult<CaseVO> listCases(CaseQueryDTO query) {
-        // 创建分页对象
+        // 闂佸憡甯楃粙鎴犵磽閹捐绀嗛柛鈩冪◤閳ь剙顦遍埀顒傛暩椤㈠﹪鎸?
         Page<CaseInfo> page = new Page<>(query.getPage(), query.getPageSize());
         
-        // 构建查询条件
+        // 闂佸搫顑呯€氼剛绱撻幘璇茶摕闁靛鐓堥崵鍕煛婢跺棌鍋撻崣澶樺仺
         LambdaQueryWrapper<CaseInfo> wrapper = new LambdaQueryWrapper<>();
         
-        // 检查号模糊查询
+        // 濠碘槅鍋€閸嬫捇鏌＄仦璇插姎鐟滄澘鐏濊灒闁挎稑瀚棟闂佸搫琚崕鎾敋?
         wrapper.like(StringUtils.hasText(query.getExamNo()), 
                     CaseInfo::getExamNo, query.getExamNo());
         
-        // 患者匿名ID模糊查询
+        // 闂佽鍣紞鈧柍褜鍓欓幊搴ｄ焊閸洖瑙︾€光偓缁洦淇婇銈囩？缁绢叏绠撳濠氬Ψ椤垵娈?
         wrapper.like(StringUtils.hasText(query.getPatientAnonId()), 
                     CaseInfo::getPatientAnonId, query.getPatientAnonId());
         
-        // 时间范围查询
+        // 闂佸搫鍟悥鐓幬涢崸妤佸殤闁告劑鍔嶇痪顖炴煛鐏炶鍔ユい?
         wrapper.between(query.getStartTime() != null && query.getEndTime() != null,
                        CaseInfo::getExamTime, query.getStartTime(), query.getEndTime());
         
-        // 报告状态精确查询
+        // 闂佺缈伴崕閬嶅箟閿熺姵鍋愰柤鍝ヮ暯閸嬫挻鎷呴搹鍦嫎缂佺虎鍙庨崰妤呮偂閿涘嫭瀚?
         wrapper.eq(StringUtils.hasText(query.getReportStatus()), 
                   CaseInfo::getReportStatus, query.getReportStatus());
         
-        // 科室精确查询
+        // 缂備礁顦伴崹鐢割敇閼姐倕鍨濋柛鎾椻偓閳ь剚锕㈠濠氬Ψ椤垵娈?
         wrapper.eq(StringUtils.hasText(query.getDepartment()), 
                   CaseInfo::getDepartment, query.getDepartment());
         
-        // 是否典型病例查询
+        // 闂佸搫瀚烽崹浼村箚娓氣偓瀹曟绮欑捄銊㈠亾閻戣姤鍎夐柛娑卞墰娴兼劙鏌＄仦璇插姤妞?
         wrapper.eq(query.getIsTypical() != null, 
                   CaseInfo::getIsTypical, query.getIsTypical());
 
@@ -113,24 +111,24 @@ public class CaseServiceImpl implements CaseService {
             wrapper.eq(CaseInfo::getResponsibleDoctorId, query.getDoctorId());
         }
         
-        // 排序
+        // 闂佸湱鍎ょ敮鎺旇姳?
         if ("asc".equalsIgnoreCase(query.getSortOrder())) {
             wrapper.orderByAsc(CaseInfo::getExamTime);
         } else {
             wrapper.orderByDesc(CaseInfo::getExamTime);
         }
         
-        // 执行分页查询
+        // 闂佸湱鐟抽崱鈺傛杸闂佸憡甯掑Λ婵嬪Υ婢舵劕钃熼柕澶樼厛閸?
         Page<CaseInfo> result = caseInfoMapper.selectPage(page, wrapper);
         
-        // 转换为 VO
+        // 闁哄鍎愰崜姘暦閸欏鈻?VO
         List<CaseVO> voList = result.getRecords().stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
         
         populateResponsibleDoctorNames(voList);
 
-        // 批量关联最新报告数据
+        // 闂佸綊娼х紞濠囧闯濞差亜绀傞悗鍦С缁捇鏌￠崼姘壕闂佸搫鍊绘晶妤佹叏閵堝宸濆┑鐘插暞濞堝爼鏌?
         enrichWithReportData(voList);
         
         return PageResult.of(result.getTotal(), voList);
@@ -149,7 +147,7 @@ public class CaseServiceImpl implements CaseService {
             Long reportCount = reportInfoMapper.selectCount(
                     new LambdaQueryWrapper<ReportInfo>().eq(ReportInfo::getCaseId, caseId));
             if (reportCount == 0) {
-                log.warn("数据自愈: caseId={} reportStatus={} 但无报告记录，纠正为NONE", caseId, caseInfo.getReportStatus());
+                log.warn("闂佽桨鑳舵晶妤€鐣垫笟鈧幊娑㈩敂閸涱厼鈷? caseId={} reportStatus={} 婵炶揪绲藉Λ娆徫涢妶澶婄闁靛鍎查崯鐐烘偣娴ｈ绶茬紓宥呯Ч閺佸秴鐣濋埀顒傜尵閸屾凹娼伴柨婵嗗缁€濠睴NE", caseId, caseInfo.getReportStatus());
                 caseInfo.setReportStatus("NONE");
                 caseInfo.setUpdatedAt(LocalDateTime.now());
                 caseInfoMapper.updateById(caseInfo);
@@ -160,13 +158,12 @@ public class CaseServiceImpl implements CaseService {
         BeanUtils.copyProperties(caseInfo, detailVO);
         fillResponsibleDoctor(detailVO, caseInfo.getResponsibleDoctorId());
 
-        log.info("查询病例详情: caseId={}", caseId);
+        log.info("闂佸搫琚崕鎾敋濡ゅ懏鍎夐柛娑卞墰娴兼劙鎮归崶鐑芥闁? caseId={}", caseId);
         return detailVO;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "case", key = "#caseId")
     public CaseDetailVO claimCase(Long caseId) {
         CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
         if (caseInfo == null) {
@@ -192,7 +189,7 @@ public class CaseServiceImpl implements CaseService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createCase(CaseCreateDTO dto) {
-        // 1. 校验检查号唯一性
+        // 1. 闂佸搫绋勭换婵嬫偘濞嗗精娑㈠焵椤掑嫬钃熼柕澶堝劚婵炲洭鏌涢悜鍡楃仧缂佹梹鎸抽獮鈧?
         LambdaQueryWrapper<CaseInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(CaseInfo::getExamNo, dto.getExamNo());
         CaseInfo existing = caseInfoMapper.selectOne(wrapper);
@@ -201,7 +198,7 @@ public class CaseServiceImpl implements CaseService {
             throw new DuplicateExamNoException(dto.getExamNo());
         }
         
-        // 2. 创建病例实体（使用雪花算法自动生成 caseId）
+        // 2. 闂佸憡甯楃粙鎴犵磽閹剧粯鍎夐柛娑卞墰娴兼劙鎮楅崷顓炰粧缂傚秴顑夐弫宥夊醇濠婂啠鏋忛梺娲绘娇閸旀垵煤閳哄懏鍤嶉弶鍫氭櫇閺嗩剚绻涙径瀣闁搞倖绮撳畷婵嬪Ω瑜庨弲鎼佹煙?caseId闂?
         CaseInfo caseInfo = new CaseInfo();
         BeanUtils.copyProperties(dto, caseInfo);
         caseInfo.setReportStatus("NONE");
@@ -212,24 +209,23 @@ public class CaseServiceImpl implements CaseService {
         caseInfo.setCreatedAt(LocalDateTime.now());
         caseInfo.setUpdatedAt(LocalDateTime.now());
         
-        // 3. 插入数据库
+        // 3. 闂佸湱绮敮鎺楀矗閸℃稑鏋侀柣妤€鐗嗙粊锕傚箹?
         caseInfoMapper.insert(caseInfo);
         
-        // 4. 返回生成的 caseId
+        // 4. 闁哄鏅滈弻銊ッ洪弽顓熷仺闁绘梻顭堥悘鍥煟?caseId
         return caseInfo.getCaseId();
     }
     
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "case", key = "#caseId")
     public void updateCase(Long caseId, CaseUpdateDTO dto) {
-        // 1. 查询病例是否存在
+        // 1. 闂佸搫琚崕鎾敋濡ゅ懏鍎夐柛娑卞墰娴兼劙鏌￠崟闈涚仩闁诡垯鑳堕埀顒佺⊕閿氭繝鈧?
         CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
         if (caseInfo == null) {
             throw new CaseNotFoundException(caseId);
         }
         
-        // 2. 更新允许修改的字段
+        // 2. 闂佸搫娲ら悺銊╁蓟婵犲洤绀傚ù锝囩摂閸熷懎菐閸ヨ泛鏋熼柡浣搞偢閹啴宕熼銈嗘喕濠?
         if (StringUtils.hasText(dto.getPatientAnonId())) {
             caseInfo.setPatientAnonId(dto.getPatientAnonId());
         }
@@ -243,34 +239,33 @@ public class CaseServiceImpl implements CaseService {
             caseInfo.setDepartment(dto.getDepartment());
         }
         
-        // 3. 更新时间戳
+        // 3. 闂佸搫娲ら悺銊╁蓟婵犲洤绫嶉柛顐ｆ礃閿涚喖鏌?
         caseInfo.setUpdatedAt(LocalDateTime.now());
         
-        // 4. 保存到数据库
+        // 4. 婵烇絽娲︾换鍌炴偤閵娾晛绀嗛柣妤€鐗婂▓鍫曟煙鐠団€虫灈缂?
         caseInfoMapper.updateById(caseInfo);
     }
     
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "case", key = "#caseId")
     public void deleteCase(Long caseId) {
-        // 1. 查询病例是否存在
+        // 1. 闂佸搫琚崕鎾敋濡ゅ懏鍎夐柛娑卞墰娴兼劙鏌￠崟闈涚仩闁诡垯鑳堕埀顒佺⊕閿氭繝鈧?
         CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
         if (caseInfo == null) {
             throw new CaseNotFoundException(caseId);
         }
         
-        // 2. 检查是否存在已签发报告
+        // 2. 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵″弶鎮傚畷銉╂晝閳ь剟鎮洪妸鈺佹嵍闁靛鍎遍崵鎺旂磼濞戞瑥鍔ょ憸鏉垮€块獮搴ㄥΨ閵夛箑鏆?
         if ("SIGNED".equals(caseInfo.getReportStatus())) {
             throw new CaseHasSignedReportException();
         }
         
-        // 3. 查询关联的所有影像记录
+        // 3. 闂佸搫琚崕鎾敋濡ゅ懎绀傞悗鍦С缁捇鏌ｉ妸銉ヮ仾濠⒀冪Ч瀵灚寰勬繝鍌ゆ闂佺绉寸换妤咁敊閸ヮ亗浜?
         LambdaQueryWrapper<ImageInfo> imageWrapper = new LambdaQueryWrapper<>();
         imageWrapper.eq(ImageInfo::getCaseId, caseId);
         List<ImageInfo> images = imageInfoMapper.selectList(imageWrapper);
         
-        // 4. 删除 MinIO 中的影像文件
+        // 4. 闂佸憡甯炴繛鈧繛?MinIO 婵炴垶鎼╅崢鎯р枔閹达絻浜归柛妤冨仜閸撳ジ鏌￠崒姘煑婵?
         for (ImageInfo image : images) {
             try {
                 minioClient.removeObject(
@@ -279,49 +274,48 @@ public class CaseServiceImpl implements CaseService {
                         .object(image.getFilePath())
                         .build()
                 );
-                log.info("删除MinIO文件成功: {}", image.getFilePath());
+                log.info("闂佸憡甯炴繛鈧繛鍛噦inIO闂佸搫鍊稿ú锝呪枎閵忋倕绠ｉ柟閭﹀墮椤? {}", image.getFilePath());
             } catch (Exception e) {
-                log.error("删除MinIO文件失败: {}", image.getFilePath(), e);
-                // 继续删除其他文件，不中断流程
+                log.error("闂佸憡甯炴繛鈧繛鍛噦inIO闂佸搫鍊稿ú锝呪枎閵忊€崇窞閺夊牜鍋夎: {}", image.getFilePath(), e);
+                // 缂傚倷缍€閸涱垱鏆伴梺鍛婂笧婵炩偓婵炲懎閰ｅ畷妤呭嫉閻㈢敻鎼ㄩ梺鍝勫€稿ú锝呪枎閵忋倖鏅悘鐐跺亹閻熸繂鈽夐幙鍐ㄥ箺闁哄苯娲ら湁濞达綀銆€閺?
             }
         }
         
-        // 5. 删除影像元数据记录
+        // 5. 闂佸憡甯炴繛鈧繛鍛唉閵囨劙宕￠悙鎻掑闂佺绻愰崯顖炲汲閻旂厧绠叉い鏃€顑欓崬鍓佹喐?
         if (!images.isEmpty()) {
             imageInfoMapper.delete(imageWrapper);
         }
         
-        // 6. 删除病例记录
+        // 6. 闂佸憡甯炴繛鈧繛鍛叄閹偓闁告侗鍓涙导鎰版偣娴ｈ绶茬紓?
         caseInfoMapper.deleteById(caseId);
         
-        log.info("删除病例成功: caseId={}, 删除影像数量={}", caseId, images.size());
+        log.info("闂佸憡甯炴繛鈧繛鍛叄閹偓闁告侗鍓涙导鎰版煙鐎涙ê濮囧┑? caseId={}, 闂佸憡甯炴繛鈧繛鍛唉閵囨劙宕￠悙鎻掑闂佽桨妞掗崡鎶藉闯?{}", caseId, images.size());
     }
     
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "case", key = "#caseId")
     public void markTypical(Long caseId, TypicalMarkDTO dto) {
-        // 1. 查询病例是否存在
+        // 1. 闂佸搫琚崕鎾敋濡ゅ懏鍎夐柛娑卞墰娴兼劙鏌￠崟闈涚仩闁诡垯鑳堕埀顒佺⊕閿氭繝鈧?
         CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
         if (caseInfo == null) {
             throw new CaseNotFoundException(caseId);
         }
         
-        // 2. 更新典型病例标记
+        // 2. 闂佸搫娲ら悺銊╁蓟婵犲洤绀傜紒瀣硶閳ь剛鍏橀幆鈧柛娑卞墰娴兼劙鏌″鍛┛妞?
         caseInfo.setIsTypical(dto.getIsTypical());
         caseInfo.setTypicalTags(dto.getTypicalTags());
         caseInfo.setTypicalRemark(dto.getTypicalRemark());
         caseInfo.setUpdatedAt(LocalDateTime.now());
         
-        // 3. 保存到数据库
+        // 3. 婵烇絽娲︾换鍌炴偤閵娾晛绀嗛柣妤€鐗婂▓鍫曟煙鐠団€虫灈缂?
         caseInfoMapper.updateById(caseInfo);
         
-        log.info("标记典型病例: caseId={}, isTypical={}, tags={}", 
+        log.info("闂佸搫绉村ú鈺咁敊閸ヮ剙绀傜紒瀣硶閳ь剛鍏橀幆鈧柛娑卞墰娴? caseId={}, isTypical={}, tags={}", 
                 caseId, dto.getIsTypical(), dto.getTypicalTags());
     }
     
     /**
-     * 将实体转换为 VO
+     * 闁诲繐绻愬Λ妤呮偪閸曨剚濯撮柟鎹愵潐缁侇噣鏌熺拠鈩冪窔閻?VO
      */
     private CaseVO convertToVO(CaseInfo caseInfo) {
         CaseVO vo = new CaseVO();
@@ -368,15 +362,15 @@ public class CaseServiceImpl implements CaseService {
             throw new BusinessException(401, "未登录");
         }
         if (caseInfo.getResponsibleDoctorId() == null) {
-            throw new BusinessException(403, "请先接诊该病例");
+            throw new BusinessException(403, "瑜版挸澧犻惀鍛伐鐏忔碍婀崚鍡涘帳鐠愶絼鎹㈤崠鑽ゆ晸");
         }
         if (!currentUserId.equals(caseInfo.getResponsibleDoctorId())) {
-            throw new BusinessException(403, "无权查看其他医生负责的病例");
+            throw new BusinessException(403, "无权操作其他医生负责的病例");
         }
     }
 
     /**
-     * 批量关联最新报告数据到 CaseVO
+     * 闂佸綊娼х紞濠囧闯濞差亜绀傞悗鍦С缁捇鏌￠崼姘壕闂佸搫鍊绘晶妤佹叏閵堝宸濆┑鐘插暞濞堝爼鏌熺拠鈥虫灈闁?CaseVO
      */
     private void enrichWithReportData(List<CaseVO> voList) {
         if (voList.isEmpty()) return;
@@ -395,9 +389,9 @@ public class CaseServiceImpl implements CaseService {
                 vo.setSignTime(r.getSignTime());
                 vo.setLastEditTime(r.getUpdatedAt());
             } else if (vo.getReportStatus() != null && !"NONE".equals(vo.getReportStatus())) {
-                // 数据自愈：case_info 标记了非 NONE 状态但 report_info 无记录，纠正为 NONE
+                // 闂佽桨鑳舵晶妤€鐣垫笟鈧幊娑㈩敂閸涱厼鈷愰梺鎸庣⊕閻＄挦se_info 闂佸搫绉村ú鈺咁敊閸ャ劎顩查柛鈩冪⊕婵?NONE 闂佺粯顭堥崺鏍焵椤戞寧顦风紒?report_info 闂佸搫鍟版慨楣冾敊閸ヮ亗浜归柡鍥朵簽缁€澶岀磼閸撗冃ｆい鎺撶矋缁?NONE
                 vo.setReportStatus("NONE");
-                log.warn("数据不一致: caseId={} reportStatus={} 但无报告记录，已纠正为NONE",
+                log.warn("闂佽桨鑳舵晶妤€鐣垫担鍦枖鐎广儱瀚閬嶆煠? caseId={} reportStatus={} 婵炶揪绲藉Λ娆徫涢妶澶婄闁靛鍎查崯鐐烘偣娴ｈ绶茬紓宥呯Ч閺佸秶浠﹂挊澶婃缂備礁澧芥慨鐢割敆濠婂嫮鈻旂紒鈩冦偟NE",
                         vo.getCaseId(), vo.getReportStatus());
             }
         }
@@ -413,143 +407,143 @@ public class CaseServiceImpl implements CaseService {
                 .errors(new ArrayList<>())
                 .build();
         
-        // 1. 校验文件格式
+        // 1. 闂佸搫绋勭换婵嬫偘濞嗘挸妫橀柛銉檮椤愪粙鏌″鍥у付缂?
         if (file == null || file.isEmpty()) {
-            throw new BusinessException("文件不能为空");
+            throw new BusinessException("涓婁紶鏂囦欢涓嶈兘涓虹┖");
         }
         
         String filename = file.getOriginalFilename();
         if (filename == null || !filename.toLowerCase().endsWith(".csv")) {
-            throw new BusinessException("仅支持 CSV 格式文件");
+            throw new BusinessException("璇蜂笂浼?CSV 鏍煎紡鏂囦欢");
         }
         
-        // 2. 解析 CSV 文件
+        // 2. 闁荤喐鐟辩徊楣冩倵?CSV 闂佸搫鍊稿ú锝呪枎?
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             
-            // 读取表头
+            // 闁荤姴娲╅褑銇愰崶鈺傚仒闁靛鍎禒?
             String headerLine = reader.readLine();
             if (headerLine == null) {
-                throw new BusinessException("CSV 文件为空");
+                throw new BusinessException("CSV 鏂囦欢涓嶈兘涓虹┖");
             }
             
-            // 校验表头格式
+            // 闂佸搫绋勭换婵嬫偘濞嗘垶鍋橀柕濞垮劘娴犲牓鏌″鍥у付缂?
             if (!isValidHeader(headerLine)) {
-                throw new BusinessException("CSV 文件格式错误，期望表头：检查号,患者匿名ID,性别,年龄,检查时间,检查部位,科室");
+                throw new BusinessException("CSV 琛ㄥご涓嶆纭紝搴斾负 examNo,patientAnonId,gender,age,examTime,bodyPart,department");
             }
             
-            // 逐行读取数据
+            // 闂備緡鍋呴崝姗€銆侀幋鐘冲珰閻犲洦褰冪徊鍧楁煛娴ｅ搫顣肩€?
             String line;
-            int rowNumber = 1; // 从第1行开始（不包括表头）
+            int rowNumber = 1; // 婵炲濮村ù鐑筋敄?闁荤偞绋戦懟顖滄閹寸偞鍙忛悗锝呭缁€鍕槈閹惧磭孝閻庡灚锕㈤獮蹇涱敆閸愶腹鍋撻崘鈺佺窞閺夊牆澧界粈?
             
             while ((line = reader.readLine()) != null) {
                 rowNumber++;
                 result.setTotalRows(result.getTotalRows() + 1);
                 
-                // 跳过空行
+                // 闁荤姴鎼悿鍥╂崲閸愵亞鐭氬Δ锔筋儥閺€?
                 if (line.trim().isEmpty()) {
                     continue;
                 }
                 
-                // 解析并导入单行数据
+                // 闁荤喐鐟辩徊楣冩倵娴犲宓侀悹杞拌閸ゃ倝鏌涜箛瀣姎鐎规洜鍠撻幃鎵沪閻愵剚顔嶉梺?
                 try {
                     CaseCreateDTO dto = parseCsvLine(line, rowNumber);
                     createCase(dto);
                     result.setSuccessCount(result.getSuccessCount() + 1);
                 } catch (DuplicateExamNoException e) {
                     result.setFailedCount(result.getFailedCount() + 1);
-                    result.getErrors().add(new ImportError(rowNumber, "检查号已存在"));
-                    log.warn("导入失败 - 行{}: 检查号已存在", rowNumber);
+                    result.getErrors().add(new ImportError(rowNumber, "濡偓閺屻儱褰块柌宥咁槻"));
+                    log.warn("CSV 鐎电厧鍙嗙捄瀹犵箖 - 缁楃憡}鐞? 濡偓閺屻儱褰块柌宥咁槻", rowNumber);
                 } catch (Exception e) {
                     result.setFailedCount(result.getFailedCount() + 1);
                     result.getErrors().add(new ImportError(rowNumber, e.getMessage()));
-                    log.warn("导入失败 - 行{}: {}", rowNumber, e.getMessage());
+                    log.warn("闁诲海鏁搁崢褔宕ｉ崱妯虹窞閺夊牜鍋夎 - 闁荤偞绋戦惁娈? {}", rowNumber, e.getMessage());
                 }
             }
             
-            log.info("批量导入完成: 总行数={}, 成功={}, 失败={}", 
+            log.info("闂佸綊娼х紞濠囧闯閾忓厜鍋撻悽闈涘付闁告瑥妫涢埀顒傛嚀閺堫剟宕? 闂佽鍓氬Σ鎺椼€侀幋锕€鏋?{}, 闂佺懓鐡ㄩ崝鏇熸叏?{}, 婵犮垺鍎肩划鍓ф喆?{}", 
                     result.getTotalRows(), result.getSuccessCount(), result.getFailedCount());
             
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("批量导入失败", e);
-            throw new BusinessException("批量导入失败: " + e.getMessage());
+            log.error("CSV 导入失败", e);
+            throw new BusinessException("闂佸綊娼х紞濠囧闯閾忓厜鍋撻悽闈涘付闁告瑥妫欏鍕綇椤愩儛? " + e.getMessage());
         }
         
         return result;
     }
     
     /**
-     * 校验 CSV 表头格式
+     * 闂佸搫绋勭换婵嬫偘?CSV 闁荤偞绋忛崝宀勫Φ閺冨牆鍐€闁绘挸娴风涵鈧?
      */
     private boolean isValidHeader(String headerLine) {
-        String expectedHeader = "检查号,患者匿名ID,性别,年龄,检查时间,检查部位,科室";
+        String expectedHeader = "examNo,patientAnonId,gender,age,examTime,bodyPart,department";
         return headerLine.trim().equals(expectedHeader);
     }
     
     /**
-     * 解析 CSV 行数据
+     * 闁荤喐鐟辩徊楣冩倵?CSV 闁荤偞绋戦張顒勫汲閻旂厧绠?
      */
     private CaseCreateDTO parseCsvLine(String line, int rowNumber) {
-        String[] fields = line.split(",", -1); // -1 保留空字段
+        String[] fields = line.split(",", -1); // -1 婵烇絽娲︾换鍕汲閳ь剛绱掔仦鑺ユ儓闁烩姍鍐ｆ灁?
         
         if (fields.length != 7) {
-            throw new BusinessException("字段数量不正确，期望7个字段");
+            throw new BusinessException("CSV 文件格式错误，应为 7 列");
         }
         
         CaseCreateDTO dto = new CaseCreateDTO();
         
-        // 检查号（必填）
+        // 濠碘槅鍋€閸嬫捇鏌＄仦璇插姎鐟滄澘娼￠弫宥夊醇濠靛牏鐣辨繝闈涱樈閸嬫挾妲?
         String examNo = fields[0].trim();
         if (examNo.isEmpty()) {
-            throw new BusinessException("必填字段缺失：检查号");
+            throw new BusinessException("检查号不能为空");
         }
         dto.setExamNo(examNo);
         
-        // 患者匿名ID（必填）
+        // 闂佽鍣紞鈧柍褜鍓欓幊搴ｄ焊閸洖瑙︾€光偓缁洭鏌ㄥ☉妯煎缂佺儵鍋撴繝闈涱樈閸嬫挾妲?
         String patientAnonId = fields[1].trim();
         if (patientAnonId.isEmpty()) {
-            throw new BusinessException("必填字段缺失：患者匿名ID");
+            throw new BusinessException("闂婎偄娲ら幊搴ㄦ晲閻愮鍋撳☉娆樻畷妞ゆ柨鐬肩槐鎾诲传閸曗晙鏉梺鎸庣⊕绾板秹宕戦崨瀛樺殌闁告侗鍘煎畝鎼佹煕濮橆兛绗塂");
         }
         dto.setPatientAnonId(patientAnonId);
         
-        // 性别（可选）
+        // 闂佽鍎搁崘銊у姸闂佹寧绋戦悧鍡氥亹閺屻儲鐒诲鑸电〒缁€?
         String gender = fields[2].trim();
         if (!gender.isEmpty()) {
             dto.setGender(gender);
         }
         
-        // 年龄（可选）
+        // 濡ょ姷鍋為幐宕囨閻愮儤鏅柛顐ｇ箓鐠佹煡姊洪銏╂缂?
         String ageStr = fields[3].trim();
         if (!ageStr.isEmpty()) {
             try {
                 dto.setAge(Integer.parseInt(ageStr));
             } catch (NumberFormatException e) {
-                throw new BusinessException("年龄格式错误");
+                throw new BusinessException("骞撮緞瀛楁鏍煎紡閿欒");
             }
         }
         
-        // 检查时间（必填）
+        // 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵＄偛鍊垮缁樻綇閸撗咁槱闂婎偄娲ら幊搴ㄦ晲閻愮儤鏅?
         String examTimeStr = fields[4].trim();
         if (examTimeStr.isEmpty()) {
-            throw new BusinessException("必填字段缺失：检查时间");
+            throw new BusinessException("检查时间格式错误，正确格式为 yyyy-MM-dd HH:mm:ss");
         }
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             dto.setExamTime(LocalDateTime.parse(examTimeStr, formatter));
         } catch (DateTimeParseException e) {
-            throw new BusinessException("检查时间格式错误，期望格式：yyyy-MM-dd HH:mm:ss");
+            throw new BusinessException("濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵＄偛鍊垮鑽も偓娑欘焽婢规劗鈧鍠栫换姗€寮繝鍕珰妞ゆ牓鍊楃粈澶愭煛閸垹鏋戞繝鈧鍫濆唨闁绘挸娴风涵鈧梺鎸庣⊕椤掔yy-MM-dd HH:mm:ss");
         }
         
-        // 检查部位（必填）
+        // 濠碘槅鍋€閸嬫捇鏌＄仦璇插姦闁稿骸鐡ㄩ幏鍛吋韫囨洜顦╅棅顐㈡搐閹冲酣鏁愰悙鐑樻櫖?
         String bodyPart = fields[5].trim();
         if (bodyPart.isEmpty()) {
-            throw new BusinessException("必填字段缺失：检查部位");
+            throw new BusinessException("检查部位不能为空");
         }
         dto.setBodyPart(bodyPart);
         
-        // 科室（可选）
+        // 缂備礁顦伴崹鐢割敇婵犳碍鏅柛顐ｇ箓鐠佹煡姊洪銏╂缂?
         String department = fields[6].trim();
         if (!department.isEmpty()) {
             dto.setDepartment(department);

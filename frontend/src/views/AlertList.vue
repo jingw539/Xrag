@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-wrap">
     <el-card class="full-card">
       <template #header>
@@ -81,7 +81,7 @@
       <el-form-item label="处理动作">
         <el-select v-model="respondAction" style="width:100%">
           <el-option label="确认已知" value="ACKNOWLEDGED" />
-          <el-option label="上转处理" value="ESCALATED" />
+          <el-option label="升级处理" value="ESCALATED" />
           <el-option label="驳回" value="DISMISSED" />
         </el-select>
       </el-form-item>
@@ -123,25 +123,25 @@ const query = reactive({ page: 1, pageSize: 20, alertStatus: '', labelType: '' }
 
 const SMART_RESPONSES = {
   Pneumothorax: [
-    '已通知值班医生，建议立即复查胸片确认，必要时行胸腔穿刺减压',
-    '气胸体积较小时建议密切观察，结合临床症状评估处理'
+    '已通知值班医生，建议立即复查胸片确认，必要时行胸腔穿刺减压。',
+    '气胸体积较小时建议密切观察，结合临床症状评估后处理。'
   ],
   'Pleural Effusion': [
-    '已通知主管医生，建议结合超声评估积液量，必要时行胸腔穿刺引流',
-    '积液量较少时建议结合症状随访，暂行保守处理'
+    '已通知主管医生，建议结合超声评估积液量，必要时行胸腔穿刺引流。',
+    '积液量较少时建议结合症状随访，暂行保守处理。'
   ],
   Pneumonia: [
-    '已提示临床医生，建议结合血常规、体温和症状综合评估，必要时调整抗感染方案'
+    '已提示临床医生，建议结合血常规、体温和症状综合评估，必要时调整抗感染方案。'
   ],
   Cardiomegaly: [
-    '已提示心内科会诊，建议进一步行超声心动图评估'
+    '已提示心内科会诊，建议进一步行超声心动图评估。'
   ]
 }
 
 const smartSuggestions = computed(() => {
   return SMART_RESPONSES[current.value.labelType] || [
-    '已确认影像结果，已通知相关医生处理',
-    '已核实预警信息，请结合患者症状综合评估'
+    '已确认影像结果，已通知相关医生处理。',
+    '已核实预警信息，请结合患者症状综合评估。'
   ]
 })
 
@@ -189,7 +189,6 @@ const handleRespond = async () => {
 
 onMounted(fetchList)
 </script>
-
 <style scoped>
 .page-wrap {
   padding: 20px;
@@ -198,7 +197,7 @@ onMounted(fetchList)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #0E1621;
+  background: #0d1420;
 }
 
 .full-card {
@@ -206,15 +205,15 @@ onMounted(fetchList)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #1A2535;
-  border: 1px solid rgba(111, 134, 166, 0.28);
+  background: #0d1420;
+  border: 1px solid rgba(111, 134, 166, 0.16);
   box-shadow: none;
 }
 
 :deep(.full-card .el-card__header),
 :deep(.full-card .el-card__body) {
-  background: #1A2535;
-  border-color: rgba(111, 134, 166, 0.24);
+  background: #0d1420;
+  border-color: rgba(111, 134, 166, 0.16);
   color: #D0DCF0;
 }
 
@@ -311,9 +310,9 @@ onMounted(fetchList)
 :deep(.el-dialog__header),
 :deep(.el-dialog__body),
 :deep(.el-dialog__footer) {
-  background: #1A2535;
+  background: #0f1923 !important;
   color: #D0DCF0;
-  border-color: rgba(111, 134, 166, 0.24);
+  border-color: rgba(111, 134, 166, 0.16);
 }
 
 :deep(.el-table--border::before),
@@ -326,11 +325,11 @@ onMounted(fetchList)
 }
 
 :deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) {
-  background: rgba(233, 238, 245, 0.04);
+  background: #0f1923 !important;
 }
 
 :deep(.el-table__body tr:hover > td.el-table__cell) {
-  background: rgba(74, 158, 255, 0.09);
+  background: rgba(111, 134, 166, 0.12) !important;
 }
 
 :deep(.el-button),
@@ -353,16 +352,37 @@ onMounted(fetchList)
 
 :deep(.el-tag),
 :deep(.el-badge__content) {
-  background: rgba(233, 238, 245, 0.08);
-  color: #EAF2FF;
-  border-color: rgba(111, 134, 166, 0.24);
+  background: rgba(111, 134, 166, 0.2) !important;
+  color: #d0dcf0 !important;
+  border-color: rgba(111, 134, 166, 0.35) !important;
+}
+:deep(.el-tag.el-tag--danger) {
+  background: rgba(245, 108, 108, 0.2) !important;
+  border-color: rgba(245, 108, 108, 0.4) !important;
+  color: #f89898 !important;
+}
+:deep(.el-tag.el-tag--success) {
+  background: rgba(103, 194, 58, 0.2) !important;
+  border-color: rgba(103, 194, 58, 0.4) !important;
+  color: #95d475 !important;
+}
+:deep(.el-tag.el-tag--info) {
+  background: rgba(111, 134, 166, 0.25) !important;
+  border-color: rgba(111, 134, 166, 0.4) !important;
+  color: #9fb3cc !important;
 }
 
-:deep(.el-pagination),
-:deep(.el-pagination button),
-:deep(.el-pager li) {
-  background: transparent;
-  color: #D0DCF0;
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next),
+:deep(.el-pagination .el-pager li) {
+  background: #0f1923 !important;
+  color: #d0dcf0 !important;
+  border: 1px solid rgba(111, 134, 166, 0.2) !important;
+}
+:deep(.el-pagination .el-pager li.is-active) {
+  background: rgba(64, 158, 255, 0.35) !important;
+  color: #fff !important;
+  border-color: rgba(64, 158, 255, 0.5) !important;
 }
 
 :deep(.el-progress-bar__outer) {
@@ -440,3 +460,132 @@ onMounted(fetchList)
 
 
 
+
+<style scoped>
+.page-wrap {
+  background: var(--xrag-bg) !important;
+  color: var(--xrag-text) !important;
+}
+
+.full-card {
+  background: var(--xrag-bg) !important;
+  border-color: var(--xrag-border) !important;
+  box-shadow: var(--xrag-shadow) !important;
+}
+
+:deep(.full-card .el-card__header),
+:deep(.full-card .el-card__body) {
+  background: var(--xrag-bg) !important;
+  border-color: var(--xrag-border) !important;
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-form-item__label),
+:deep(.el-dialog__title),
+:deep(.el-empty__description),
+:deep(.el-pagination__total),
+:deep(.el-pagination__jump),
+:deep(.el-table .cell),
+:deep(.el-descriptions__label),
+:deep(.el-descriptions__content) {
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner),
+:deep(.el-select__wrapper),
+:deep(.el-date-editor.el-input__wrapper) {
+  background: rgba(233, 238, 245, 0.05) !important;
+  border-color: var(--xrag-border-strong) !important;
+  box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.18) inset !important;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner),
+:deep(.el-select__placeholder),
+:deep(.el-select__selected-item),
+:deep(.el-range-input),
+:deep(.el-switch__label) {
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-button--default),
+:deep(.el-button.is-link),
+:deep(.el-button.is-plain) {
+  background: rgba(233, 238, 245, 0.06) !important;
+  border-color: rgba(111, 134, 166, 0.28) !important;
+  color: var(--xrag-text) !important;
+}
+
+:deep(.el-button--default:hover),
+:deep(.el-button.is-link:hover),
+:deep(.el-button.is-plain:hover) {
+  background: rgba(74, 158, 255, 0.10) !important;
+  border-color: rgba(74, 158, 255, 0.28) !important;
+  color: #f4f8ff !important;
+}
+
+:deep(.el-button--primary) {
+  background: linear-gradient(180deg, #4A9EFF 0%, #3A86E8 100%) !important;
+  border-color: #4A9EFF !important;
+  color: #fff !important;
+}
+
+:deep(.el-table),
+:deep(.el-table__inner-wrapper),
+:deep(.el-table tr),
+:deep(.el-table th.el-table__cell),
+:deep(.el-table td.el-table__cell),
+:deep(.el-table__body),
+:deep(.el-table__header),
+:deep(.el-table__empty-block),
+:deep(.el-descriptions__body),
+:deep(.el-descriptions__table) {
+  background: var(--xrag-panel) !important;
+  color: var(--xrag-text) !important;
+  border-color: var(--xrag-border) !important;
+}
+
+:deep(.el-table--border::before),
+:deep(.el-table--border::after),
+:deep(.el-table__inner-wrapper::before),
+:deep(.el-table td.el-table__cell),
+:deep(.el-table th.el-table__cell),
+:deep(.el-descriptions__cell) {
+  border-color: rgba(111, 134, 166, 0.24) !important;
+}
+
+:deep(.el-table__body tr:hover > td.el-table__cell) {
+  background: rgba(111, 134, 166, 0.12) !important;
+}
+
+:deep(.el-tag),
+:deep(.el-badge__content) {
+  background: rgba(111, 134, 166, 0.2) !important;
+  color: var(--xrag-text) !important;
+  border-color: rgba(111, 134, 166, 0.35) !important;
+}
+
+:deep(.el-dialog),
+:deep(.el-dialog__header),
+:deep(.el-dialog__body),
+:deep(.el-dialog__footer) {
+  background: var(--xrag-panel) !important;
+  color: var(--xrag-text) !important;
+  border-color: var(--xrag-border) !important;
+}
+
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next),
+:deep(.el-pagination .el-pager li) {
+  background: var(--xrag-panel) !important;
+  color: var(--xrag-text) !important;
+  border: 1px solid rgba(111, 134, 166, 0.2) !important;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  background: rgba(64, 158, 255, 0.35) !important;
+  color: #fff !important;
+  border-color: rgba(64, 158, 255, 0.5) !important;
+}
+</style>

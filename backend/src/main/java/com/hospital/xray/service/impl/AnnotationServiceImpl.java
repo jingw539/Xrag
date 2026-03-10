@@ -2,6 +2,7 @@ package com.hospital.xray.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hospital.xray.dto.AnnotationCreateDTO;
+import com.hospital.xray.dto.AnnotationUpdateDTO;
 import com.hospital.xray.dto.AnnotationVO;
 import com.hospital.xray.entity.ImageAnnotation;
 import com.hospital.xray.exception.BusinessException;
@@ -99,12 +100,38 @@ public class AnnotationServiceImpl implements AnnotationService {
         anno.setY(dto.getY());
         anno.setWidth(dto.getWidth());
         anno.setHeight(dto.getHeight());
+        anno.setMeasuredWidthMm(dto.getMeasuredWidthMm());
+        anno.setMeasuredHeightMm(dto.getMeasuredHeightMm());
+        anno.setCompareStatus(dto.getCompareStatus());
+        anno.setCompareNote(dto.getCompareNote());
         anno.setColor(dto.getColor() != null ? dto.getColor() : "#52c41a");
         anno.setConfidence(null);
         anno.setCreatedBy(userId);
         anno.setCreatedAt(LocalDateTime.now());
         annotationMapper.insert(anno);
         return toVO(anno);
+    }
+
+
+    @Override
+    public AnnotationVO update(Long annotationId, AnnotationUpdateDTO dto, Long userId) {
+        ImageAnnotation anno = annotationMapper.selectById(annotationId);
+        if (anno == null) throw new BusinessException("标注不存在");
+        if (!"DOCTOR".equals(anno.getSource())) throw new BusinessException(403, "AI 标注不允许修改");
+        if (dto.getAnnoType() != null) anno.setAnnoType(dto.getAnnoType());
+        if (dto.getLabel() != null) anno.setLabel(dto.getLabel());
+        if (dto.getRemark() != null) anno.setRemark(dto.getRemark());
+        if (dto.getX() != null) anno.setX(dto.getX());
+        if (dto.getY() != null) anno.setY(dto.getY());
+        if (dto.getWidth() != null) anno.setWidth(dto.getWidth());
+        if (dto.getHeight() != null) anno.setHeight(dto.getHeight());
+        if (dto.getMeasuredWidthMm() != null) anno.setMeasuredWidthMm(dto.getMeasuredWidthMm());
+        if (dto.getMeasuredHeightMm() != null) anno.setMeasuredHeightMm(dto.getMeasuredHeightMm());
+        if (dto.getCompareStatus() != null) anno.setCompareStatus(dto.getCompareStatus());
+        if (dto.getCompareNote() != null) anno.setCompareNote(dto.getCompareNote());
+        if (dto.getColor() != null) anno.setColor(dto.getColor());
+        annotationMapper.updateById(anno);
+        return toVO(annotationMapper.selectById(annotationId));
     }
 
     @Override
@@ -200,9 +227,17 @@ public class AnnotationServiceImpl implements AnnotationService {
         vo.setY(a.getY());
         vo.setWidth(a.getWidth());
         vo.setHeight(a.getHeight());
+        vo.setMeasuredWidthMm(a.getMeasuredWidthMm());
+        vo.setMeasuredHeightMm(a.getMeasuredHeightMm());
+        vo.setCompareStatus(a.getCompareStatus());
+        vo.setCompareNote(a.getCompareNote());
         vo.setColor(a.getColor());
         vo.setConfidence(a.getConfidence());
         vo.setCreatedAt(a.getCreatedAt());
+        if (a.getCreatedBy() != null) {
+            var user = sysUserMapper.selectById(a.getCreatedBy());
+            if (user != null) vo.setCreatedByName(user.getRealName());
+        }
         return vo;
     }
 }

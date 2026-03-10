@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Value("${app.security.expose-docs:false}")
@@ -41,10 +41,15 @@ public class SecurityConfig {
 
     @Value("${app.security.allowed-origins:}")
     private List<String> allowedOrigins;
-    
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        List<String> publicEndpoints = new ArrayList<>(List.of("/api/auth/**", "/favicon.ico"));
+        List<String> publicEndpoints = new ArrayList<>(List.of(
+                "/api/auth/**",
+                "/api/images/*/content",
+                "/api/images/*/thumbnail",
+                "/favicon.ico"
+        ));
         if (exposeActuator) {
             publicEndpoints.add("/actuator/**");
         }
@@ -104,12 +109,12 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/api/**", config);
         return source;
     }
-    
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();

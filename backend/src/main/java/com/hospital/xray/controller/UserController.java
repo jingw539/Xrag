@@ -1,7 +1,13 @@
 package com.hospital.xray.controller;
 
 import com.hospital.xray.common.Result;
-import com.hospital.xray.dto.*;
+import com.hospital.xray.dto.PageResult;
+import com.hospital.xray.dto.PasswordUpdateDTO;
+import com.hospital.xray.dto.StatusUpdateDTO;
+import com.hospital.xray.dto.UserCreateDTO;
+import com.hospital.xray.dto.UserQueryDTO;
+import com.hospital.xray.dto.UserUpdateDTO;
+import com.hospital.xray.dto.UserVO;
 import com.hospital.xray.exception.BusinessException;
 import com.hospital.xray.service.UserService;
 import com.hospital.xray.util.SecurityUtils;
@@ -11,9 +17,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "用户管理", description = "用户CRUD、密码修改、状态切换")
+@Tag(name = "用户管理", description = "用户 CRUD、密码修改、状态切换")
 @Validated
 @RestController
 @RequestMapping("/api/users")
@@ -29,13 +42,19 @@ public class UserController {
         return Result.success(userService.listUsers(queryDTO));
     }
 
+    @Operation(summary = "获取当前用户信息")
+    @GetMapping("/me")
+    public Result<UserVO> getCurrentUser() {
+        return Result.success(userService.getUserById(SecurityUtils.getCurrentUserId()));
+    }
+
     @Operation(summary = "查询用户详情")
     @GetMapping("/{userId}")
     public Result<UserVO> getUserById(@PathVariable String userId) {
         Long id = Long.parseLong(userId);
         Long currentId = SecurityUtils.getCurrentUserId();
         if (!SecurityUtils.isAdmin() && !id.equals(currentId)) {
-            throw new BusinessException(403, "无权限查看其他用户信息");
+            throw new BusinessException(403, "无权查看其他用户信息");
         }
         return Result.success(userService.getUserById(id));
     }
@@ -55,7 +74,7 @@ public class UserController {
         Long currentId = SecurityUtils.getCurrentUserId();
         boolean isAdmin = SecurityUtils.isAdmin();
         if (!isAdmin && !id.equals(currentId)) {
-            throw new BusinessException(403, "无权限修改其他用户信息");
+            throw new BusinessException(403, "无权修改其他用户信息");
         }
         if (!isAdmin) {
             updateDTO.setRoleCode(null);
@@ -72,13 +91,13 @@ public class UserController {
         Long currentId = SecurityUtils.getCurrentUserId();
         boolean isAdmin = SecurityUtils.isAdmin();
         if (!isAdmin && !id.equals(currentId)) {
-            throw new BusinessException(403, "无权限修改其他用户密码");
+            throw new BusinessException(403, "无权修改其他用户密码");
         }
         userService.updatePassword(id, dto, currentId, isAdmin);
         return Result.success();
     }
 
-    @Operation(summary = "启用/禁用用户")
+    @Operation(summary = "启用或禁用用户")
     @PutMapping("/{userId}/status")
     @PreAuthorize("hasAuthority('ADMIN')")
     public Result<Void> updateStatus(@PathVariable String userId,

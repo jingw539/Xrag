@@ -70,7 +70,7 @@ public class ReportServiceImpl implements ReportService {
         try {
             imageDataUrl = imageService.getImageAsDataUrl(dto.getImageId());
         } catch (Exception e) {
-            log.warn("闁荤喐绮嶅妯虹暦椤掑嫬纾挎慨妯挎硾閺嬩線鏌ｅΔ鈧悧鍡欑矈閿曞倹鍋ｉ柛銉憾閸ゆ瑧鎲搁弶鎸庡鐎垫澘瀚蹇涱敃閵夋劖娲熼弻銊モ槈濡灝顏梺姹囧妸閸ㄦ椽骞忛崨顖涘磯闁靛闄勫▓銏㈢磽娴ｆ瓕瀚伴柟纰卞亜闇夋慨妞诲亾鐎规洘鎹佺粻娑㈠箻瀹曞洨宕跺┑? {}", e.getMessage());
+            log.warn("获取影像 Data URL 失败，生成报告时将不附带图像内容: {}", e.getMessage());
             imageDataUrl = null;
         }
 
@@ -79,7 +79,7 @@ public class ReportServiceImpl implements ReportService {
         try {
             genResult = aiServiceClient.generateReport(imageDataUrl, similarCasesForPrompt);
         } catch (BusinessException e) {
-            log.warn("闂備胶顢婄紙浼村磿闁秴绠熼柨鐔哄У閸嬨劑鏌ｉ弮鍌ょ劸闁诲繐妲咺闂備礁鎼悧鍡欑矓鐎涙ɑ鍙忛柣鏂挎憸閳绘梻鈧箍鍎遍幊搴ｆ媼閺屻儲鐓? {}", e.getMessage());
+            log.warn("AI 报告生成失败，已回退为人工撰写模式: {}", e.getMessage());
             genResult = Map.of(
                     "findings", "AI service unavailable - please write manually.",
                     "impression", "",
@@ -153,7 +153,7 @@ public class ReportServiceImpl implements ReportService {
         }
         if (imageId == null) throw new BusinessException(400, "Source image not found for regeneration");
 
-        // 婵犵數鍋為幐鎼佸箠閹版澘绠栧┑鐘叉搐缁秶鎲告惔銏″弿闁靛牆顦婵嗏攽閻樻彃鈧悂骞愰妶澶嬬厱闊洦纰嶇涵楣冩煕濞呰娲﹂崵鍌炴煛閸愶絽浜鹃梺鍝勬閸犳牠鐛?        cleanupReport(existing);
+        // 删除旧报告关联数据后再重新生成，避免脏数据残留
 
         ReportGenerateDTO dto = new ReportGenerateDTO();
         dto.setCaseId(existing.getCaseId());

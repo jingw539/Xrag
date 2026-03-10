@@ -2,14 +2,18 @@ package com.hospital.xray.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.hospital.xray.dto.*;
+import com.hospital.xray.dto.PageResult;
+import com.hospital.xray.dto.PasswordUpdateDTO;
+import com.hospital.xray.dto.UserCreateDTO;
+import com.hospital.xray.dto.UserQueryDTO;
+import com.hospital.xray.dto.UserUpdateDTO;
+import com.hospital.xray.dto.UserVO;
 import com.hospital.xray.entity.SysRole;
 import com.hospital.xray.entity.SysUser;
 import com.hospital.xray.exception.BusinessException;
 import com.hospital.xray.mapper.SysRoleMapper;
 import com.hospital.xray.mapper.SysUserMapper;
 import com.hospital.xray.service.UserService;
-import com.hospital.xray.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -117,7 +121,7 @@ public class UserServiceImpl implements UserService {
                 throw new BusinessException(400, "旧密码不能为空");
             }
             if (!passwordEncoder.matches(dto.getOldPassword(), user.getPasswordHash())) {
-                throw new BusinessException(400, "旧密码不正确");
+                throw new BusinessException(400, "旧密码错误");
             }
         }
         user.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
@@ -143,20 +147,6 @@ public class UserServiceImpl implements UserService {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
-        }
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-        if (userId.equals(currentUserId)) {
-            throw new BusinessException(400, "不能删除当前登录账号");
-        }
-        SysRole role = sysRoleMapper.selectById(user.getRoleId());
-        if (role != null && "ADMIN".equals(role.getRoleCode())) {
-            long adminCount = sysUserMapper.selectCount(
-                    new LambdaQueryWrapper<SysUser>()
-                            .eq(SysUser::getRoleId, user.getRoleId())
-                            .eq(SysUser::getStatus, 1));
-            if (adminCount <= 1) {
-                throw new BusinessException(400, "系统中至少需要保留一个有效的管理员账号");
-            }
         }
         sysUserMapper.deleteById(userId);
     }

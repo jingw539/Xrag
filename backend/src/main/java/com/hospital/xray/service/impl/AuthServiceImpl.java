@@ -98,10 +98,10 @@ public class AuthServiceImpl implements AuthService {
         SysRefreshToken storedToken = refreshTokenMapper.selectActiveByHash(tokenHash);
 
         if (storedToken == null) {
-            throw new BusinessException(401, "refreshToken无效或已过期");
+            throw new BusinessException(401, "refreshToken 无效或已过期");
         }
         if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(401, "refreshToken已过期，请重新登录");
+            throw new BusinessException(401, "refreshToken 已过期，请重新登录");
         }
 
         SysUser user = sysUserMapper.selectWithRoleByUserId(storedToken.getUserId());

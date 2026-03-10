@@ -21,11 +21,9 @@ public class ImageAnnotation {
     @TableField("report_id")
     private Long reportId;
 
-    /** AI 或 DOCTOR */
     @TableField("source")
     private String source;
 
-    /** RECTANGLE / CIRCLE */
     @TableField("anno_type")
     private String annoType;
 
@@ -35,11 +33,9 @@ public class ImageAnnotation {
     @TableField("remark")
     private String remark;
 
-    /** 标注框左上角 X，归一化 0-1 */
     @TableField("x")
     private Double x;
 
-    /** 标注框左上角 Y，归一化 0-1 */
     @TableField("y")
     private Double y;
 
@@ -49,11 +45,21 @@ public class ImageAnnotation {
     @TableField("height")
     private Double height;
 
-    /** 显示颜色，如 #ff7875 */
+    @TableField("measured_width_mm")
+    private Double measuredWidthMm;
+
+    @TableField("measured_height_mm")
+    private Double measuredHeightMm;
+
+    @TableField("compare_status")
+    private String compareStatus;
+
+    @TableField("compare_note")
+    private String compareNote;
+
     @TableField("color")
     private String color;
 
-    /** AI 置信度 0-1，医生标注为 null */
     @TableField("confidence")
     private Double confidence;
 

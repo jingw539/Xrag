@@ -11,16 +11,6 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    timeout: 3000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 2
-
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -61,14 +51,14 @@ logging:
   level:
     com.hospital.xray: DEBUG
 
-# Knife4j配置
+# Knife4j 配置
 knife4j:
   enable: true
   setting:
     language: zh_cn
     swagger-model-name: 实体类列表
 
-# SpringDoc配置
+# SpringDoc 配置
 springdoc:
   api-docs:
     enabled: true
@@ -87,11 +77,11 @@ springdoc:
       paths-to-match: /api/cases/**
     - group: 影像管理
       paths-to-match: /api/images/**
-    - group: RAG检索
+    - group: RAG 检索
       paths-to-match: /api/retrieval/**
     - group: 报告管理
       paths-to-match: /api/reports/**
-    - group: CheXbert评测
+    - group: CheXbert 评测
       paths-to-match: /api/eval/**
     - group: 危急值预警
       paths-to-match: /api/alerts/**

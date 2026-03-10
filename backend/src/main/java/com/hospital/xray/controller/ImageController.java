@@ -2,81 +2,97 @@ package com.hospital.xray.controller;
 
 import com.hospital.xray.annotation.OperationLog;
 import com.hospital.xray.common.Result;
+import com.hospital.xray.dto.ImageMetadataUpdateDTO;
 import com.hospital.xray.dto.ImageUploadResult;
 import com.hospital.xray.dto.ImageVO;
 import com.hospital.xray.service.ImageService;
 import com.hospital.xray.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-/**
- * 影像管理控制器
- */
-@Tag(name = "影像管理", description = "影像的上传、查询、删除等功能")
+@Tag(name = "影像管理", description = "影像上传、浏览、缩略图与元数据维护接口")
 @RestController
 @RequestMapping("/api/images")
 @RequiredArgsConstructor
 public class ImageController {
 
     private final ImageService imageService;
-    
-    /**
-     * 上传影像
-     * 
-     * @param file 影像文件
-     * @param caseId 所属病例ID
-     * @param viewPosition 投照体位（可选）
-     * @return 上传结果
-     */
-    @Operation(summary = "上传影像", description = "上传医学影像文件到MinIO存储")
+
+    @Operation(summary = "上传影像")
     @PostMapping("/upload")
     @OperationLog(type = "IMAGE_UPLOAD", detail = "上传影像")
     public Result<ImageUploadResult> uploadImage(
-            @Parameter(description = "影像文件", required = true) @RequestParam("file") MultipartFile file,
-            @Parameter(description = "所属病例ID", required = true) @RequestParam("caseId") String caseId,
-            @Parameter(description = "投照体位") @RequestParam(value = "viewPosition", required = false) String viewPosition) {
-        
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("caseId") String caseId,
+            @RequestParam(value = "viewPosition", required = false) String viewPosition,
+            @RequestParam(value = "pixelSpacingXmm", required = false) Double pixelSpacingXmm,
+            @RequestParam(value = "pixelSpacingYmm", required = false) Double pixelSpacingYmm) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        ImageUploadResult data = imageService.uploadImage(file, Long.parseLong(caseId), viewPosition, currentUserId);
+        ImageUploadResult data = imageService.uploadImage(file, Long.parseLong(caseId), viewPosition, currentUserId,
+                pixelSpacingXmm, pixelSpacingYmm);
         return Result.success(data, "上传成功");
     }
-    
-    /**
-     * 查询病例的所有影像
-     * 
-     * @param caseId 病例ID
-     * @return 影像列表
-     */
-    @Operation(summary = "查询病例影像", description = "获取指定病例的所有影像列表")
+
+    @Operation(summary = "查询病例影像")
     @GetMapping
-    public Result<List<ImageVO>> listImages(
-            @Parameter(description = "病例ID", required = true) @RequestParam("caseId") String caseId) {
-        List<ImageVO> images = imageService.listImagesByCaseId(Long.parseLong(caseId));
-        
-        return Result.success(images);
+    public Result<List<ImageVO>> listImages(@RequestParam("caseId") String caseId) {
+        return Result.success(imageService.listImagesByCaseId(Long.parseLong(caseId)));
     }
-    
-    /**
-     * 删除影像
-     * 
-     * @param imageId 影像ID
-     * @return 删除结果
-     */
-    @Operation(summary = "删除影像", description = "删除指定的影像文件及其元数据")
+
+    @Operation(summary = "获取影像原图")
+    @GetMapping("/{imageId}/content")
+    public ResponseEntity<byte[]> getImageContent(@PathVariable String imageId) {
+        Long id = Long.parseLong(imageId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(imageService.getImageContentType(id, false)))
+                .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(imageService.getImageContent(id, false));
+    }
+
+    @Operation(summary = "获取影像缩略图")
+    @GetMapping("/{imageId}/thumbnail")
+    public ResponseEntity<byte[]> getImageThumbnail(@PathVariable String imageId) {
+        Long id = Long.parseLong(imageId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(imageService.getImageContentType(id, true)))
+                .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(imageService.getImageContent(id, true));
+    }
+
+    @Operation(summary = "查询历史影像")
+    @GetMapping("/prior")
+    public Result<List<ImageVO>> listPriorImages(@RequestParam("caseId") String caseId,
+                                                 @RequestParam(value = "currentImageId", required = false) String currentImageId) {
+        return Result.success(imageService.listPriorImages(Long.parseLong(caseId),
+                currentImageId != null ? Long.parseLong(currentImageId) : null));
+    }
+
+    @Operation(summary = "更新影像元数据")
+    @PutMapping("/{imageId}/metadata")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'DOCTOR')")
+    @OperationLog(type = "IMAGE_METADATA_UPDATE", detail = "更新影像元数据")
+    public Result<ImageVO> updateMetadata(@PathVariable String imageId, @RequestBody ImageMetadataUpdateDTO dto) {
+        return Result.success(imageService.updateImageMetadata(Long.parseLong(imageId), dto));
+    }
+
+    @Operation(summary = "删除影像")
     @DeleteMapping("/{imageId}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'DOCTOR')")
     @OperationLog(type = "IMAGE_DELETE", detail = "删除影像")
-    public Result<Void> deleteImage(
-            @Parameter(description = "影像ID", required = true) @PathVariable String imageId) {
+    public Result<Void> deleteImage(@PathVariable String imageId) {
         imageService.deleteImage(Long.parseLong(imageId));
-        
         return Result.success(null, "删除成功");
     }
 }

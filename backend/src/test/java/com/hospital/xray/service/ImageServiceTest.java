@@ -50,7 +50,7 @@ class ImageServiceTest {
         );
         
         // 执行上传（第4参数：上传用户ID，测试传 null 由异步逻辑容忍）
-        ImageUploadResult result = imageService.uploadImage(file, caseId, "正位", null);
+        ImageUploadResult result = imageService.uploadImage(file, caseId, "正位", null, null, null);
         
         // 验证结果
         assertNotNull(result);
@@ -84,7 +84,7 @@ class ImageServiceTest {
         
         // 验证抛出异常
         BusinessException exception = assertThrows(BusinessException.class, () -> {
-            imageService.uploadImage(file, caseId, null, null);
+            imageService.uploadImage(file, caseId, null, null, null, null);
         });
         
         assertTrue(exception.getMessage().contains("文件过大"));
@@ -106,7 +106,7 @@ class ImageServiceTest {
         
         // 验证抛出异常
         BusinessException exception = assertThrows(BusinessException.class, () -> {
-            imageService.uploadImage(file, caseId, null, null);
+            imageService.uploadImage(file, caseId, null, null, null, null);
         });
         
         assertTrue(exception.getMessage().contains("不支持的文件格式"));

@@ -44,7 +44,7 @@
         </el-button>
       </div>
 
-      <div class="case-list" v-loading="listLoading" element-loading-background="rgba(255,255,255,0.8)">
+      <div class="case-list" v-loading="listLoading" element-loading-background="rgba(13,20,32,0.72)">
         <div v-for="c in caseList" :key="c.caseId"
           :class="['case-card', selectedCaseId === c.caseId && 'selected']"
           @click="selectCase(c)">
@@ -80,7 +80,7 @@
         </div>
         <el-empty v-if="!listLoading && caseList.length === 0"
           description="暂无病例" :image-size="50"
-          style="padding:30px 0;color:#999" />
+          style="padding:30px 0;color:var(--xrag-text-faint)" />
         <div v-if="hasMore" class="load-more" @click="loadMore">加载更多</div>
       </div>
     </aside>
@@ -106,14 +106,14 @@
         <div class="ws-actions">
           <el-button size="small" plain @click="handleRegenerate" :loading="generating"
             :disabled="!currentReport">
-            <el-icon><Refresh /></el-icon> 重新生成AI报告
+            <el-icon><Refresh /></el-icon> 重新生成 AI 草稿
           </el-button>
           <el-button size="small" plain @click="handleMarkTypical">
             <el-icon><Star /></el-icon>
             {{ caseInfo.isTypical ? '取消典型标记' : '标记典型病例' }}
           </el-button>
           <el-button size="small" plain @click="handlePrint">
-            <el-icon><Printer /></el-icon> 打印预览
+            <el-icon><Printer /></el-icon> 打印报告
           </el-button>
           <el-button size="small" plain type="danger" v-if="userStore.isAdmin" @click="handleDeleteCase">
             <el-icon><Delete /></el-icon> 删除病例
@@ -127,48 +127,111 @@
         <!-- 左：DICOM 影像查看器 -->
         <div class="viewer-panel">
           <div class="viewer-toolbar">
-            <span class="viewer-filename">{{ currentImage ? currentImage.fileName : '—' }}</span>
+            <span class="viewer-filename" :title="viewerShortcutHint">{{ viewerHeaderText }}</span>
             <div class="viewer-tools">
-             <button class="tool-btn" title="放大" @click="zoom(0.2)"><el-icon><ZoomIn /></el-icon></button>
-             <button class="tool-btn" title="缩小" @click="zoom(-0.2)"><el-icon><ZoomOut /></el-icon></button>
-             <button class="tool-btn" title="顺时针旋转" @click="rotate(90)"><el-icon><RefreshRight /></el-icon></button>
-             <button class="tool-btn" title="逆时针旋转" @click="rotate(-90)"><el-icon><RefreshLeft /></el-icon></button>
-             <button class="tool-btn" title="重置" @click="resetViewer"><el-icon><FullScreen /></el-icon></button>
+             <button class="tool-btn" title="放大（+）" @click="zoom(0.2)"><el-icon><ZoomIn /></el-icon></button>
+             <button class="tool-btn" title="缩小（-）" @click="zoom(-0.2)"><el-icon><ZoomOut /></el-icon></button>
+             <button class="tool-btn" title="顺时针旋转（R）" @click="rotate(90)"><el-icon><RefreshRight /></el-icon></button>
+             <button class="tool-btn" title="逆时针旋转（Shift+R）" @click="rotate(-90)"><el-icon><RefreshLeft /></el-icon></button>
+             <button class="tool-btn" title="重置视图（0 / 双击）" @click="resetViewer"><el-icon><FullScreen /></el-icon></button>
+             <button class="tool-btn" title="撤销（Ctrl+Z）" :disabled="!canUndo" @click="undoAnnoAction">撤</button>
+             <button class="tool-btn" title="重做（Ctrl+Y）" :disabled="!canRedo" @click="redoAnnoAction">重</button>
+             <button class="tool-btn" :class="compareMode && 'tool-active'" title="双屏对比" :disabled="!canCompare" @click="toggleCompareMode">对比</button>
              <span class="tool-sep-v"></span>
-              <button :class="['tool-btn', annoTool === 'select' && 'tool-active']" title="选择标注" @click="activateSelectTool"><el-icon><Pointer /></el-icon></button>
-              <button :class="['tool-btn', annoTool === 'rect' && 'tool-active']" title="矩形标注病灶" @click="activateRectTool"><el-icon><Crop /></el-icon></button>
+              <button :class="['tool-btn', annoTool === 'select' && 'tool-active']" title="选择标注（V）" @click="activateSelectTool"><el-icon><Pointer /></el-icon></button>
+              <button :class="['tool-btn', annoTool === 'rect' && 'tool-active']" title="矩形标注（M）" @click="activateRectTool"><el-icon><Crop /></el-icon></button>
+              <button :class="['tool-btn', annoTool === 'line' && 'tool-active']" title="双点测距（L）" @click="activateLineTool">尺</button>
               <span class="tool-sep-v"></span>
-              <button :class="['tool-btn', 'layer-toggle', showAiAnnos && 'tool-active']" title="AI标注层" @click="toggleAiLayer">AI</button>
-              <button :class="['tool-btn', 'layer-toggle', showDoctorAnnos && 'tool-active']" title="医生标注层" @click="toggleDoctorLayer">医</button>
+              <button :class="['tool-btn', 'layer-toggle', showAiAnnos && 'tool-active']" :title="`AI 标注层（${aiAnnotationCount}处）`" @click="toggleAiLayer">AI</button>
+              <button :class="['tool-btn', 'layer-toggle', showDoctorAnnos && 'tool-active']" :title="`人工标注层（${doctorAnnotationCount}处）`" @click="toggleDoctorLayer">医</button>
               <button class="tool-btn" :class="selectedAnnoId && 'tool-danger'" title="删除选中标注" :disabled="!selectedAnnoId" @click="deleteSelectedAnno"><el-icon><Delete /></el-icon></button>
             </div>
           </div>
-          <div class="viewer-canvas" ref="viewerRef">
-            <div v-if="currentImage" class="image-wrapper"
-              :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
-              <img :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像"
-                @load="onImgLoad" @error="onImgError" draggable="false" />
-              <!-- 标注画布覆盖层 -->
-              <canvas ref="annoCanvas" class="anno-overlay"
-                :class="{ 'anno-draw-mode': annoTool === 'rect' }"
-                @mousedown="onAnnoMouseDown" @mousemove="onAnnoMouseMove"
-                @mouseup="onAnnoMouseUp" @mouseleave="onAnnoMouseLeave"
-                @click="onAnnoClick" />
-              <div v-if="currentReport && currentReport.modelConfidence"
-                class="ai-marker">
-                AI · {{ Math.round(currentReport.modelConfidence * 100) }}%
+          <div class="viewer-canvas" ref="viewerRef" @wheel.prevent="onViewerWheel" @dblclick="resetViewer">
+            <div v-if="currentImage" :class="['viewer-stage', compareMode && compareImage && 'viewer-stage-compare']">
+              <div class="image-wrapper main-image-wrapper"
+                @mouseleave="clearCompareCrosshair"
+                :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
+                <img :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像"
+                  @load="onImgLoad" @error="onImgError" draggable="false" />
+                <!-- 标注画布覆盖层 -->
+                <canvas ref="annoCanvas" class="anno-overlay"
+                  :class="{ 'anno-draw-mode': annoTool === 'rect' || annoTool === 'line' }"
+                  @mousedown="onAnnoMouseDown" @mousemove="onAnnoMouseMove"
+                  @mouseup="onAnnoMouseUp" @mouseleave="onAnnoMouseLeave"
+                  @click="onAnnoClick" />
+                <div v-if="currentReport && currentReport.modelConfidence"
+                  class="ai-marker">
+                  AI · {{ Math.round(currentReport.modelConfidence * 100) }}%
+                </div>
+                <div v-if="currentImage" class="viewer-meta-overlay">
+                  <span class="viewer-meta-chip">{{ currentImage.viewPosition || 'PA' }}</span>
+                  <span class="viewer-meta-chip">{{ currentImage.imgWidth || imgNW || '—' }} × {{ currentImage.imgHeight || imgNH || '—' }} px</span>
+                  <span :class="['viewer-meta-chip', hasPixelSpacing ? 'chip-ok' : 'chip-warn']">
+                    {{ hasPixelSpacing ? `像素间距 ${pixelSpacingText}` : '未读取像素间距，当前仅支持 px 尺寸' }}
+                  </span>
+                  <span class="viewer-meta-chip chip-info">缩放 {{ viewerScaleText }}</span>
+                  <span v-if="mainScaleBarLabel" class="viewer-meta-chip chip-info">比例尺 {{ mainScaleBarLabel }}</span>
+                  <span v-if="compareMode && compareCrosshair.active && mainCrosshairText" class="viewer-meta-chip chip-info">
+                    主片 {{ mainCrosshairText }}
+                  </span>
+                  <span v-if="selectedAnnotation" class="viewer-meta-chip chip-info">
+                    已选标注 {{ formatAnnoMeasurement(selectedAnnotation) }}
+                  </span>
+                  <span v-if="compareMode && selectedAnnotation && compareSelectedMeasurementText" class="viewer-meta-chip chip-info">
+                    对照测量 {{ compareSelectedMeasurementText }}
+                  </span>
+                </div>
+                <div v-if="mainScaleBarWidthStyle" class="scale-bar" :style="mainScaleBarWidthStyle">
+                  <span class="scale-bar-tick scale-bar-tick-start"></span>
+                  <span class="scale-bar-tick scale-bar-tick-quarter"></span>
+                  <span class="scale-bar-tick scale-bar-tick-mid"></span>
+                  <span class="scale-bar-tick scale-bar-tick-three-quarter"></span>
+                  <span class="scale-bar-tick scale-bar-tick-end"></span>
+                  <span class="scale-bar-label">{{ mainScaleBarLabel }}</span>
+                </div>
+                <template v-if="compareMode && compareCrosshair.active">
+                  <div class="crosshair-line crosshair-line-v" :style="crosshairLineStyle('x')"></div>
+                  <div class="crosshair-line crosshair-line-h" :style="crosshairLineStyle('y')"></div>
+                  <div class="crosshair-readout" :style="crosshairReadoutStyle('main')">{{ mainCrosshairText }}</div>
+                </template>
+              </div>
+              <div v-if="compareMode && compareImage" class="image-wrapper compare-image-wrapper"
+                @mousemove="onCompareImageMouseMove"
+                @mouseleave="clearCompareCrosshair"
+                :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
+                <img :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="对比影像"
+                  @load="onCompareImgLoad"
+                  @error="onCompareImgError" draggable="false" />
+                <div class="compare-image-tag">对比影像 · {{ compareImage.fileName || '历史影像' }}</div>
+                <div v-if="compareScaleBadgeText" class="compare-image-badge">{{ compareScaleBadgeText }}</div>
+                <div v-if="compareSelectedMeasurementText" class="compare-image-badge compare-image-badge-second">同步测量 · {{ compareSelectedMeasurementText }}</div>
+                <div v-if="compareMeasurementDeltaText" class="compare-image-badge compare-image-badge-third">变化值 · {{ compareMeasurementDeltaText }}</div>
+                <div v-if="compareScaleBarWidthStyle" class="scale-bar scale-bar-compare" :style="compareScaleBarWidthStyle">
+                  <span class="scale-bar-tick scale-bar-tick-start"></span>
+                  <span class="scale-bar-tick scale-bar-tick-quarter"></span>
+                  <span class="scale-bar-tick scale-bar-tick-mid"></span>
+                  <span class="scale-bar-tick scale-bar-tick-three-quarter"></span>
+                  <span class="scale-bar-tick scale-bar-tick-end"></span>
+                  <span class="scale-bar-label">{{ compareScaleBarLabel }}</span>
+                </div>
+                <template v-if="compareMode && compareCrosshair.active">
+                  <div class="crosshair-line crosshair-line-v" :style="crosshairLineStyle('x')"></div>
+                  <div class="crosshair-line crosshair-line-h" :style="crosshairLineStyle('y')"></div>
+                  <div class="crosshair-readout crosshair-readout-compare" :style="crosshairReadoutStyle('compare')">{{ compareCrosshairText }}</div>
+                </template>
               </div>
             </div>
             <div v-else class="viewer-empty">
               <el-icon :size="48" style="color:rgba(255,255,255,0.2)"><Picture /></el-icon>
-              <p>请选择影像或上传影像</p>
+              <p>请选择检查图像或上传新影像</p>
             </div>
           </div>
           <!-- 影像缩略图条 -->
           <div class="thumb-strip" v-if="images.length > 0">
             <div v-for="img in images" :key="img.imageId"
-              :class="['thumb-item', currentImage?.imageId === img.imageId && 'thumb-active']"
-              @click="currentImage = img">
+              :class="['thumb-item', currentImage?.imageId === img.imageId && 'thumb-active', compareImage?.imageId === img.imageId && 'thumb-compare']"
+              @click="handleThumbSelect(img)">
               <img :src="img.thumbnailUrl || img.fullUrl" :alt="img.viewPosition" />
               <span>{{ img.viewPosition || 'PA' }}</span>
               <div class="thumb-del" @click.stop="handleDeleteImage(img)"><el-icon><Close /></el-icon></div>
@@ -185,7 +248,7 @@
               :http-request="handleUpload" accept=".jpg,.jpeg,.png,.dcm">
               <el-icon :size="28" style="color:#40a9ff"><UploadFilled /></el-icon>
               <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:6px">
-                拖拽或点击上传影像
+                拖拽或点击上传检查图像
               </div>
               <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px">
                 支持 JPG / PNG / DICOM，≤50MB
@@ -197,19 +260,21 @@
           <div class="anno-list-panel" v-if="visibleAnnotations.length > 0">
             <div class="anno-list-header">
               <el-icon style="color:#faad14;font-size:13px"><Flag /></el-icon>
-              <span>病灶标注</span>
+              <span>标注列表</span>
               <span class="anno-count">{{ annotations.length }} 处</span>
               <span class="anno-hint">虚线=AI · 实线=医生</span>
             </div>
             <div class="anno-list-body">
               <div v-for="anno in visibleAnnotations" :key="anno.annotationId"
                 :class="['anno-list-item', selectedAnnoId === anno.annotationId && 'anno-item-selected']"
+                :title="formatAnnoMeasurement(anno)"
                 @click="selectedAnnoId = anno.annotationId; redrawAnnotations()">
                 <span class="anno-color-dot" :style="{ background: anno.color }"></span>
                 <span :class="['anno-src-tag', anno.source === 'AI' ? 'tag-ai' : 'tag-dr']">
                   {{ anno.source === 'AI' ? 'AI' : '医' }}
                 </span>
                 <span class="anno-lbl">{{ anno.label || '—' }}</span>
+                <span class="anno-size">{{ formatAnnoMeasurement(anno) }}</span>
                 <span v-if="anno.confidence != null" class="anno-conf">{{ Math.round(anno.confidence * 100) }}%</span>
                 <button v-if="anno.source === 'DOCTOR'" class="anno-del-btn"
                   @click.stop="handleDeleteAnno(anno.annotationId)">×</button>
@@ -222,10 +287,12 @@
         <teleport to="body">
           <div v-if="showLabelInput" class="anno-label-popup"
             :style="{ left: labelPopupPos.x + 'px', top: labelPopupPos.y + 'px' }">
-            <div class="anno-popup-title">输入病灶描述</div>
+            <div class="anno-popup-title">输入标注名称</div>
             <input ref="labelInputRef" v-model="pendingAnnoLabel" class="anno-popup-input"
-              placeholder="如：右下肺实变、胸腔积液…"
+              placeholder="如：右下肺实变、右侧胸腔积液"
               @keyup.enter="confirmAnnoLabel" @keyup.esc="cancelAnnoLabel" />
+            <div class="anno-popup-hint">{{ drawMeasurementHint }}</div>
+            <div class="anno-popup-subhint">{{ pixelSpacingGuideText }}</div>
             <div class="anno-popup-btns">
               <button class="anno-popup-ok" @click="confirmAnnoLabel">确定</button>
               <button class="anno-popup-cancel" @click="cancelAnnoLabel">取消</button>
@@ -273,7 +340,7 @@
                 class="signed-ai-compare">
                 <div class="compare-header" @click="showAiCompare = !showAiCompare">
                   <el-icon><Cpu /></el-icon>
-                  <span>AI原始草稿对比</span>
+                  <span>AI 原始草稿对比</span>
                   <span class="compare-diff-hint">医生已修改</span>
                   <el-icon style="margin-left:auto"><ArrowDown v-if="!showAiCompare" /><ArrowUp v-else /></el-icon>
                 </div>
@@ -293,7 +360,7 @@
             <div class="signed-eval-section" v-loading="evalLoading">
               <div class="signed-eval-header">
                 <el-icon style="color:#722ed1"><DataAnalysis /></el-icon>
-                <span>CheXbert 质量评测</span>
+                <span>CheXbert 质控评测</span>
               </div>
               <template v-if="evalResult">
                 <div class="signed-eval-metrics">
@@ -388,7 +455,7 @@
                   <span :style="{ color: currentReport.reportStatus === 'AI_DRAFT' ? '#1890ff' : '#fa8c16', fontWeight: 600 }">
                     {{ currentReport.reportStatus === 'AI_DRAFT' ? 'AI草稿' : '编辑中' }}
                   </span>
-                  <span style="color:#999;margin-left:8px;font-size:11px">
+                  <span style="color:var(--xrag-text-faint);margin-left:8px;font-size:11px">
                     {{ currentReport.reportStatus === 'AI_DRAFT' ? '可直接修改内容后签发' : '医生编辑中' }}
                   </span>
                   <span style="margin-left:auto;font-size:11px;color:#8c8c8c">
@@ -403,7 +470,7 @@
                     <span class="ai-label"><el-icon><Cpu /></el-icon> AI生成</span>
                   </div>
                   <el-input v-model="draftFindings" type="textarea" :rows="6"
-                    placeholder="影像所见描述..." resize="none" />
+                    placeholder="请输入影像所见，建议描述部位、形态、密度及范围" resize="none" />
                 </div>
                 <div class="field-block" style="margin-top:12px">
                   <div class="field-label">
@@ -411,7 +478,7 @@
                     <span class="ai-label"><el-icon><Cpu /></el-icon> AI生成</span>
                   </div>
                   <el-input v-model="draftImpression" type="textarea" :rows="4"
-                    placeholder="诊断印象..." resize="none" />
+                    placeholder="请输入影像印象，概括主要结论及诊断倾向" resize="none" />
                 </div>
 
                 <div class="edit-toolbar" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -438,7 +505,7 @@
                   <div v-if="aiAdvice" class="ai-advice-panel" style="margin-top:8px">
                     <div class="ai-advice-header">
                       <el-icon style="color:#722ed1"><Cpu /></el-icon>
-                      <span>AI审核建议</span>
+                      <span>AI 复核建议</span>
                       <span v-if="aiAdvice.priority === 'high'" class="advice-priority-high">⚠ 高优先级</span>
                       <span v-else-if="aiAdvice.priority === 'medium'" class="advice-priority-mid">注意</span>
                     </div>
@@ -456,13 +523,13 @@
                       </ul>
                     </div>
                     <div v-if="aiAdvice.suggested_findings" class="ai-advice-block">
-                      <div class="ai-advice-label">参考影像所见</div>
+                      <div class="ai-advice-label">参考所见</div>
                       <div class="ai-advice-text">{{ aiAdvice.suggested_findings }}</div>
                       <el-button size="small" link type="primary"
                         @click="applyAdviceFindings">应用此内容</el-button>
                     </div>
                     <div v-if="aiAdvice.suggested_impression" class="ai-advice-block">
-                      <div class="ai-advice-label">参考影像印象</div>
+                      <div class="ai-advice-label">参考印象</div>
                       <div class="ai-advice-text">{{ aiAdvice.suggested_impression }}</div>
                       <el-button size="small" link type="primary"
                         @click="applyAdviceImpression">应用此内容</el-button>
@@ -526,11 +593,11 @@
                     </el-descriptions>
                   </div>
                   <div v-if="evalResult.missingLabels && evalResult.missingLabels.length" style="margin-top:8px">
-                    <div style="font-size:11px;color:#999;margin-bottom:4px">AI漏诊标签</div>
+                    <div style="font-size:11px;color:var(--xrag-text-faint);margin-bottom:4px">AI漏诊标签</div>
                     <el-tag v-for="l in evalResult.missingLabels" :key="l" type="danger" size="small" style="margin:2px">{{ l }}</el-tag>
                   </div>
                   <div v-if="evalResult.extraLabels && evalResult.extraLabels.length" style="margin-top:6px">
-                    <div style="font-size:11px;color:#999;margin-bottom:4px">AI误诊标签</div>
+                    <div style="font-size:11px;color:var(--xrag-text-faint);margin-bottom:4px">AI误诊标签</div>
                     <el-tag v-for="l in evalResult.extraLabels" :key="l" type="warning" size="small" style="margin:2px">{{ l }}</el-tag>
                   </div>
                 </template>
@@ -562,7 +629,7 @@
       <div class="similar-section" v-if="similarCases.length > 0">
         <div class="section-title">
           <el-icon style="color:#1890ff"><Search /></el-icon>
-          相似病例检索 <span class="section-sub">Top-{{ similarCases.length }} 相似匹配</span>
+          相似病例检索 <span class="section-sub">Top-{{ similarCases.length }} 相似结果</span>
         </div>
         <div class="similar-cards">
           <div v-for="(sc, i) in similarCases" :key="sc.caseId" class="similar-card"
@@ -585,7 +652,12 @@
 
       <!-- 处理进度 -->
       <div class="progress-section">
-        <div class="section-title">处理进度</div>
+        <div class="section-title">诊断流程进度</div>
+        <div v-if="followupSummary || hasPixelSpacing || selectedDoctorAnnotation" class="progress-summary">
+          <span v-if="followupSummary">{{ followupSummary }}</span>
+          <span v-if="hasPixelSpacing" class="progress-summary-tag">像素间距 {{ pixelSpacingText }}</span>
+          <span v-if="selectedDoctorAnnotation" class="progress-summary-tag">当前标注 {{ formatAnnoMeasurement(selectedDoctorAnnotation) }}</span>
+        </div>
         <div class="workflow-steps">
           <div v-for="(step, i) in workflowSteps" :key="i"
             :class="['step-item', step.status]">
@@ -607,7 +679,7 @@
         <div class="section-title">
           <el-icon style="color:#722ed1"><Cpu /></el-icon>
           AI 智能分析
-          <span v-if="evalPolling && !evalResult" style="font-size:11px;color:#999;margin-left:8px">
+          <span v-if="evalPolling && !evalResult" style="font-size:11px;color:var(--xrag-text-faint);margin-left:8px">
             <el-icon class="is-loading"><Loading /></el-icon> 分析中...
           </span>
         </div>
@@ -724,7 +796,7 @@
         </div>
         <div class="footer-actions" v-else-if="currentImage">
           <el-button size="default" type="primary" :loading="generating" @click="handleGenerate">
-            <el-icon><MagicStick /></el-icon> 生成AI报告
+            <el-icon><MagicStick /></el-icon> 生成 AI 草稿
           </el-button>
         </div>
       </div>
@@ -733,7 +805,7 @@
     <!-- 未选择病例时的占位 -->
     <div class="workspace workspace-empty" v-else>
       <el-icon :size="64" style="color:rgba(0,0,0,0.18)"><Monitor /></el-icon>
-      <p style="color:#999;font-size:14px;margin:0">从左侧选择一个病例开始工作</p>
+      <p style="color:var(--xrag-text-faint);font-size:14px;margin:0">请从左侧选择病例开始阅片与报告书写</p>
     </div>
 
     <!-- 新建病例弹框 -->
@@ -773,13 +845,13 @@
     </el-dialog>
 
     <!-- 典型病例标记弹框 -->
-    <el-dialog v-model="typicalDialogVisible" title="标记典型病例" width="420px" align-center>
+    <el-dialog v-model="typicalDialogVisible" title="标记为典型病例" width="420px" align-center>
       <el-form :model="typicalForm" label-width="80px">
         <el-form-item label="分类标签">
           <el-input v-model="typicalForm.typicalTags" placeholder="如: 肺炎,结节（逗号分隔）" />
         </el-form-item>
         <el-form-item label="备注说明">
-          <el-input v-model="typicalForm.typicalRemark" type="textarea" :rows="3" placeholder="典型特征说明..." />
+          <el-input v-model="typicalForm.typicalRemark" type="textarea" :rows="3" placeholder="请输入典型影像学特征说明" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -790,7 +862,7 @@
 
     <!-- 术语标准化弹窗 -->
     <el-dialog v-model="termDialogVisible" title="AI 术语标准化" width="520px" align-center>
-      <div v-if="termDialogList.length === 0" style="text-align:center;color:#999;padding:20px 0">
+      <div v-if="termDialogList.length === 0" style="text-align:center;color:var(--xrag-text-faint);padding:20px 0">
         未发现需要纠正的术语
       </div>
       <el-table v-else :data="termDialogList" size="small" style="width:100%"
@@ -844,7 +916,7 @@
         <div v-if="polishResult.suggestions && polishResult.suggestions.length" style="margin-top:12px">
           <div style="font-size:12px;font-weight:600;color:#722ed1;margin-bottom:6px">AI 建议</div>
           <div v-for="(s, i) in polishResult.suggestions" :key="i"
-            style="font-size:12px;color:#666;padding:2px 0">
+            style="font-size:12px;color:var(--xrag-text-soft);padding:2px 0">
             {{ i + 1 }}. {{ s }}
           </div>
         </div>
@@ -865,13 +937,13 @@ import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, getCaseById, markTypical, createCase, deleteCase, importCases } from '@/api/case'
-import { listImages, uploadImage, deleteImage } from '@/api/image'
+import { listImages, listPriorImages, uploadImage, deleteImage } from '@/api/image'
 import { generateReport, regenerateReport, saveDraft, signReport, listReports, getEditHistory, polishReport, revertReport, getAiAdvice } from '@/api/report'
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { triggerEval, getEvalByReportId } from '@/api/eval'
 import { analyzeTerms, getTermsByReportId, acceptCorrection, dismissCorrection } from '@/api/term'
 import { getAlertsByCaseId, respondAlert } from '@/api/alert'
-import { listAnnotations, createAnnotation, deleteAnnotation, generateAiAnnotations } from '@/api/annotation'
+import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation, generateAiAnnotations } from '@/api/annotation'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -947,10 +1019,13 @@ const selectedCaseId = ref(null)
 const caseInfo = ref({})
 const images = ref([])
 const currentImage = ref(null)
+const compareMode = ref(false)
+const compareImage = ref(null)
 const currentReport = ref(null)
 const editHistory = ref([])
 const historyLoading = ref(false)
 const similarCases = ref([])
+const priorImages = ref([])
 const evalResult = ref(null)
 const evalLoading = ref(false)
 const evalPolling = ref(false)
@@ -989,6 +1064,10 @@ const selectCase = async (c) => {
   termCorrections.value = []
   annotations.value = []
   selectedAnnoId.value = null
+  undoStack.value = []
+  redoStack.value = []
+  compareMode.value = false
+  compareImage.value = null
   selectedCaseId.value = c.caseId
   caseInfo.value = c
   reportTab.value = 'edit'
@@ -1009,6 +1088,19 @@ const loadImages = async () => {
     images.value = res.data || []
     currentImage.value = images.value[0] || null
   } catch (_) { images.value = [] }
+}
+
+const loadPriorImageSummary = async (imageId) => {
+  if (!selectedCaseId.value || !imageId) {
+    priorImages.value = []
+    return
+  }
+  try {
+    const res = await listPriorImages(selectedCaseId.value, imageId)
+    priorImages.value = res.data || []
+  } catch (_) {
+    priorImages.value = []
+  }
 }
 
 const loadReport = async () => {
@@ -1442,26 +1534,251 @@ const applyAdviceImpression = () => {
 const viewerRef = ref(null)
 const viewerScale = ref(1)
 const viewerRotate = ref(0)
-const zoom = (d) => { viewerScale.value = Math.max(0.3, Math.min(4, viewerScale.value + d)) }
-const rotate = (d) => { viewerRotate.value += d }
+const clampViewerScale = (value) => Math.max(0.3, Math.min(4, value))
+const normalizeViewerRotate = (value) => ((value % 360) + 360) % 360
+const currentPixelSpacingX = computed(() => Number(currentImage.value?.pixelSpacingXmm) || null)
+const currentPixelSpacingY = computed(() => Number(currentImage.value?.pixelSpacingYmm) || null)
+const hasPixelSpacing = computed(() => !!(currentPixelSpacingX.value && currentPixelSpacingY.value))
+const pixelSpacingText = computed(() => hasPixelSpacing.value
+  ? `${currentPixelSpacingX.value.toFixed(3)} × ${currentPixelSpacingY.value.toFixed(3)} mm/px`
+  : '未读取到')
+const pixelSpacingGuideText = computed(() => hasPixelSpacing.value
+  ? `已启用毫米实测：${pixelSpacingText.value}`
+  : '未读取到像素间距，本次将仅保存像素尺寸；如为 DICOM，请优先使用原始文件。')
+const viewerScaleText = computed(() => `${Math.round(viewerScale.value * 100)}%`)
+const viewerRotationText = computed(() => `${normalizeViewerRotate(viewerRotate.value)}°`)
+const compareCrosshair = ref({ active: false, xRatio: 0.5, yRatio: 0.5, source: 'main' })
+const compareImgRef = ref(null)
+const mainRenderSize = ref({ width: 0, height: 0 })
+const compareRenderSize = ref({ width: 0, height: 0 })
+
+const getImagePixelSpacing = (image) => ({
+  x: Number(image?.pixelSpacingXmm) || null,
+  y: Number(image?.pixelSpacingYmm) || null,
+})
+
+const buildCrosshairMetric = (image) => {
+  if (!compareCrosshair.value.active || !image) return null
+  const widthPx = Number(image?.imgWidth) || imgNW || 0
+  const heightPx = Number(image?.imgHeight) || imgNH || 0
+  if (!widthPx || !heightPx) return null
+  const xPx = Math.round(compareCrosshair.value.xRatio * widthPx)
+  const yPx = Math.round(compareCrosshair.value.yRatio * heightPx)
+  const spacing = getImagePixelSpacing(image)
+  const xMm = spacing.x ? xPx * spacing.x : null
+  const yMm = spacing.y ? yPx * spacing.y : null
+  return { xPx, yPx, xMm, yMm }
+}
+
+const formatCrosshairMetric = (image, prefix) => {
+  const metric = buildCrosshairMetric(image)
+  if (!metric) return ''
+  const xText = metric.xMm != null ? `${metric.xPx} px / ${metric.xMm.toFixed(1)} mm` : `${metric.xPx} px`
+  const yText = metric.yMm != null ? `${metric.yPx} px / ${metric.yMm.toFixed(1)} mm` : `${metric.yPx} px`
+  return `${prefix} X ${xText} · Y ${yText}`
+}
+
+const mainCrosshairText = computed(() => formatCrosshairMetric(currentImage.value, '坐标'))
+const compareCrosshairText = computed(() => formatCrosshairMetric(compareImage.value, '对照'))
+
+const calcAnnoMeasurementByImage = (anno, image) => {
+  const widthPx = Math.max(0, (anno?.width || 0) * (Number(image?.imgWidth) || 0))
+  const heightPx = Math.max(0, (anno?.height || 0) * (Number(image?.imgHeight) || 0))
+  const spacing = getImagePixelSpacing(image)
+  const widthMm = spacing.x ? widthPx * spacing.x : null
+  const heightMm = spacing.y ? heightPx * spacing.y : null
+  const lengthPx = Math.sqrt(widthPx * widthPx + heightPx * heightPx)
+  const lengthMm = spacing.x && spacing.y
+    ? Math.sqrt((widthPx * spacing.x) ** 2 + (heightPx * spacing.y) ** 2)
+    : null
+  return { widthPx, heightPx, widthMm, heightMm, lengthPx, lengthMm }
+}
+
+const formatAnnoMeasurementByImage = (anno, image) => {
+  if (!anno || !image) return ''
+  const metric = calcAnnoMeasurementByImage(anno, image)
+  if (anno.annoType === 'LINE') {
+    return metric.lengthMm != null ? `${metric.lengthMm.toFixed(1)} mm` : `${Math.round(metric.lengthPx)} px`
+  }
+  if (metric.widthMm != null && metric.heightMm != null) {
+    return `${metric.widthMm.toFixed(1)}×${metric.heightMm.toFixed(1)} mm`
+  }
+  return `${Math.round(metric.widthPx)}×${Math.round(metric.heightPx)} px`
+}
+
+const compareSelectedMeasurementText = computed(() => {
+  if (!compareMode.value || !selectedAnnotation.value || !compareImage.value) return ''
+  return formatAnnoMeasurementByImage(selectedAnnotation.value, compareImage.value)
+})
+
+const calcComparableSizeMetric = (anno, image) => {
+  if (!anno || !image) return null
+  const metric = calcAnnoMeasurementByImage(anno, image)
+  if (anno.annoType === 'LINE') {
+    return {
+      valuePx: metric.lengthPx,
+      valueMm: metric.lengthMm,
+      label: '径线'
+    }
+  }
+  const maxPx = Math.max(metric.widthPx, metric.heightPx)
+  const maxMm = metric.widthMm != null && metric.heightMm != null
+    ? Math.max(metric.widthMm, metric.heightMm)
+    : null
+  return {
+    valuePx: maxPx,
+    valueMm: maxMm,
+    label: '长径'
+  }
+}
+
+const classifyComparableDelta = (delta, ratio) => {
+  const absDelta = Math.abs(delta || 0)
+  const absRatio = Math.abs(ratio || 0)
+  if (absRatio < 5 && absDelta < 2) return '稳定'
+  return delta > 0 ? '增大' : '缩小'
+}
+
+const compareMeasurementDeltaText = computed(() => {
+  if (!compareMode.value || !selectedAnnotation.value || !currentImage.value || !compareImage.value) return ''
+  const currentMetric = calcComparableSizeMetric(selectedAnnotation.value, currentImage.value)
+  const compareMetric = calcComparableSizeMetric(selectedAnnotation.value, compareImage.value)
+  if (!currentMetric || !compareMetric) return ''
+  const useMm = currentMetric.valueMm != null && compareMetric.valueMm != null
+  const currentValue = useMm ? currentMetric.valueMm : currentMetric.valuePx
+  const compareValue = useMm ? compareMetric.valueMm : compareMetric.valuePx
+  if (currentValue == null || compareValue == null) return ''
+  const delta = currentValue - compareValue
+  const ratio = compareValue ? (delta / compareValue) * 100 : null
+  const sign = delta > 0 ? '+' : ''
+  const label = classifyComparableDelta(delta, ratio)
+  const valueText = useMm ? `${sign}${delta.toFixed(1)} mm` : `${sign}${Math.round(delta)} px`
+  const ratioText = ratio != null ? ` / ${sign}${ratio.toFixed(1)}%` : ''
+  return `${label} ? ${currentMetric.label}${valueText}${ratioText}`
+})
+
+const buildScaleBar = (image, renderSize) => {
+  const spacingX = Number(image?.pixelSpacingXmm) || null
+  const naturalWidth = Number(image?.imgWidth) || 0
+  const renderWidth = Number(renderSize?.width) || 0
+  if (!spacingX || !naturalWidth || !renderWidth) return { label: '', style: null }
+  const mmOptions = [5, 10, 20, 50, 100]
+  let mm = 20
+  for (const candidate of mmOptions) {
+    const pxWidth = (candidate / spacingX) * (renderWidth / naturalWidth)
+    if (pxWidth >= 48 && pxWidth <= 120) { mm = candidate; break }
+  }
+  const widthPx = (mm / spacingX) * (renderWidth / naturalWidth)
+  return {
+    label: `${mm} mm`,
+    style: { width: `${Math.max(32, Math.min(140, widthPx)).toFixed(1)}px` }
+  }
+}
+
+const mainScaleBar = computed(() => buildScaleBar(currentImage.value, mainRenderSize.value))
+const compareScaleBar = computed(() => buildScaleBar(compareImage.value, compareRenderSize.value))
+const mainScaleBarLabel = computed(() => mainScaleBar.value.label)
+const compareScaleBarLabel = computed(() => compareScaleBar.value.label)
+const mainScaleBarWidthStyle = computed(() => mainScaleBar.value.style)
+const compareScaleBarWidthStyle = computed(() => compareScaleBar.value.style)
+const compareScaleBadgeText = computed(() => {
+  if (!compareMode.value || !compareImage.value) return ''
+  const scaleText = `缩放 ${viewerScaleText.value}`
+  return compareScaleBarLabel.value ? `${scaleText} · 比例尺 ${compareScaleBarLabel.value}` : scaleText
+})
+
+const crosshairLineStyle = (axis) => {
+  if (!compareCrosshair.value.active) return {}
+  return axis === 'x'
+    ? { left: `${(compareCrosshair.value.xRatio * 100).toFixed(2)}%` }
+    : { top: `${(compareCrosshair.value.yRatio * 100).toFixed(2)}%` }
+}
+
+const crosshairReadoutStyle = (side) => {
+  if (!compareCrosshair.value.active) return {}
+  const xPercent = compareCrosshair.value.xRatio * 100
+  const yPercent = compareCrosshair.value.yRatio * 100
+  return {
+    left: `clamp(8px, ${xPercent.toFixed(2)}%, calc(100% - 220px))`,
+    top: `clamp(8px, calc(${yPercent.toFixed(2)}% + 10px), calc(100% - 30px))`,
+    transform: side === 'compare' ? 'translateX(-100%)' : 'none'
+  }
+}
+
+const syncCompareCrosshair = (event, source = 'main') => {
+  if (!compareMode.value) return
+  const rect = event?.currentTarget?.getBoundingClientRect?.()
+  if (!rect?.width || !rect?.height) return
+  const xRatio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))
+  const yRatio = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+  compareCrosshair.value = { active: true, xRatio, yRatio, source }
+}
+
+const clearCompareCrosshair = () => {
+  compareCrosshair.value = { ...compareCrosshair.value, active: false }
+}
+
+const onCompareImageMouseMove = (event) => {
+  syncCompareCrosshair(event, 'compare')
+}
+const activeAnnoToolLabel = computed(() => ({ select: '选择标注', rect: '矩形标注', line: '双点测距' }[annoTool.value] || '选择标注'))
+const viewerShortcutHint = computed(() => '快捷键：+ 放大，- 缩小，0 重置，R 顺时针旋转，Shift+R 逆时针旋转，V 选择标注，M 矩形标注；支持滚轮缩放、双击重置')
+const viewerHeaderText = computed(() => {
+  if (!currentImage.value) return '—'
+  return `${currentImage.value.fileName} · 缩放 ${viewerScaleText.value} · 旋转 ${viewerRotationText.value} · ${activeAnnoToolLabel.value}`
+})
+const zoom = (d) => { viewerScale.value = clampViewerScale(viewerScale.value + d) }
+const rotate = (d) => { viewerRotate.value = normalizeViewerRotate(viewerRotate.value + d) }
 const resetViewer = () => { viewerScale.value = 1; viewerRotate.value = 0 }
-const onImgError = (e) => { e.target.src = '' }
+const onViewerWheel = (e) => {
+  if (!currentImage.value) return
+  const delta = e.deltaY < 0 ? 0.1 : -0.1
+  zoom(delta)
+}
+const onImgError = (e) => {
+  const fallback = currentImage.value?.thumbnailUrl
+  if (fallback && e?.target && e.target.dataset?.fallbackApplied !== '1' && e.target.src !== fallback) {
+    e.target.dataset.fallbackApplied = '1'
+    e.target.src = fallback
+    return
+  }
+  if (e?.target) e.target.src = ''
+}
+const syncRenderedImageSize = () => {
+  mainRenderSize.value = {
+    width: diagImgRef.value?.clientWidth || 0,
+    height: diagImgRef.value?.clientHeight || 0,
+  }
+  compareRenderSize.value = {
+    width: compareImgRef.value?.clientWidth || 0,
+    height: compareImgRef.value?.clientHeight || 0,
+  }
+}
+const onCompareImgLoad = () => {
+  syncRenderedImageSize()
+}
 
 /* ─────────────── 病灶标注 ─────────────── */
 const diagImgRef = ref(null)      // 影像 <img> 元素
 const annoCanvas = ref(null)      // 画布覆盖层
 const labelInputRef = ref(null)   // 标注名输入框
 const annotations = ref([])       // 当前影像的所有标注
-const annoTool = ref('select')    // 'select' | 'rect'
+const annoTool = ref('select')    // 'select' | 'rect' | 'line'
 const showAiAnnos = ref(true)
 const showDoctorAnnos = ref(true)
 const selectedAnnoId = ref(null)
+const undoStack = ref([])
+const redoStack = ref([])
+let annoHistoryPendingBefore = null
 const showLabelInput = ref(false)
 const pendingAnnoLabel = ref('')
 const labelPopupPos = ref({ x: 0, y: 0 })
+const hoveredHandle = ref(null)
 let drawState = null  // { x, y, w, h } 正在绘制的临时矩形
 let imgNW = 0         // 影像自然像素宽
 let imgNH = 0         // 影像自然像素高
+let lineDragState = null
+let suppressAnnoClick = false
 
 const visibleAnnotations = computed(() =>
   annotations.value.filter(a =>
@@ -1472,6 +1789,107 @@ const visibleAnnotations = computed(() =>
 
 const aiAnnotationCount = computed(() => annotations.value.filter(a => a.source === 'AI').length)
 const doctorAnnotationCount = computed(() => annotations.value.filter(a => a.source === 'DOCTOR').length)
+const selectedAnnotation = computed(() => annotations.value.find(a => a.annotationId === selectedAnnoId.value) || null)
+const selectedDoctorAnnotation = computed(() => selectedAnnotation.value?.source === 'DOCTOR' ? selectedAnnotation.value : null)
+
+const calcAnnoMeasurement = (anno) => {
+  const widthPx = Math.max(0, (anno?.width || 0) * imgNW)
+  const heightPx = Math.max(0, (anno?.height || 0) * imgNH)
+  const widthMm = anno?.measuredWidthMm ?? (currentPixelSpacingX.value ? widthPx * currentPixelSpacingX.value : null)
+  const heightMm = anno?.measuredHeightMm ?? (currentPixelSpacingY.value ? heightPx * currentPixelSpacingY.value : null)
+  const lengthPx = Math.sqrt(widthPx * widthPx + heightPx * heightPx)
+  const lengthMm = currentPixelSpacingX.value && currentPixelSpacingY.value
+    ? Math.sqrt((widthPx * currentPixelSpacingX.value) ** 2 + (heightPx * currentPixelSpacingY.value) ** 2)
+    : null
+  return { widthPx, heightPx, widthMm, heightMm, lengthPx, lengthMm }
+}
+
+const formatAnnoMeasurement = (anno) => {
+  if (!anno) return '—'
+  const metric = calcAnnoMeasurement(anno)
+  if (anno.annoType === 'LINE') {
+    return metric.lengthMm != null ? `${metric.lengthMm.toFixed(1)} mm` : `${Math.round(metric.lengthPx)} px`
+  }
+  if (metric.widthMm != null && metric.heightMm != null) {
+    return `${metric.widthMm.toFixed(1)}×${metric.heightMm.toFixed(1)} mm`
+  }
+  return `${Math.round(metric.widthPx)}×${Math.round(metric.heightPx)} px`
+}
+
+const drawMeasurementHint = computed(() => {
+  if (!drawState || !imgNW || !imgNH) return '请为当前标注输入名称'
+  const draftAnno = {
+    annoType: annoTool.value === 'line' ? 'LINE' : 'RECTANGLE',
+    width: drawState.w / imgNW,
+    height: drawState.h / imgNH,
+    measuredWidthMm: null,
+    measuredHeightMm: null,
+  }
+  return `当前框选范围：${formatAnnoMeasurement(draftAnno)}`
+})
+
+const applyMeasuredSize = (target) => {
+  if (!target) return target
+  const metric = calcAnnoMeasurement(target)
+  if (target.annoType === 'LINE') {
+    target.measuredWidthMm = metric.lengthMm != null ? Number(metric.lengthMm.toFixed(3)) : null
+    target.measuredHeightMm = null
+  } else {
+    target.measuredWidthMm = metric.widthMm != null ? Number(metric.widthMm.toFixed(3)) : null
+    target.measuredHeightMm = metric.heightMm != null ? Number(metric.heightMm.toFixed(3)) : null
+  }
+  return target
+}
+
+let annoPersistTimer = null
+
+const getLineEndpointsPx = (anno) => {
+  const startX = anno.x * imgNW
+  const startY = anno.y * imgNH
+  return {
+    startX,
+    startY,
+    endX: startX + anno.width * imgNW,
+    endY: startY + anno.height * imgNH,
+  }
+}
+
+const setLineEndpointsPx = (anno, startX, startY, endX, endY) => {
+  anno.x = Math.max(0, Math.min(1, startX / imgNW))
+  anno.y = Math.max(0, Math.min(1, startY / imgNH))
+  anno.width = (endX - startX) / imgNW
+  anno.height = (endY - startY) / imgNH
+  applyMeasuredSize(anno)
+}
+
+const hitLineHandle = (pt, anno) => {
+  if (!anno || anno.annoType !== 'LINE') return null
+  const { startX, startY, endX, endY } = getLineEndpointsPx(anno)
+  const threshold = Math.max(8, Math.round(imgNW * 0.012))
+  const distStart = Math.hypot(pt.x - startX, pt.y - startY)
+  if (distStart <= threshold) return 0
+  const distEnd = Math.hypot(pt.x - endX, pt.y - endY)
+  if (distEnd <= threshold) return 1
+  return null
+}
+
+const updateCanvasCursor = () => {
+  const canvas = annoCanvas.value
+  if (!canvas) return
+  if (lineDragState) {
+    canvas.style.cursor = 'grabbing'
+    return
+  }
+  if (hoveredHandle.value) {
+    canvas.style.cursor = 'grab'
+    return
+  }
+  if (annoTool.value === 'rect' || annoTool.value === 'line') {
+    canvas.style.cursor = 'crosshair'
+    return
+  }
+  canvas.style.cursor = 'default'
+}
 
 const activateSelectTool = () => {
   annoTool.value = 'select'
@@ -1481,6 +1899,11 @@ const activateSelectTool = () => {
 const activateRectTool = () => {
   annoTool.value = 'rect'
   ElMessage.info('已进入矩形标注模式：请在影像上按住左键拖拽框选病灶区域')
+}
+
+const activateLineTool = () => {
+  annoTool.value = 'line'
+  ElMessage.info('已进入双点测距模式：请在影像上按住左键拖拽，记录两点间距离')
 }
 
 const toggleAiLayer = () => {
@@ -1495,6 +1918,254 @@ const toggleDoctorLayer = () => {
   ElMessage.info(showDoctorAnnos.value
     ? `已显示医生标注层（${doctorAnnotationCount.value}处）`
     : '已隐藏医生标注层')
+}
+
+const cloneAnno = (anno) => anno ? JSON.parse(JSON.stringify(anno)) : null
+const annoCreateDto = (anno) => applyMeasuredSize({
+  imageId: currentImage.value?.imageId || anno.imageId,
+  reportId: currentReport.value?.reportId || anno.reportId || null,
+  annoType: anno.annoType,
+  label: anno.label,
+  remark: anno.remark,
+  x: anno.x, y: anno.y, width: anno.width, height: anno.height,
+  measuredWidthMm: anno.measuredWidthMm ?? null,
+  measuredHeightMm: anno.measuredHeightMm ?? null,
+  compareStatus: anno.compareStatus || null,
+  compareNote: anno.compareNote || null,
+  color: anno.color || '#52c41a'
+})
+const annoUpdateDto = (anno) => applyMeasuredSize({
+  annoType: anno.annoType,
+  label: anno.label,
+  remark: anno.remark,
+  x: anno.x, y: anno.y, width: anno.width, height: anno.height,
+  measuredWidthMm: anno.measuredWidthMm ?? null,
+  measuredHeightMm: anno.measuredHeightMm ?? null,
+  compareStatus: anno.compareStatus || null,
+  compareNote: anno.compareNote || null,
+  color: anno.color || '#52c41a'
+})
+const sameAnnoGeometry = (left, right) => !!left && !!right
+  && Number(left.x) === Number(right.x)
+  && Number(left.y) === Number(right.y)
+  && Number(left.width) === Number(right.width)
+  && Number(left.height) === Number(right.height)
+const pushAnnoHistory = (entry) => { undoStack.value.push(entry); redoStack.value = [] }
+const canUndo = computed(() => undoStack.value.length > 0)
+const canRedo = computed(() => redoStack.value.length > 0)
+const compareCandidates = computed(() => {
+  const merged = [...images.value, ...priorImages.value]
+  const currentId = currentImage.value?.imageId
+  const map = new Map()
+  merged.forEach(img => {
+    if (!img?.imageId || img.imageId === currentId || map.has(img.imageId)) return
+    map.set(img.imageId, img)
+  })
+  return [...map.values()]
+})
+const canCompare = computed(() => compareCandidates.value.length > 0)
+const syncCompareImage = () => {
+  if (compareImage.value && compareCandidates.value.some(img => img.imageId === compareImage.value.imageId)) {
+    return true
+  }
+  compareImage.value = compareCandidates.value[0] || null
+  if (!compareImage.value) compareMode.value = false
+  return !!compareImage.value
+}
+const toggleCompareMode = () => {
+  if (compareMode.value) {
+    compareMode.value = false
+    compareImage.value = null
+    return
+  }
+  if (!syncCompareImage()) { ElMessage.info('当前暂无可用于对比的其他影像'); return }
+  compareMode.value = true
+  ElMessage.success('已开启双屏对比：缩放与旋转保持同步')
+}
+const handleThumbSelect = (img) => {
+  if (compareMode.value && currentImage.value && img.imageId !== currentImage.value.imageId) {
+    compareImage.value = img
+    return
+  }
+  currentImage.value = img
+}
+const onCompareImgError = (e) => {
+  const fallback = compareImage.value?.thumbnailUrl
+  if (fallback && e?.target && e.target.dataset?.fallbackApplied !== '1' && e.target.src !== fallback) {
+    e.target.dataset.fallbackApplied = '1'
+    e.target.src = fallback
+    return
+  }
+  if (e?.target) e.target.src = ''
+}
+const undoAnnoAction = async () => {
+  const entry = undoStack.value.pop()
+  if (!entry) return
+  try {
+    if (entry.type === 'create') {
+      await deleteAnnotation(entry.currentId || entry.after.annotationId)
+      annotations.value = annotations.value.filter(a => a.annotationId !== (entry.currentId || entry.after.annotationId))
+      if (selectedAnnoId.value === (entry.currentId || entry.after.annotationId)) selectedAnnoId.value = null
+    } else if (entry.type === 'delete') {
+      const res = await createAnnotation(annoCreateDto(entry.before))
+      annotations.value.push(res.data)
+      selectedAnnoId.value = res.data.annotationId
+      entry.currentId = res.data.annotationId
+    } else if (entry.type === 'update') {
+      const res = await updateAnnotation(entry.currentId || entry.annotationId, annoUpdateDto(entry.before))
+      const idx = annotations.value.findIndex(a => a.annotationId === (entry.currentId || entry.annotationId))
+      if (idx >= 0) annotations.value[idx] = res.data
+      selectedAnnoId.value = res.data.annotationId
+      entry.currentId = res.data.annotationId
+    }
+    redoStack.value.push(entry)
+    redrawAnnotations()
+  } catch (_) {
+    ElMessage.error('撤销失败')
+    undoStack.value.push(entry)
+  }
+}
+const redoAnnoAction = async () => {
+  const entry = redoStack.value.pop()
+  if (!entry) return
+  try {
+    if (entry.type === 'create') {
+      const res = await createAnnotation(annoCreateDto(entry.after))
+      annotations.value.push(res.data)
+      selectedAnnoId.value = res.data.annotationId
+      entry.currentId = res.data.annotationId
+    } else if (entry.type === 'delete') {
+      await deleteAnnotation(entry.currentId || entry.before.annotationId)
+      annotations.value = annotations.value.filter(a => a.annotationId !== (entry.currentId || entry.before.annotationId))
+      if (selectedAnnoId.value === (entry.currentId || entry.before.annotationId)) selectedAnnoId.value = null
+    } else if (entry.type === 'update') {
+      const res = await updateAnnotation(entry.currentId || entry.annotationId, annoUpdateDto(entry.after))
+      const idx = annotations.value.findIndex(a => a.annotationId === (entry.currentId || entry.annotationId))
+      if (idx >= 0) annotations.value[idx] = res.data
+      selectedAnnoId.value = res.data.annotationId
+      entry.currentId = res.data.annotationId
+    }
+    undoStack.value.push(entry)
+    redrawAnnotations()
+  } catch (_) {
+    ElMessage.error('重做失败')
+    redoStack.value.push(entry)
+  }
+}
+
+const schedulePersistSelectedAnno = () => {
+  const anno = selectedDoctorAnnotation.value
+  if (!anno) return
+  clearTimeout(annoPersistTimer)
+  annoPersistTimer = setTimeout(async () => {
+    try {
+      const beforeSnapshot = cloneAnno(annoHistoryPendingBefore)
+      const res = await updateAnnotation(anno.annotationId, {
+        x: anno.x,
+        y: anno.y,
+        width: anno.width,
+        height: anno.height,
+        measuredWidthMm: anno.measuredWidthMm,
+        measuredHeightMm: anno.measuredHeightMm,
+      })
+      const updated = res.data
+      const idx = annotations.value.findIndex(a => a.annotationId === updated.annotationId)
+      if (idx >= 0) annotations.value[idx] = updated
+      if (beforeSnapshot && !sameAnnoGeometry(beforeSnapshot, updated)) {
+        pushAnnoHistory({ type: 'update', annotationId: updated.annotationId, currentId: updated.annotationId, before: beforeSnapshot, after: cloneAnno(updated) })
+      }
+      annoHistoryPendingBefore = null
+      redrawAnnotations()
+    } catch (_) {
+      annoHistoryPendingBefore = null
+      ElMessage.error('标注微调保存失败')
+    }
+  }, 260)
+}
+
+const nudgeSelectedAnnotation = ({ dxPx = 0, dyPx = 0, dwPx = 0, dhPx = 0 }) => {
+  const anno = selectedDoctorAnnotation.value
+  if (!anno || !imgNW || !imgNH) return false
+  const minWidth = 6 / imgNW
+  const minHeight = 6 / imgNH
+  if (!annoHistoryPendingBefore) annoHistoryPendingBefore = cloneAnno(anno)
+  const next = {
+    x: anno.x + dxPx / imgNW,
+    y: anno.y + dyPx / imgNH,
+    width: anno.width + dwPx / imgNW,
+    height: anno.height + dhPx / imgNH,
+  }
+  next.width = Math.max(minWidth, Math.min(1, next.width))
+  next.height = Math.max(minHeight, Math.min(1, next.height))
+  next.x = Math.max(0, Math.min(1 - next.width, next.x))
+  next.y = Math.max(0, Math.min(1 - next.height, next.y))
+  Object.assign(anno, next)
+  applyMeasuredSize(anno)
+  redrawAnnotations()
+  schedulePersistSelectedAnno()
+  return true
+}
+
+const handleViewerShortcut = (e) => {
+  const tagName = e.target?.tagName?.toLowerCase?.()
+  const isTyping = tagName === 'input' || tagName === 'textarea' || e.target?.isContentEditable
+  if (isTyping || !selectedCaseId.value || !currentImage.value) return
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault()
+    return void undoAnnoAction()
+  }
+  if (((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) || ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))) {
+    e.preventDefault()
+    return void redoAnnoAction()
+  }
+  if (e.key === '+' || e.key === '=') {
+    e.preventDefault()
+    zoom(0.2)
+    return
+  }
+  if (e.key === '-' || e.key === '_') {
+    e.preventDefault()
+    zoom(-0.2)
+    return
+  }
+  if (e.key === '0') {
+    e.preventDefault()
+    resetViewer()
+    return
+  }
+  if (e.key.startsWith('Arrow') && selectedDoctorAnnotation.value) {
+    e.preventDefault()
+    const step = 1
+    if (e.shiftKey) {
+      if (e.key === 'ArrowLeft') return void nudgeSelectedAnnotation({ dwPx: -step })
+      if (e.key === 'ArrowRight') return void nudgeSelectedAnnotation({ dwPx: step })
+      if (e.key === 'ArrowUp') return void nudgeSelectedAnnotation({ dhPx: -step })
+      if (e.key === 'ArrowDown') return void nudgeSelectedAnnotation({ dhPx: step })
+    }
+    if (e.key === 'ArrowLeft') return void nudgeSelectedAnnotation({ dxPx: -step })
+    if (e.key === 'ArrowRight') return void nudgeSelectedAnnotation({ dxPx: step })
+    if (e.key === 'ArrowUp') return void nudgeSelectedAnnotation({ dyPx: -step })
+    if (e.key === 'ArrowDown') return void nudgeSelectedAnnotation({ dyPx: step })
+  }
+  if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault()
+    rotate(e.shiftKey ? -90 : 90)
+    return
+  }
+  if ((e.key === 'v' || e.key === 'V') && annoTool.value !== 'select') {
+    e.preventDefault()
+    activateSelectTool()
+    return
+  }
+  if ((e.key === 'm' || e.key === 'M') && annoTool.value !== 'rect') {
+    e.preventDefault()
+    activateRectTool()
+    return
+  }
+  if ((e.key === 'l' || e.key === 'L') && annoTool.value !== 'line') {
+    e.preventDefault()
+    activateLineTool()
+  }
 }
 
 const loadAnnotations = async (imageId) => {
@@ -1512,6 +2183,8 @@ const onImgLoad = () => {
   imgNH = img.naturalHeight
   const canvas = annoCanvas.value
   if (canvas) { canvas.width = imgNW; canvas.height = imgNH }
+  updateCanvasCursor()
+  syncRenderedImageSize()
   nextTick(redrawAnnotations)
 }
 
@@ -1536,27 +2209,44 @@ const drawAnno = (ctx, anno, selected) => {
   ctx.lineWidth = selected ? 3 : (anno.source === 'AI' ? 1.5 : 2)
   if (anno.source === 'AI') ctx.setLineDash([8, 4])
   else ctx.setLineDash([])
-  ctx.strokeRect(px, py, pw, ph)
-  ctx.globalAlpha = anno.source === 'AI' ? 0.08 : 0.12
-  ctx.fillStyle = color
-  ctx.fillRect(px, py, pw, ph)
-  ctx.globalAlpha = 1
+  if (anno.annoType === 'LINE') {
+    ctx.beginPath()
+    ctx.moveTo(px, py)
+    ctx.lineTo(px + pw, py + ph)
+    ctx.stroke()
+  } else {
+    ctx.strokeRect(px, py, pw, ph)
+    ctx.globalAlpha = anno.source === 'AI' ? 0.08 : 0.12
+    ctx.fillStyle = color
+    ctx.fillRect(px, py, pw, ph)
+    ctx.globalAlpha = 1
+  }
   ctx.setLineDash([])
   if (anno.label) {
     const fontSize = Math.max(12, Math.round(imgNW * 0.014))
     ctx.font = `bold ${fontSize}px sans-serif`
-    const textW = ctx.measureText(anno.label).width
+    const labelText = anno.annoType === 'LINE' ? `${anno.label} ${formatAnnoMeasurement(anno)}` : anno.label
+    const textW = ctx.measureText(labelText).width
     const padX = 6, padY = 4, boxH = fontSize + padY * 2
     ctx.fillStyle = color
     ctx.fillRect(px, py - boxH, textW + padX * 2, boxH)
     ctx.fillStyle = '#fff'
-    ctx.fillText(anno.label, px + padX, py - padY)
+    ctx.fillText(labelText, px + padX, py - padY)
   }
   if (selected) {
     const hs = Math.max(6, Math.round(imgNW * 0.008))
     ctx.fillStyle = color
     ctx.setLineDash([])
-    [[px, py], [px + pw, py], [px, py + ph], [px + pw, py + ph]].forEach(([cx, cy]) => {
+    const handles = anno.annoType === 'LINE'
+      ? [[px, py], [px + pw, py + ph]]
+      : [[px, py], [px + pw, py], [px, py + ph], [px + pw, py + ph]]
+    handles.forEach(([cx, cy], idx) => {
+      const isHovered = hoveredHandle.value?.annotationId === anno.annotationId && hoveredHandle.value?.index === idx
+      if (isHovered) {
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(cx - hs / 2 - 2, cy - hs / 2 - 2, hs + 4, hs + 4)
+        ctx.fillStyle = color
+      }
       ctx.fillRect(cx - hs / 2, cy - hs / 2, hs, hs)
     })
   }
@@ -1568,10 +2258,17 @@ const drawTempRect = (ctx, r) => {
   ctx.strokeStyle = '#ff4d4f'
   ctx.lineWidth = 2
   ctx.setLineDash([5, 4])
-  ctx.strokeRect(r.x, r.y, r.w, r.h)
-  ctx.globalAlpha = 0.07
-  ctx.fillStyle = '#ff4d4f'
-  ctx.fillRect(r.x, r.y, r.w, r.h)
+  if (annoTool.value === 'line') {
+    ctx.beginPath()
+    ctx.moveTo(r.x, r.y)
+    ctx.lineTo(r.x + r.w, r.y + r.h)
+    ctx.stroke()
+  } else {
+    ctx.strokeRect(r.x, r.y, r.w, r.h)
+    ctx.globalAlpha = 0.07
+    ctx.fillStyle = '#ff4d4f'
+    ctx.fillRect(r.x, r.y, r.w, r.h)
+  }
   ctx.restore()
 }
 
@@ -1587,24 +2284,67 @@ const toCanvasCoords = (e) => {
 
 let _drawOrigin = null
 const onAnnoMouseDown = (e) => {
-  if (e.button !== 0 || annoTool.value !== 'rect') return
-  _drawOrigin = toCanvasCoords(e)
+  const pt = toCanvasCoords(e)
+  const selectedLine = selectedDoctorAnnotation.value?.annoType === 'LINE' ? selectedDoctorAnnotation.value : null
+  const handleIndex = selectedLine && annoTool.value === 'select' ? hitLineHandle(pt, selectedLine) : null
+  if (e.button === 0 && handleIndex != null) {
+    if (!annoHistoryPendingBefore) annoHistoryPendingBefore = cloneAnno(selectedLine)
+    lineDragState = { annotationId: selectedLine.annotationId, handleIndex }
+    hoveredHandle.value = { annotationId: selectedLine.annotationId, index: handleIndex }
+    suppressAnnoClick = true
+    updateCanvasCursor()
+    return
+  }
+  if (e.button !== 0 || !['rect', 'line'].includes(annoTool.value)) return
+  _drawOrigin = pt
   drawState = { x: _drawOrigin.x, y: _drawOrigin.y, w: 0, h: 0 }
 }
 const onAnnoMouseMove = (e) => {
-  if (!_drawOrigin || annoTool.value !== 'rect') return
+  syncCompareCrosshair(e, 'main')
   const pt = toCanvasCoords(e)
+  if (lineDragState && selectedDoctorAnnotation.value?.annotationId === lineDragState.annotationId) {
+    const anno = selectedDoctorAnnotation.value
+    const { startX, startY, endX, endY } = getLineEndpointsPx(anno)
+    if (lineDragState.handleIndex === 0) setLineEndpointsPx(anno, pt.x, pt.y, endX, endY)
+    else setLineEndpointsPx(anno, startX, startY, pt.x, pt.y)
+    redrawAnnotations()
+    updateCanvasCursor()
+    return
+  }
+  if (annoTool.value === 'select' && selectedDoctorAnnotation.value?.annoType === 'LINE') {
+    const handleIndex = hitLineHandle(pt, selectedDoctorAnnotation.value)
+    hoveredHandle.value = handleIndex != null
+      ? { annotationId: selectedDoctorAnnotation.value.annotationId, index: handleIndex }
+      : null
+    updateCanvasCursor()
+    redrawAnnotations()
+    return
+  }
+  if (!_drawOrigin || !['rect', 'line'].includes(annoTool.value)) return
   drawState = {
     x: Math.min(_drawOrigin.x, pt.x), y: Math.min(_drawOrigin.y, pt.y),
     w: Math.abs(pt.x - _drawOrigin.x), h: Math.abs(pt.y - _drawOrigin.y)
   }
+  if (annoTool.value === 'line') {
+    drawState = { x: _drawOrigin.x, y: _drawOrigin.y, w: pt.x - _drawOrigin.x, h: pt.y - _drawOrigin.y }
+  }
   redrawAnnotations()
+  updateCanvasCursor()
 }
 const onAnnoMouseUp = (e) => {
-  if (!_drawOrigin || annoTool.value !== 'rect') return
+  if (lineDragState && selectedDoctorAnnotation.value?.annotationId === lineDragState.annotationId) {
+    lineDragState = null
+    schedulePersistSelectedAnno()
+    updateCanvasCursor()
+    return
+  }
+  if (!_drawOrigin || !['rect', 'line'].includes(annoTool.value)) return
   const finalState = drawState
   _drawOrigin = null
-  if (!finalState || finalState.w < 8 || finalState.h < 8) {
+  const tooSmall = annoTool.value === 'line'
+    ? Math.sqrt((finalState?.w || 0) ** 2 + (finalState?.h || 0) ** 2) < 8
+    : (!finalState || finalState.w < 8 || finalState.h < 8)
+  if (tooSmall) {
     drawState = null; redrawAnnotations(); return
   }
   // 显示标注名输入弹框（位置跟随屏幕鼠标）
@@ -1614,34 +2354,59 @@ const onAnnoMouseUp = (e) => {
   nextTick(() => labelInputRef.value?.focus())
 }
 const onAnnoMouseLeave = () => {
+  clearCompareCrosshair()
+  hoveredHandle.value = null
+  if (lineDragState && selectedDoctorAnnotation.value) {
+    lineDragState = null
+    schedulePersistSelectedAnno()
+  }
   if (_drawOrigin) { _drawOrigin = null; drawState = null; redrawAnnotations() }
+  updateCanvasCursor()
 }
 const onAnnoClick = (e) => {
+  if (suppressAnnoClick) {
+    suppressAnnoClick = false
+    return
+  }
   if (annoTool.value !== 'select') return
   const pt = toCanvasCoords(e)
   const hit = visibleAnnotations.value.find(a => {
     const ax = a.x * imgNW, ay = a.y * imgNH
+    if (a.annoType === 'LINE') {
+      const bx = ax + a.width * imgNW, by = ay + a.height * imgNH
+      const dx = bx - ax, dy = by - ay
+      const len2 = dx * dx + dy * dy
+      if (!len2) return false
+      const t = Math.max(0, Math.min(1, ((pt.x - ax) * dx + (pt.y - ay) * dy) / len2))
+      const projX = ax + t * dx
+      const projY = ay + t * dy
+      const dist = Math.sqrt((pt.x - projX) ** 2 + (pt.y - projY) ** 2)
+      return dist <= 8
+    }
     return pt.x >= ax && pt.x <= ax + a.width * imgNW && pt.y >= ay && pt.y <= ay + a.height * imgNH
   })
   selectedAnnoId.value = hit ? hit.annotationId : null
+  hoveredHandle.value = null
   redrawAnnotations()
+  updateCanvasCursor()
 }
 
 const confirmAnnoLabel = async () => {
   if (!drawState || !currentImage.value) { cancelAnnoLabel(); return }
-  const dto = {
+  const dto = applyMeasuredSize({
     imageId: currentImage.value.imageId,
     reportId: currentReport.value?.reportId || null,
-    annoType: 'RECTANGLE',
-    label: pendingAnnoLabel.value.trim() || '病灶',
+    annoType: annoTool.value === 'line' ? 'LINE' : 'RECTANGLE',
+    label: pendingAnnoLabel.value.trim() || (annoTool.value === 'line' ? '测距' : '病灶'),
     x: drawState.x / imgNW, y: drawState.y / imgNH,
     width: drawState.w / imgNW, height: drawState.h / imgNH,
     color: '#52c41a'
-  }
+  })
   try {
     const res = await createAnnotation(dto)
     annotations.value.push(res.data)
     selectedAnnoId.value = res.data.annotationId
+    pushAnnoHistory({ type: 'create', after: cloneAnno(res.data), currentId: res.data.annotationId })
   } catch (_) { ElMessage.error('标注保存失败') }
   cancelAnnoLabel()
 }
@@ -1655,10 +2420,15 @@ const cancelAnnoLabel = () => {
 
 const handleDeleteAnno = async (annotationId) => {
   try {
+    const deletedAnno = cloneAnno(annotations.value.find(a => a.annotationId === annotationId))
     await deleteAnnotation(annotationId)
     annotations.value = annotations.value.filter(a => a.annotationId !== annotationId)
+    if (deletedAnno) pushAnnoHistory({ type: 'delete', before: deletedAnno, currentId: annotationId })
     if (selectedAnnoId.value === annotationId) selectedAnnoId.value = null
+    hoveredHandle.value = null
+    lineDragState = null
     redrawAnnotations()
+    updateCanvasCursor()
   } catch (_) { ElMessage.error('删除标注失败') }
 }
 
@@ -1680,9 +2450,16 @@ watch(evalResult, async (newVal, oldVal) => {
 watch(currentImage, (img) => {
   annotations.value = []
   selectedAnnoId.value = null
+  hoveredHandle.value = null
+  clearCompareCrosshair()
+  lineDragState = null
   drawState = null
   imgNW = 0; imgNH = 0
-  if (img) loadAnnotations(img.imageId)
+  priorImages.value = []
+  if (img) {
+    loadAnnotations(img.imageId)
+    loadPriorImageSummary(img.imageId)
+  }
 })
 
 const beforeUpload = (file) => {
@@ -1770,6 +2547,17 @@ const workflowSteps = computed(() => {
   ]
 })
 
+const followupSummary = computed(() => {
+  if (!currentImage.value) return ''
+  if (!priorImages.value.length) {
+    return hasPixelSpacing.value ? '当前图像已具备实测条件，可直接记录病灶尺寸。' : '暂无历史影像；当前可先完成本次阅片与标注。'
+  }
+  const latest = priorImages.value[0]
+  const latestTime = latest?.shootTime || latest?.createdAt
+  const latestText = latestTime ? formatDate(latestTime) : '最近一次历史检查'
+  return `本病例存在 ${priorImages.value.length} 次历史影像，最近一次为 ${latestText}，可用于随访对照。`
+})
+
 /* ─────────────── 病例导航 ─────────────── */
 const prevCaseId = computed(() => {
   const idx = caseList.value.findIndex(c => c.caseId === selectedCaseId.value)
@@ -1842,7 +2630,12 @@ const gradeAdvice = (g) => ({
 }[g] || '评测完成')
 const pct = (v) => v != null ? (Number(v) * 100).toFixed(1) + '%' : '—'
 
-onUnmounted(() => { clearInterval(pollTimer) })
+onUnmounted(() => {
+  clearInterval(pollTimer)
+  clearTimeout(annoPersistTimer)
+  window.removeEventListener('keydown', handleViewerShortcut)
+  window.removeEventListener('resize', syncRenderedImageSize)
+})
 
 const startEvalPoll = (reportId) => {
   evalPolling.value = true
@@ -1952,6 +2745,8 @@ const formatTime = (d) => {
 
 /* ─────────────── 初始化 ─────────────── */
 onMounted(async () => {
+  window.addEventListener('keydown', handleViewerShortcut)
+  window.addEventListener('resize', syncRenderedImageSize)
   await fetchCases()
   const targetId = route.query.caseId ? String(route.query.caseId) : null
   if (targetId) {
@@ -1984,10 +2779,10 @@ onMounted(async () => {
 .case-panel {
   width: 240px;
   flex-shrink: 0;
-  background: #fff;
+  background: var(--xrag-panel);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #e8e8e8;
+  border-right: 1px solid var(--xrag-border);
 }
 
 .panel-header {
@@ -1997,17 +2792,17 @@ onMounted(async () => {
   padding: 14px 16px 10px;
   flex-shrink: 0;
 }
-.panel-title { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+.panel-title { font-size: 14px; font-weight: 600; color: var(--xrag-text); }
 .count-badge :deep(.el-badge__content) { font-size: 10px; height: 16px; line-height: 16px; padding: 0 5px; }
 
 .panel-search { padding: 0 12px 10px; flex-shrink: 0; }
 .panel-search :deep(.el-input__wrapper) {
-  background: #f5f5f5;
-  border: 1px solid #e8e8e8;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--xrag-border);
   box-shadow: none;
 }
-.panel-search :deep(.el-input__inner) { color: #333; font-size: 12px; }
-.panel-search :deep(.el-input__inner::placeholder) { color: #bbb; }
+.panel-search :deep(.el-input__inner) { color: var(--xrag-text); font-size: 12px; }
+.panel-search :deep(.el-input__inner::placeholder) { color: var(--xrag-text-faint); }
 
 .add-btn {
   width: 22px; height: 22px;
@@ -2030,11 +2825,11 @@ onMounted(async () => {
 .filter-btn {
   flex: 1;
   padding: 3px 0;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--xrag-border-strong);
   background: transparent;
   border-radius: 4px;
   font-size: 11px;
-  color: #595959;
+  color: var(--xrag-text-soft);
   cursor: pointer;
   transition: all .2s;
 }
@@ -2053,10 +2848,10 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background: #e6f7ff;
-  border-bottom: 1px solid #91d5ff;
+  background: rgba(24, 144, 255, 0.12);
+  border-bottom: 1px solid rgba(64, 169, 255, 0.3);
   font-size: 12px;
-  color: #1890ff;
+  color: #69b1ff;
   flex-shrink: 0;
 }
 .case-list {
@@ -2076,11 +2871,11 @@ onMounted(async () => {
   border: 1px solid transparent;
   transition: all .15s;
 }
-.case-card:hover { background: #f5f7fa; border-color: #d9d9d9; }
+.case-card:hover { background: rgba(255,255,255,0.04); border-color: var(--xrag-border-strong); }
 .case-card.selected { background: rgba(64,169,255,0.12); border-color: #40a9ff; }
 
 .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-.exam-no { font-size: 13px; font-weight: 600; color: #262626; }
+.exam-no { font-size: 13px; font-weight: 600; color: var(--xrag-text); }
 
 .status-badge {
   font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500;
@@ -2088,22 +2883,22 @@ onMounted(async () => {
 .badge-orange { background: rgba(250,140,22,0.2); color: #fa8c16; }
 .badge-blue   { background: rgba(24,144,255,0.2); color: #69b1ff; }
 .badge-green  { background: rgba(82,196,26,0.2);  color: #73d13d; }
-.badge-gray   { background: #f0f0f0; color: #999; }
+.badge-gray   { background: rgba(111,134,166,0.16); color: var(--xrag-text-faint); }
 
-.card-info { font-size: 11px; color: #8c8c8c; margin-bottom: 3px; }
-.card-meta { font-size: 11px; color: #666; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
-.meta-text { color: #8c8c8c; }
+.card-info { font-size: 11px; color: var(--xrag-text-soft); margin-bottom: 3px; }
+.card-meta { font-size: 11px; color: var(--xrag-text-soft); margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+.meta-text { color: var(--xrag-text-soft); }
 .meta-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; line-height: 16px; }
-.meta-tag-body { background: #f0f5ff; color: #597ef7; }
-.meta-tag-ai { background: #e6f7ff; color: #1890ff; font-weight: 600; }
-.meta-tag-edit { background: #fff7e6; color: #fa8c16; }
+.meta-tag-body { background: rgba(89, 126, 247, 0.16); color: #8fb0ff; }
+.meta-tag-ai { background: rgba(24, 144, 255, 0.16); color: #69b1ff; font-weight: 600; }
+.meta-tag-edit { background: rgba(250, 140, 22, 0.16); color: #ffb86b; }
 .meta-grade { display: inline-block; width: 18px; height: 18px; border-radius: 4px; text-align: center; line-height: 18px; font-size: 10px; font-weight: 700; color: #fff; }
 .grade-A { background: #52c41a; }
 .grade-B { background: #73d13d; }
 .grade-C { background: #faad14; }
 .grade-D { background: #ff7875; }
 .grade-F { background: #f5222d; }
-.card-time { font-size: 10px; color: #bbb; }
+.card-time { font-size: 10px; color: var(--xrag-text-faint); }
 
 .load-more {
   text-align: center;
@@ -2121,13 +2916,13 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f0f2f5;
+  background: var(--xrag-bg);
 }
 .workspace-empty {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: rgba(0,0,0,0.25);
+  color: var(--xrag-text-faint);
   font-size: 14px;
 }
 
@@ -2137,20 +2932,20 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
+  background: var(--xrag-panel);
+  border-bottom: 1px solid var(--xrag-border);
   flex-shrink: 0;
   gap: 12px;
 }
 .ws-title-block { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ws-exam-no { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.ws-exam-no { font-size: 16px; font-weight: 700; color: var(--xrag-text); }
 .ws-status-tag {
   font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500;
 }
-.tag-orange { background: #fff7e6; border: 1px solid #ffd591; color: #fa8c16; }
-.tag-blue   { background: #e6f4ff; border: 1px solid #91caff; color: #1677ff; }
-.tag-green  { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
-.ws-patient-info { font-size: 12px; color: #666; }
+.tag-orange { background: rgba(250, 140, 22, 0.14); border: 1px solid rgba(250, 173, 20, 0.32); color: #ffb86b; }
+.tag-blue   { background: rgba(24, 144, 255, 0.14); border: 1px solid rgba(64, 169, 255, 0.32); color: #69b1ff; }
+.tag-green  { background: rgba(82, 196, 26, 0.14); border: 1px solid rgba(149, 222, 100, 0.32); color: #95de64; }
+.ws-patient-info { font-size: 12px; color: var(--xrag-text-soft); }
 .ws-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* 滚动内容区 */
@@ -2164,8 +2959,8 @@ onMounted(async () => {
   min-height: 0;
 }
 .ws-scroll::-webkit-scrollbar { width: 6px; }
-.ws-scroll::-webkit-scrollbar-track { background: #f0f2f5; }
-.ws-scroll::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
+.ws-scroll::-webkit-scrollbar-track { background: transparent; }
+.ws-scroll::-webkit-scrollbar-thumb { background: rgba(111,134,166,0.36); border-radius: 3px; }
 
 /* 主内容分栏 */
 .ws-body {
@@ -2193,11 +2988,30 @@ onMounted(async () => {
   background: rgba(255,255,255,0.04);
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.viewer-filename { font-size: 11px; color: rgba(255,255,255,0.45); }
-.viewer-tools { display: flex; gap: 4px; }
+.viewer-filename {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  flex: 1 1 240px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viewer-tools {
+  display: flex;
+  gap: 4px;
+  flex: 1 1 520px;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .tool-btn {
-  width: 26px; height: 26px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 4px;
@@ -2206,6 +3020,8 @@ onMounted(async () => {
   display: flex; align-items: center; justify-content: center;
   font-size: 13px;
   transition: all .15s;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .tool-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 .tool-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
@@ -2302,6 +3118,103 @@ onMounted(async () => {
   cursor: default;
 }
 .anno-draw-mode { cursor: crosshair; }
+.crosshair-line {
+  position: absolute;
+  background: rgba(24, 144, 255, 0.9);
+  pointer-events: none;
+  z-index: 4;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.16);
+}
+.crosshair-line-v {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-0.5px);
+}
+.crosshair-line-h {
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-0.5px);
+}
+.crosshair-readout {
+  position: absolute;
+  z-index: 5;
+  max-width: 210px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.72);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.crosshair-readout-compare {
+  text-align: right;
+}
+.scale-bar {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  height: 14px;
+  border-bottom: 3px solid rgba(255,255,255,0.95);
+  pointer-events: none;
+  z-index: 4;
+}
+.scale-bar-compare {
+  right: 12px;
+  bottom: 12px;
+}
+.scale-bar-tick {
+  position: absolute;
+  bottom: -3px;
+  width: 0;
+  border-left: 2px solid rgba(255,255,255,0.95);
+}
+.scale-bar-tick-start,
+.scale-bar-tick-end,
+.scale-bar-tick-mid {
+  height: 14px;
+}
+.scale-bar-tick-quarter,
+.scale-bar-tick-three-quarter {
+  height: 9px;
+}
+.scale-bar-tick-start { left: 0; }
+.scale-bar-tick-quarter { left: 25%; }
+.scale-bar-tick-mid { left: 50%; }
+.scale-bar-tick-three-quarter { left: 75%; }
+.scale-bar-tick-end { right: 0; }
+.scale-bar-label {
+  position: absolute;
+  right: 0;
+  bottom: 16px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.72);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.compare-image-badge {
+  position: absolute;
+  left: 8px;
+  top: 34px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  z-index: 4;
+  pointer-events: none;
+}
+.compare-image-badge-second {
+  top: 60px;
+}
+.compare-image-badge-third {
+  top: 86px;
+}
 
 /* ─── 标注列表面板 ─── */
 .anno-list-panel {
@@ -2340,6 +3253,7 @@ onMounted(async () => {
 .tag-ai { background: rgba(24,144,255,0.25); color: #69c0ff; }
 .tag-dr { background: rgba(82,196,26,0.25); color: #95de64; }
 .anno-lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anno-size { font-size: 10px; color: rgba(255,255,255,0.42); flex-shrink: 0; }
 .anno-conf { font-size: 10px; color: rgba(255,255,255,0.4); flex-shrink: 0; }
 .anno-del-btn {
   background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer;
@@ -2363,6 +3277,17 @@ onMounted(async () => {
   font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.8);
   margin-bottom: 8px;
 }
+.anno-popup-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.72);
+}
+.anno-popup-subhint {
+  margin-top: 4px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.5;
+}
 .anno-popup-input {
   width: 100%; box-sizing: border-box;
   background: rgba(255,255,255,0.07);
@@ -2385,17 +3310,50 @@ onMounted(async () => {
 }
 .anno-popup-cancel:hover { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.8); }
 
+.viewer-meta-overlay {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  pointer-events: none;
+}
+.viewer-meta-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.82);
+  font-size: 11px;
+  line-height: 1.4;
+  backdrop-filter: blur(6px);
+}
+.viewer-meta-chip.chip-ok {
+  color: #b7eb8f;
+  border-color: rgba(149,222,100,0.25);
+}
+.viewer-meta-chip.chip-warn {
+  color: #ffd591;
+  border-color: rgba(255,169,64,0.25);
+}
+.viewer-meta-chip.chip-info {
+  color: #91d5ff;
+  border-color: rgba(64,169,255,0.25);
+}
+
 /* ─── 报告编辑器 ─── */
 .report-panel {
   flex: 1;
-  background: #fff;
+  background: var(--xrag-panel);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .report-tabs { height: 100%; display: flex; flex-direction: column; }
-.report-tabs :deep(.el-tabs__header) { margin: 0; padding: 0 16px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+.report-tabs :deep(.el-tabs__header) { margin: 0; padding: 0 16px; border-bottom: 1px solid var(--xrag-border); flex-shrink: 0; }
 .report-tabs :deep(.el-tabs__content) { flex: 1; overflow-y: auto; }
 .report-tabs :deep(.el-tab-pane) { height: 100%; }
 
@@ -2416,16 +3374,19 @@ onMounted(async () => {
   font-size: 12px;
 }
 .status-ai-draft {
-  background: #e6f4ff;
-  border: 1px solid #91caff;
+  background: rgba(24, 144, 255, 0.12);
+  border: 1px solid rgba(64, 169, 255, 0.28);
+  color: #91caff;
 }
 .status-editing {
-  background: #fff7e6;
-  border: 1px solid #ffd591;
+  background: rgba(250, 140, 22, 0.12);
+  border: 1px solid rgba(255, 169, 64, 0.28);
+  color: #ffb86b;
 }
 .status-signed {
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
+  background: rgba(82, 196, 26, 0.12);
+  border: 1px solid rgba(149, 222, 100, 0.28);
+  color: #95de64;
 }
 
 /* ─── Footer 内联评测摘要 ─── */
@@ -2445,12 +3406,12 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 500;
 }
-.feval-high   { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
-.feval-mid    { background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; }
+.feval-high   { background: rgba(82, 196, 26, 0.12); color: #95de64; border: 1px solid rgba(149, 222, 100, 0.28); }
+.feval-mid    { background: rgba(250, 140, 22, 0.12); color: #ffb86b; border: 1px solid rgba(255, 169, 64, 0.28); }
 .feval-grade  { border: none; }
-.feval-pending{ background: #f0f5ff; color: #2f54eb; border: 1px solid #adc6ff; }
-.feval-alert  { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
-.feval-safe   { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+.feval-pending{ background: rgba(47, 84, 235, 0.14); color: #adc6ff; border: 1px solid rgba(133, 165, 255, 0.28); }
+.feval-alert  { background: rgba(245, 34, 45, 0.14); color: #ff9c9c; border: 1px solid rgba(255, 120, 117, 0.28); }
+.feval-safe   { background: rgba(82, 196, 26, 0.12); color: #95de64; border: 1px solid rgba(149, 222, 100, 0.28); }
 
 /* ─── 最终报告标签 ─── */
 .final-label {
@@ -2459,8 +3420,8 @@ onMounted(async () => {
   gap: 3px;
   font-size: 11px;
   font-weight: 400;
-  color: #52c41a;
-  background: #f6ffed;
+  color: #95de64;
+  background: rgba(82, 196, 26, 0.12);
   padding: 1px 6px;
   border-radius: 3px;
 }
@@ -2469,7 +3430,7 @@ onMounted(async () => {
 .eval-quick-bar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   margin-top: 10px; padding: 8px 12px;
-  background: #f6f8ff; border: 1px solid #d6e4ff; border-radius: 6px;
+  background: rgba(47, 84, 235, 0.1); border: 1px solid rgba(133, 165, 255, 0.22); border-radius: 6px;
   font-size: 12px;
 }
 .eval-quick-bar-relaxed { margin-top: 0; min-height: 42px; }
@@ -2478,8 +3439,8 @@ onMounted(async () => {
   color: #fff; font-size: 13px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.eval-scores-mini { display: flex; gap: 10px; color: #666; }
-.eval-scores-mini b { color: #333; }
+.eval-scores-mini { display: flex; gap: 10px; color: var(--xrag-text-soft); }
+.eval-scores-mini b { color: var(--xrag-text); }
 .eval-advice-text { font-size: 12px; font-weight: 500; }
 .advice-A { color: #389e0d; }
 .advice-B { color: #52c41a; }
@@ -2488,46 +3449,46 @@ onMounted(async () => {
 .field-block {}
 .field-label {
   display: flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 600; color: #333;
+  font-size: 13px; font-weight: 600; color: var(--xrag-text);
   margin-bottom: 6px;
 }
 .ai-label {
   display: flex; align-items: center; gap: 3px;
-  font-size: 11px; font-weight: 400; color: #1890ff;
-  background: #e6f4ff; padding: 1px 6px; border-radius: 3px;
+  font-size: 11px; font-weight: 400; color: #69b1ff;
+  background: rgba(24, 144, 255, 0.14); padding: 1px 6px; border-radius: 3px;
 }
 .confidence-bar {
   display: flex; align-items: center; gap: 10px;
   margin-top: 14px; padding: 10px 12px;
-  background: #f9fafb; border-radius: 6px;
+  background: rgba(255,255,255,0.04); border-radius: 6px; border: 1px solid var(--xrag-border);
 }
-.conf-label { font-size: 12px; color: #666; white-space: nowrap; }
+.conf-label { font-size: 12px; color: var(--xrag-text-soft); white-space: nowrap; }
 .conf-value { font-size: 13px; font-weight: 700; color: #52c41a; white-space: nowrap; }
 
 .history-list { padding: 12px 16px; }
 .history-item {
   padding: 10px 12px;
-  background: #fafafa;
+  background: rgba(255,255,255,0.03);
   border-radius: 6px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--xrag-border);
   margin-bottom: 8px;
 }
 .history-meta { display: flex; justify-content: space-between; margin-bottom: 4px; }
-.history-editor { font-size: 12px; font-weight: 600; color: #333; }
-.history-time { font-size: 11px; color: #999; }
-.history-note { font-size: 11px; color: #666; margin-bottom: 6px; }
+.history-editor { font-size: 12px; font-weight: 600; color: var(--xrag-text); }
+.history-time { font-size: 11px; color: var(--xrag-text-faint); }
+.history-note { font-size: 11px; color: var(--xrag-text-soft); margin-bottom: 6px; }
 .diff-row { display: flex; gap: 6px; margin-bottom: 3px; }
-.diff-label { font-size: 11px; color: #999; white-space: nowrap; }
-.diff-text { font-size: 11px; color: #444; line-height: 1.5; }
+.diff-label { font-size: 11px; color: var(--xrag-text-faint); white-space: nowrap; }
+.diff-text { font-size: 11px; color: var(--xrag-text); line-height: 1.5; }
 
 .dicom-meta { padding: 12px 16px; }
 .meta-row {
   display: flex; padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--xrag-border);
   font-size: 12px;
 }
-.meta-key { width: 90px; color: #999; flex-shrink: 0; }
-.meta-val { color: #333; }
+.meta-key { width: 90px; color: var(--xrag-text-faint); flex-shrink: 0; }
+.meta-val { color: var(--xrag-text); }
 
 /* ═══════════════════════════════════════════
    相似病例
@@ -2537,21 +3498,21 @@ onMounted(async () => {
 }
 .section-title {
   display: flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 600; color: #333;
+  font-size: 13px; font-weight: 600; color: var(--xrag-text);
   margin-bottom: 8px;
 }
-.section-sub { font-size: 11px; font-weight: 400; color: #999; }
+.section-sub { font-size: 11px; font-weight: 400; color: var(--xrag-text-faint); }
 
 .similar-cards { display: flex; gap: 10px; }
 .similar-card {
-  flex: 1; background: #fff; border-radius: 6px;
-  border: 1px solid #e8e8e8; overflow: hidden;
+  flex: 1; background: var(--xrag-panel); border-radius: 6px;
+  border: 1px solid var(--xrag-border); overflow: hidden;
   display: flex; flex-direction: column;
   transition: border-color .15s, box-shadow .15s;
 }
 .similar-card:hover {
-  border-color: #1890ff;
-  box-shadow: 0 2px 8px rgba(24,144,255,.18);
+  border-color: var(--xrag-primary);
+  box-shadow: 0 6px 18px rgba(74,158,255,.16);
 }
 .similar-img-placeholder {
   height: 70px; background: #1a2030;
@@ -2562,19 +3523,26 @@ onMounted(async () => {
 .score-high { color: #52c41a; }
 .score-mid  { color: #fa8c16; }
 .score-low  { color: #1890ff; }
-.sim-exam { font-size: 11px; color: #666; margin: 2px 0; }
-.sim-findings { font-size: 10px; color: #999; line-height: 1.4; }
+.sim-exam { font-size: 11px; color: var(--xrag-text-soft); margin: 2px 0; }
+.sim-findings { font-size: 10px; color: var(--xrag-text-faint); line-height: 1.4; }
 
 /* ═══════════════════════════════════════════
    工作流进度
 ═══════════════════════════════════════════ */
 .progress-section {
   padding: 8px 12px;
-  background: #fff;
+  background: var(--xrag-panel);
   margin: 0;
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--xrag-border);
   flex-shrink: 0;
+}
+.progress-summary {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 11px; color: var(--xrag-text-soft); margin: -2px 0 8px;
+}
+.progress-summary-tag {
+  padding: 2px 6px; border-radius: 10px; background: rgba(74,158,255,0.12); color: #8ec5ff;
 }
 .workflow-steps {
   display: flex;
@@ -2588,19 +3556,19 @@ onMounted(async () => {
   width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 600; flex-shrink: 0;
-  background: #e8e8e8; color: #999; border: 2px solid #e8e8e8;
+  background: rgba(111,134,166,0.16); color: var(--xrag-text-faint); border: 2px solid rgba(111,134,166,0.16);
 }
 .step-item.done .step-circle { background: #52c41a; border-color: #52c41a; color: #fff; }
 .step-item.active .step-circle { background: #1890ff; border-color: #1890ff; color: #fff; }
 
 .step-info { padding: 0 6px; flex-shrink: 0; }
-.step-name { font-size: 10px; font-weight: 600; color: #333; white-space: nowrap; }
-.step-time { font-size: 9px; color: #999; white-space: nowrap; }
-.step-item.done .step-name, .step-item.active .step-name { color: #1a1a1a; }
+.step-name { font-size: 10px; font-weight: 600; color: var(--xrag-text); white-space: nowrap; }
+.step-time { font-size: 9px; color: var(--xrag-text-faint); white-space: nowrap; }
+.step-item.done .step-name, .step-item.active .step-name { color: #f4f8ff; }
 
 .step-line {
   flex: 1; height: 2px;
-  background: #e8e8e8;
+  background: rgba(111,134,166,0.16);
   margin: 0 4px;
 }
 .step-item.done + .step-item .step-line { background: #52c41a; }
@@ -2610,16 +3578,17 @@ onMounted(async () => {
 ═══════════════════════════════════════════ */
 .ai-analysis-section {
   margin-top: 12px;
-  background: #fff;
-  border: 1px solid #f0f0f0;
+  background: var(--xrag-panel);
+  border: 1px solid var(--xrag-border);
   border-radius: 8px;
   padding: 14px;
 }
 .ai-risk-card {
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--xrag-border);
   border-radius: 8px;
   padding: 12px 14px;
   margin-top: 10px;
+  background: rgba(255,255,255,0.02);
 }
 .risk-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .risk-badge {
@@ -2628,48 +3597,49 @@ onMounted(async () => {
 }
 .risk-grade { display: flex; flex-direction: column; align-items: center; }
 .risk-grade-letter { font-size: 24px; font-weight: 800; line-height: 1; }
-.risk-grade-label { font-size: 10px; color: #999; }
+.risk-grade-label { font-size: 10px; color: var(--xrag-text-faint); }
 .risk-metrics {
-  display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: #666; margin-left: auto;
+  display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--xrag-text-soft); margin-left: auto;
 }
-.risk-metrics b { color: #333; }
+.risk-metrics b { color: var(--xrag-text); }
 .risk-findings { margin-top: 8px; display: flex; align-items: center; flex-wrap: wrap; }
-.risk-findings-label { font-size: 11px; color: #999; margin-right: 4px; }
+.risk-findings-label { font-size: 11px; color: var(--xrag-text-faint); margin-right: 4px; }
 
 .ai-label-chart {
   margin-top: 12px;
-  background: #fafafa;
+  background: rgba(255,255,255,0.03);
   border-radius: 6px;
   padding: 10px 12px;
+  border: 1px solid var(--xrag-border);
 }
 .label-chart-title {
-  font-size: 11px; font-weight: 600; color: #666; margin-bottom: 8px;
+  font-size: 11px; font-weight: 600; color: var(--xrag-text-soft); margin-bottom: 8px;
 }
 .label-bars { display: flex; flex-direction: column; gap: 4px; }
 .label-bar-row { display: flex; align-items: center; gap: 6px; }
-.label-bar-name { width: 70px; font-size: 10px; color: #666; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.label-bar-track { flex: 1; height: 10px; background: #e8e8e8; border-radius: 5px; overflow: hidden; }
+.label-bar-name { width: 70px; font-size: 10px; color: var(--xrag-text-soft); text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.label-bar-track { flex: 1; height: 10px; background: rgba(111,134,166,0.16); border-radius: 5px; overflow: hidden; }
 .label-bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s ease; }
 .label-bar-pct { width: 32px; font-size: 10px; font-weight: 600; text-align: right; flex-shrink: 0; }
 
 .ai-label-alerts {
   margin-top: 10px;
   padding: 8px 10px;
-  background: #fffbe6;
+  background: rgba(250, 173, 20, 0.12);
   border-radius: 6px;
-  border: 1px solid #ffe58f;
+  border: 1px solid rgba(255, 214, 102, 0.28);
 }
 .label-alert-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
 .label-alert-row:last-child { margin-bottom: 0; }
 .label-alert-icon { font-size: 14px; }
-.label-alert-title { font-size: 11px; font-weight: 600; color: #333; }
+.label-alert-title { font-size: 11px; font-weight: 600; color: var(--xrag-text); }
 
 /* ─── AI润色弹窗 ─── */
 .polish-compare { display: flex; gap: 12px; align-items: stretch; }
-.polish-col { flex: 1; background: #fafafa; border-radius: 6px; padding: 10px; }
+.polish-col { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--xrag-border); border-radius: 6px; padding: 10px; }
 .polish-col-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
-.polish-field-label { font-size: 10px; color: #999; margin-bottom: 3px; }
-.polish-text { font-size: 12px; color: #333; line-height: 1.6; white-space: pre-wrap; }
+.polish-field-label { font-size: 10px; color: var(--xrag-text-faint); margin-bottom: 3px; }
+.polish-text { font-size: 12px; color: var(--xrag-text); line-height: 1.6; white-space: pre-wrap; }
 .polish-text-new { color: #52c41a; }
 .polish-arrow { display: flex; align-items: center; font-size: 20px; color: #bbb; flex-shrink: 0; }
 
@@ -2681,8 +3651,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #fff;
-  border-top: 1px solid #e8e8e8;
+  background: var(--xrag-panel);
+  border-top: 1px solid var(--xrag-border);
   flex-shrink: 0;
   margin-top: 10px;
 }
@@ -2726,8 +3696,8 @@ onMounted(async () => {
   font-size: 11px;
   border: 1px solid transparent;
 }
-.label-positive { background: #fff1f0; border-color: #ffa39e; color: #cf1322; }
-.label-negative { background: #f6ffed; border-color: #b7eb8f; color: #389e0d; }
+.label-positive { background: rgba(245, 34, 45, 0.14); border-color: rgba(255, 120, 117, 0.28); color: #ff9c9c; }
+.label-negative { background: rgba(82, 196, 26, 0.12); border-color: rgba(149, 222, 100, 0.28); color: #95de64; }
 .label-name { font-weight: 500; }
 .label-prob { opacity: 0.75; }
 
@@ -2736,9 +3706,9 @@ onMounted(async () => {
 ═══════════════════════════════════════════ */
 .term-suggestions-panel {
   margin-top: 12px;
-  border: 1px solid #ffe7ba;
+  border: 1px solid rgba(255, 214, 102, 0.28);
   border-radius: 6px;
-  background: #fffbe6;
+  background: rgba(250, 173, 20, 0.12);
   padding: 8px 10px;
 }
 .term-suggestions-panel-relaxed {
@@ -2792,9 +3762,14 @@ onMounted(async () => {
 .thumb-item:hover .thumb-del { display: flex; }
 
 /* ═══ 已签发报告视图 ═══ */
-.signed-report-view { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding: 0; }
+.signed-report-view {
+  display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding: 0;
+  background: var(--xrag-panel);
+  border: 1px solid var(--xrag-border);
+  border-radius: 8px;
+}
 .signed-report-view::-webkit-scrollbar { width: 5px; }
-.signed-report-view::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
+.signed-report-view::-webkit-scrollbar-thumb { background: rgba(111,134,166,0.36); border-radius: 3px; }
 
 .signed-banner {
   display: flex; align-items: center; justify-content: space-between;
@@ -2806,8 +3781,8 @@ onMounted(async () => {
   width: 36px; height: 36px; border-radius: 50%; background: #52c41a;
   display: flex; align-items: center; justify-content: center; color: #fff;
 }
-.signed-title { font-size: 15px; font-weight: 700; color: #1a1a1a; }
-.signed-meta { font-size: 11px; color: #8c8c8c; margin-top: 2px; }
+.signed-title { font-size: 15px; font-weight: 700; color: var(--xrag-text); }
+.signed-meta { font-size: 11px; color: var(--xrag-text-faint); margin-top: 2px; }
 .signed-grade-badge {
   width: 40px; height: 40px; border-radius: 8px; color: #fff; font-size: 22px; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
@@ -2816,61 +3791,61 @@ onMounted(async () => {
 .signed-content { padding: 16px 18px; flex-shrink: 0; }
 .signed-section { margin-bottom: 14px; }
 .signed-section-label {
-  font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; color: var(--xrag-text-soft); margin-bottom: 6px;
   display: flex; align-items: center; gap: 4px;
 }
 .signed-text {
-  font-size: 13px; line-height: 1.7; color: #1a1a1a; padding: 10px 14px;
-  background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px; white-space: pre-wrap;
+  font-size: 13px; line-height: 1.7; color: var(--xrag-text); padding: 10px 14px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--xrag-border); border-radius: 6px; white-space: pre-wrap;
 }
 
 .signed-ai-compare {
-  margin-top: 8px; border: 1px dashed #d9d9d9; border-radius: 6px; overflow: hidden;
+  margin-top: 8px; border: 1px dashed var(--xrag-border-strong); border-radius: 6px; overflow: hidden;
 }
 .compare-header {
   display: flex; align-items: center; gap: 6px; padding: 8px 14px;
-  background: #fafafa; cursor: pointer; font-size: 12px; color: #8c8c8c;
+  background: rgba(255,255,255,0.03); cursor: pointer; font-size: 12px; color: var(--xrag-text-faint);
 }
-.compare-header:hover { background: #f0f0f0; }
+.compare-header:hover { background: rgba(74,158,255,0.08); }
 .compare-diff-hint {
-  font-size: 10px; padding: 1px 6px; background: #fff7e6; color: #d48806;
-  border-radius: 3px; border: 1px solid #ffe58f;
+  font-size: 10px; padding: 1px 6px; background: rgba(250, 140, 22, 0.12); color: #ffb86b;
+  border-radius: 3px; border: 1px solid rgba(255, 214, 102, 0.28);
 }
 .compare-body { padding: 10px 14px; }
 .compare-field { margin-bottom: 8px; }
-.compare-label { font-size: 11px; color: #999; margin-bottom: 3px; }
+.compare-label { font-size: 11px; color: var(--xrag-text-faint); margin-bottom: 3px; }
 .compare-text {
-  font-size: 12px; color: #8c8c8c; line-height: 1.6; padding: 6px 10px;
-  background: #f5f5f5; border-radius: 4px; font-style: italic; white-space: pre-wrap;
+  font-size: 12px; color: var(--xrag-text-soft); line-height: 1.6; padding: 6px 10px;
+  background: rgba(255,255,255,0.04); border-radius: 4px; font-style: italic; white-space: pre-wrap;
 }
 
 .signed-eval-section {
-  padding: 14px 18px; border-top: 1px solid #f0f0f0; flex-shrink: 0;
+  padding: 14px 18px; border-top: 1px solid var(--xrag-border); flex-shrink: 0;
 }
 .signed-eval-header {
   display: flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px;
+  font-size: 13px; font-weight: 600; color: var(--xrag-text); margin-bottom: 12px;
 }
 .signed-eval-metrics {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px;
 }
 .metric-card {
-  text-align: center; padding: 10px 4px; background: #fafafa;
-  border: 1px solid #f0f0f0; border-radius: 6px;
+  text-align: center; padding: 10px 4px; background: rgba(255,255,255,0.03);
+  border: 1px solid var(--xrag-border); border-radius: 6px;
 }
 .metric-value { font-size: 18px; font-weight: 700; line-height: 1; }
-.metric-label { font-size: 10px; color: #999; margin-top: 4px; }
+.metric-label { font-size: 10px; color: var(--xrag-text-faint); margin-top: 4px; }
 .signed-eval-advice {
   font-size: 12px; padding: 6px 12px; border-radius: 5px; margin-bottom: 8px;
 }
-.signed-eval-advice.advice-A { background: #f6ffed; color: #389e0d; }
-.signed-eval-advice.advice-B { background: #e6f4ff; color: #0958d9; }
-.signed-eval-advice.advice-C { background: #fffbe6; color: #ad6800; }
-.signed-eval-advice.advice-D { background: #fff1f0; color: #cf1322; }
+.signed-eval-advice.advice-A { background: rgba(82, 196, 26, 0.12); color: #95de64; }
+.signed-eval-advice.advice-B { background: rgba(24, 144, 255, 0.12); color: #91caff; }
+.signed-eval-advice.advice-C { background: rgba(250, 173, 20, 0.12); color: #ffd666; }
+.signed-eval-advice.advice-D { background: rgba(245, 34, 45, 0.14); color: #ff9c9c; }
 /* ─── AI 审核建议面板 ─── */
 .ai-advice-panel {
-  background: #faf7ff;
-  border: 1px solid #d3adf7;
+  background: rgba(114, 46, 209, 0.1);
+  border: 1px solid rgba(211, 173, 247, 0.28);
   border-radius: 8px;
   padding: 12px 14px;
   margin-top: 10px;
@@ -2881,14 +3856,14 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: #531dab;
+  color: #d3adf7;
   margin-bottom: 8px;
 }
 .advice-priority-high {
   margin-left: auto;
-  background: #fff1f0;
-  color: #cf1322;
-  border: 1px solid #ffa39e;
+  background: rgba(245, 34, 45, 0.14);
+  color: #ff9c9c;
+  border: 1px solid rgba(255, 120, 117, 0.28);
   border-radius: 10px;
   padding: 1px 8px;
   font-size: 11px;
@@ -2896,37 +3871,37 @@ onMounted(async () => {
 }
 .advice-priority-mid {
   margin-left: auto;
-  background: #fffbe6;
-  color: #ad6800;
-  border: 1px solid #ffe58f;
+  background: rgba(250, 173, 20, 0.12);
+  color: #ffd666;
+  border: 1px solid rgba(255, 214, 102, 0.28);
   border-radius: 10px;
   padding: 1px 8px;
   font-size: 11px;
   font-weight: 500;
 }
 .ai-advice-assessment {
-  color: #444;
+  color: var(--xrag-text-soft);
   margin-bottom: 8px;
   line-height: 1.6;
 }
 .ai-advice-block { margin-bottom: 8px; }
 .ai-advice-label {
   font-weight: 600;
-  color: #722ed1;
+  color: #d3adf7;
   margin-bottom: 4px;
 }
 .ai-advice-list {
   margin: 0 0 4px 14px;
   padding: 0;
-  color: #555;
+  color: var(--xrag-text-soft);
   line-height: 1.7;
 }
 .ai-advice-text {
-  background: #fff;
-  border: 1px solid #e8e0f5;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(211,173,247,0.28);
   border-radius: 5px;
   padding: 8px 10px;
-  color: #333;
+  color: var(--xrag-text);
   line-height: 1.7;
   margin-bottom: 4px;
   white-space: pre-wrap;
@@ -2946,9 +3921,22 @@ onMounted(async () => {
   padding: 6px 8px; border-radius: 5px; margin-bottom: 5px;
   font-size: 12px;
 }
-.alert-pending  { background: #fff1f0; border: 1px solid #ffccc7; }
-.alert-resolved { background: #f6ffed; border: 1px solid #b7eb8f; }
+.alert-pending  { background: rgba(245, 34, 45, 0.14); border: 1px solid rgba(255, 120, 117, 0.24); }
+.alert-resolved { background: rgba(82, 196, 26, 0.12); border: 1px solid rgba(149, 222, 100, 0.24); }
 .alert-label { font-weight: 600; flex: 1; }
-.alert-prob  { color: #666; }
-.alert-note  { color: #999; font-size: 11px; }
+.alert-prob  { color: var(--xrag-text-soft); }
+.alert-note  { color: var(--xrag-text-faint); font-size: 11px; }
 </style>
+
+
+<style scoped>
+.viewer-stage { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
+.viewer-stage-compare { justify-content: space-between; }
+.compare-image-wrapper { position: relative; display: inline-block; }
+.compare-image-wrapper .dicom-img { max-height: 280px; }
+.compare-image-tag { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,0.55); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 3px; }
+.thumb-compare img { border-color: #faad14 !important; box-shadow: 0 0 0 1px rgba(250,173,20,0.35); }
+</style>
+
+
+

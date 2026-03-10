@@ -1,4 +1,4 @@
-﻿package com.hospital.xray.config;
+package com.hospital.xray.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

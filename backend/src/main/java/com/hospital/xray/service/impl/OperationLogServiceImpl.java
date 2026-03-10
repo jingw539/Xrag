@@ -17,25 +17,26 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 操作日志服务实现类
+ * 操作日志服务实现
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OperationLogServiceImpl implements OperationLogService {
-    
+
+    private static final String ERROR_MARKER = "错误:";
+
     private final SysOperationLogMapper operationLogMapper;
     private final SysUserMapper sysUserMapper;
-    
-    /**
-     * 记录操作日志
-     * 在主线程采集 SecurityContext/RequestContext，再通过 saveLog 异步写入
-     */
+
     @Override
     public void log(String operationType, String targetId, String detail) {
         SysOperationLog entity = new SysOperationLog();
@@ -48,10 +49,7 @@ public class OperationLogServiceImpl implements OperationLogService {
         entity.setCreatedAt(LocalDateTime.now());
         saveLog(entity);
     }
-    
-    /**
-     * 保存操作日志实体
-     */
+
     @Async
     @Override
     public void saveLog(SysOperationLog logEntity) {
@@ -67,77 +65,121 @@ public class OperationLogServiceImpl implements OperationLogService {
             log.error("保存操作日志失败: {}", logEntity, e);
         }
     }
-    
-    /**
-     * 记录错误日志
-     * 在主线程采集 SecurityContext/RequestContext，再通过 saveLog 异步写入
-     */
+
     @Override
     public void logError(String operationType, String errorMessage) {
         SysOperationLog entity = new SysOperationLog();
         entity.setUserId(SecurityUtils.getCurrentUserId());
         entity.setOperationType(operationType);
-        entity.setDetail("操作失败: " + errorMessage);
+        entity.setDetail("错误: " + errorMessage);
         entity.setClientIp(RequestUtils.getClientIp());
         entity.setApiPath(RequestUtils.getRequestPath());
         entity.setCreatedAt(LocalDateTime.now());
         saveLog(entity);
     }
-    
-    /**
-     * 分页查询操作日志
-     */
+
     @Override
     public PageResult<OperationLogVO> listLogs(LogQueryDTO query) {
-        // 创建分页对象
         Page<SysOperationLog> page = new Page<>(query.getPage(), query.getPageSize());
-        
-        // 构建查询条件
-        LambdaQueryWrapper<SysOperationLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(query.getUserId() != null, SysOperationLog::getUserId, query.getUserId())
-               .eq(query.getOperationType() != null && !query.getOperationType().isEmpty(), 
-                   SysOperationLog::getOperationType, query.getOperationType())
-               .between(query.getStartTime() != null && query.getEndTime() != null,
-                       SysOperationLog::getCreatedAt, query.getStartTime(), query.getEndTime())
-               .orderByDesc(SysOperationLog::getCreatedAt);
-        
-        // 执行分页查询
-        Page<SysOperationLog> result = operationLogMapper.selectPage(page, wrapper);
-        
-        List<Long> userIds = result.getRecords().stream()
-                .map(SysOperationLog::getUserId).filter(java.util.Objects::nonNull)
-                .distinct().collect(Collectors.toList());
-        java.util.Map<Long, String> userNameMap = userIds.isEmpty() ? java.util.Map.of() :
-                sysUserMapper.selectBatchIds(userIds).stream()
-                        .collect(java.util.stream.Collectors.toMap(
-                                u -> u.getUserId(),
-                                u -> u.getRealName() != null ? u.getRealName() : ""));
-
-        List<OperationLogVO> voList = result.getRecords().stream()
-                .map(e -> convertToVO(e, userNameMap))
-                .collect(Collectors.toList());
-        
+        Page<SysOperationLog> result = operationLogMapper.selectPage(page, buildWrapper(query));
+        List<OperationLogVO> voList = convertToVOList(result.getRecords());
         return PageResult.of(result.getTotal(), voList);
     }
-    
-    /**
-     * 将实体转换为 VO
-     */
-    private OperationLogVO convertToVO(SysOperationLog entity) {
-        return convertToVO(entity, null);
+
+    @Override
+    public byte[] exportLogs(LogQueryDTO query) {
+        List<SysOperationLog> records = operationLogMapper.selectList(buildWrapper(query));
+        List<OperationLogVO> logs = convertToVOList(records);
+        StringBuilder csv = new StringBuilder();
+        csv.append("\uFEFF")
+                .append("用户,操作类型,结果类型,错误信息,目标ID,API路径,客户端IP,耗时(ms),详情,时间\n");
+        for (OperationLogVO logItem : logs) {
+            csv.append(csvCell(logItem.getUserName()))
+                    .append(',')
+                    .append(csvCell(logItem.getOperationType()))
+                    .append(',')
+                    .append(csvCell(logItem.getErrorMsg() != null ? "失败" : "成功"))
+                    .append(',')
+                    .append(csvCell(logItem.getErrorMsg()))
+                    .append(',')
+                    .append(csvCell(logItem.getTargetId()))
+                    .append(',')
+                    .append(csvCell(logItem.getApiPath()))
+                    .append(',')
+                    .append(csvCell(logItem.getClientIp()))
+                    .append(',')
+                    .append(csvCell(logItem.getElapsedMs()))
+                    .append(',')
+                    .append(csvCell(logItem.getDetail()))
+                    .append(',')
+                    .append(csvCell(logItem.getCreatedAt()))
+                    .append('\n');
+        }
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    private OperationLogVO convertToVO(SysOperationLog entity, java.util.Map<Long, String> userNameCache) {
+    private LambdaQueryWrapper<SysOperationLog> buildWrapper(LogQueryDTO query) {
+        LambdaQueryWrapper<SysOperationLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(query.getUserId() != null, SysOperationLog::getUserId, query.getUserId())
+                .eq(query.getOperationType() != null && !query.getOperationType().isEmpty(),
+                        SysOperationLog::getOperationType, query.getOperationType())
+                .between(query.getStartTime() != null && query.getEndTime() != null,
+                        SysOperationLog::getCreatedAt, query.getStartTime(), query.getEndTime())
+                .like(query.getErrorKeyword() != null && !query.getErrorKeyword().isBlank(),
+                        SysOperationLog::getDetail, query.getErrorKeyword())
+                .and(query.getResultType() != null && !query.getResultType().isBlank(), builder -> {
+                    if ("error".equalsIgnoreCase(query.getResultType())) {
+                        builder.like(SysOperationLog::getDetail, ERROR_MARKER);
+                    } else if ("success".equalsIgnoreCase(query.getResultType())) {
+                        builder.notLike(SysOperationLog::getDetail, ERROR_MARKER);
+                    }
+                })
+                .orderByDesc(SysOperationLog::getCreatedAt);
+        return wrapper;
+    }
+
+    private List<OperationLogVO> convertToVOList(List<SysOperationLog> entities) {
+        List<Long> userIds = entities.stream()
+                .map(SysOperationLog::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, String> userNameMap = userIds.isEmpty()
+                ? Map.of()
+                : sysUserMapper.selectBatchIds(userIds).stream().collect(Collectors.toMap(
+                        u -> u.getUserId(),
+                        u -> u.getRealName() != null ? u.getRealName() : ""
+                ));
+
+        return entities.stream()
+                .map(entity -> convertToVO(entity, userNameMap))
+                .collect(Collectors.toList());
+    }
+
+    private OperationLogVO convertToVO(SysOperationLog entity, Map<Long, String> userNameCache) {
         OperationLogVO vo = new OperationLogVO();
         BeanUtils.copyProperties(entity, vo);
+        vo.setErrorMsg(extractErrorMessage(entity.getDetail()));
         if (entity.getUserId() != null) {
-            if (userNameCache != null) {
-                vo.setUserName(userNameCache.get(entity.getUserId()));
-            } else {
-                var user = sysUserMapper.selectById(entity.getUserId());
-                if (user != null) vo.setUserName(user.getRealName());
-            }
+            vo.setUserName(userNameCache.get(entity.getUserId()));
         }
         return vo;
+    }
+
+    private String extractErrorMessage(String detail) {
+        if (detail == null || detail.isBlank()) {
+            return null;
+        }
+        int idx = detail.indexOf(ERROR_MARKER);
+        if (idx < 0) {
+            return null;
+        }
+        return detail.substring(idx + ERROR_MARKER.length()).trim();
+    }
+
+    private String csvCell(Object value) {
+        String text = value == null ? "" : String.valueOf(value);
+        return '"' + text.replace("\"", "\"\"").replace("\r", " ").replace("\n", " ") + '"';
     }
 }

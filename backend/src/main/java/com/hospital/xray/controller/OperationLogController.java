@@ -8,37 +8,48 @@ import com.hospital.xray.service.OperationLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 操作日志控制器
- * 提供操作日志查询接口
- */
-@Tag(name = "操作日志", description = "系统操作日志的查询功能")
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+
+@Tag(name = "操作日志", description = "系统操作日志查询与导出接口")
 @Validated
 @RestController
 @RequestMapping("/api/logs")
 @RequiredArgsConstructor
 public class OperationLogController {
-    
+
     private final OperationLogService operationLogService;
-    
-    /**
-     * 查询操作日志列表
-     * 支持多条件筛选和分页
-     * 
-     * @param query 查询条件
-     * @return 分页结果
-     */
-    @Operation(summary = "查询操作日志", description = "支持多条件筛选和分页查询操作日志，需要管理员或质控角色权限")
+
+    @Operation(summary = "查询操作日志")
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'QC')")
     public Result<PageResult<OperationLogVO>> listLogs(LogQueryDTO query) {
-        PageResult<OperationLogVO> result = operationLogService.listLogs(query);
-        return Result.success(result);
+        return Result.success(operationLogService.listLogs(query));
+    }
+
+    @Operation(summary = "导出操作日志")
+    @GetMapping("/export")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'QC')")
+    public ResponseEntity<ByteArrayResource> exportLogs(LogQueryDTO query) {
+        byte[] content = operationLogService.exportLogs(query);
+        String fileName = "operation-logs-" + LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(fileName, StandardCharsets.UTF_8)
+                        .build().toString())
+                .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .contentLength(content.length)
+                .body(new ByteArrayResource(content));
     }
 }

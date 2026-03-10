@@ -1,17 +1,17 @@
 package com.hospital.xray.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import io.swagger.v3.oas.models.Components;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Knife4j接口文档配置
+ * Knife4j 接口文档配置
  */
 @Configuration
 public class Knife4jConfig {
@@ -21,7 +21,7 @@ public class Knife4jConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("胸部X光智能辅助诊断系统 API")
-                        .description("提供病例管理、影像管理、报告生成等核心功能的RESTful API接口")
+                        .description("提供病例管理、影像管理、报告生成等核心功能的 RESTful API 接口")
                         .version("v1.0.0")
                         .contact(new Contact()
                                 .name("开发团队")
@@ -34,7 +34,7 @@ public class Knife4jConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
-                                .description("请输入JWT Token，格式：Bearer {token}")))
+                                .description("请输入 JWT Token，格式：Bearer {token}")))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer"));
     }
 }

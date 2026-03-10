@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="layout-root">
     <aside :class="['sidebar', { 'is-collapsed': collapsed }]">
       <div class="sidebar-logo">
@@ -192,15 +192,14 @@ onMounted(() => {
   setInterval(fetchPendingCount, 60000)
 })
 </script>
-
 <style scoped>
 .layout-root {
   display: flex;
   height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(64, 158, 255, 0.12), transparent 20%),
-    linear-gradient(180deg, #f4f7fb 0%, #edf2f7 100%);
+    radial-gradient(circle at top left, rgba(64, 158, 255, 0.08), transparent 20%),
+    linear-gradient(180deg, #0d1420 0%, #0a1018 100%);
 }
 
 .sidebar {
@@ -213,11 +212,11 @@ onMounted(() => {
   z-index: 100;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(248,251,255,0.68) 100%);
-  border-right: 1px solid rgba(255,255,255,0.6);
+    linear-gradient(180deg, rgba(15, 25, 40, 0.98) 0%, rgba(10, 16, 24, 0.98) 100%);
+  border-right: 1px solid rgba(111, 134, 166, 0.2);
   box-shadow:
-    0 18px 40px rgba(132, 152, 179, 0.16),
-    inset -1px 0 0 rgba(255,255,255,0.35);
+    0 18px 40px rgba(0, 0, 0, 0.3),
+    inset -1px 0 0 rgba(111, 134, 166, 0.1);
   backdrop-filter: blur(24px) saturate(150%);
 }
 
@@ -226,8 +225,8 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at top left, rgba(64, 158, 255, 0.12), transparent 22%),
-    linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 18%);
+    radial-gradient(circle at top left, rgba(64, 158, 255, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(111, 134, 166, 0.08) 0%, transparent 18%);
   pointer-events: none;
 }
 
@@ -247,11 +246,11 @@ onMounted(() => {
   gap: 10px;
   padding: 0 18px;
   height: 72px;
-  border-bottom: 1px solid rgba(219, 228, 238, 0.9);
+  border-bottom: 1px solid rgba(111, 134, 166, 0.2);
   flex-shrink: 0;
   overflow: hidden;
   white-space: nowrap;
-  background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.22) 100%);
+  background: linear-gradient(180deg, rgba(111, 134, 166, 0.06) 0%, transparent 100%);
 }
 
 :deep(.sidebar-logo .el-icon) {
@@ -261,17 +260,16 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(241,247,255,0.82));
-  box-shadow: 0 10px 20px rgba(143, 171, 202, 0.2), inset 0 1px 0 rgba(255,255,255,0.85);
+  background: rgba(64, 158, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .logo-text {
   font-size: 14px;
   font-weight: 700;
-  color: #24364b;
+  color: #e8f0ff;
   letter-spacing: .8px;
   white-space: nowrap;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.7);
 }
 
 .sidebar-scroll {
@@ -333,7 +331,7 @@ onMounted(() => {
 .menu-group-divider {
   height: 1px;
   margin: 12px 16px;
-  background: rgba(216, 226, 238, 0.95);
+  background: rgba(111, 134, 166, 0.2);
 }
 
 .menu-badge {
@@ -347,23 +345,21 @@ onMounted(() => {
   margin: 7px 12px;
   border-radius: 14px;
   border: 1px solid transparent;
-  color: #52657b !important;
-  background: rgba(255,255,255,0.28) !important;
+  color: rgba(208, 220, 240, 0.8) !important;
+  background: rgba(111, 134, 166, 0.12) !important;
   transition: all .2s ease;
 }
 
 :deep(.sidebar-menu .el-menu-item:hover) {
-  background: rgba(255,255,255,0.72) !important;
-  border-color: rgba(199, 215, 234, 0.9);
-  box-shadow: 0 10px 22px rgba(156, 174, 197, 0.14);
+  background: rgba(111, 134, 166, 0.2) !important;
+  border-color: rgba(111, 134, 166, 0.25);
   transform: translateX(1px);
 }
 
 :deep(.sidebar-menu .el-menu-item.is-active) {
-  color: #1e5ea8 !important;
-  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(239,246,255,0.96)) !important;
-  border-color: rgba(190, 214, 239, 0.95);
-  box-shadow: 0 14px 28px rgba(170, 191, 216, 0.22);
+  color: #7eb8ff !important;
+  background: rgba(64, 158, 255, 0.2) !important;
+  border-color: rgba(64, 158, 255, 0.35);
 }
 
 :deep(.sidebar-menu .el-menu-item .el-icon) {
@@ -378,15 +374,14 @@ onMounted(() => {
 .collapse-btn {
   margin: 12px;
   height: 44px;
-  border: 1px solid rgba(213, 225, 238, 0.95);
+  border: 1px solid rgba(111, 134, 166, 0.25);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(245,249,253,0.84));
-  box-shadow: 0 8px 18px rgba(165, 185, 206, 0.12), inset 0 1px 0 rgba(255,255,255,0.92);
+  background: rgba(111, 134, 166, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #5f738c;
+  color: rgba(208, 220, 240, 0.8);
   cursor: pointer;
   transition: all .2s ease;
 }
@@ -397,8 +392,8 @@ onMounted(() => {
 }
 
 .collapse-btn:hover {
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,251,255,0.92));
-  color: #3f5d7e;
+  background: rgba(111, 134, 166, 0.2);
+  color: #d0dcf0;
 }
 
 .collapse-text {
@@ -419,17 +414,17 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid rgba(218, 226, 237, 0.95);
+  border: 1px solid rgba(111, 134, 166, 0.2);
   border-radius: 16px;
-  background: rgba(255,255,255,0.92);
-  box-shadow: 0 12px 30px rgba(31, 35, 41, 0.06);
+  background: rgba(15, 25, 35, 0.9);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(8px);
 }
 
 .page-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1f2329;
+  color: #e8f0ff;
 }
 
 .header-right {
@@ -445,14 +440,14 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #606266;
-  background: #f6f9fc;
+  color: #d0dcf0;
+  background: rgba(111, 134, 166, 0.12);
   transition: all .2s ease;
 }
 
 .header-action-btn:hover,
 .user-trigger:hover {
-  background: #eef5ff;
+  background: rgba(74, 158, 255, 0.12);
 }
 
 .user-trigger {
@@ -819,3 +814,82 @@ onMounted(() => {
 
 
 
+
+<style scoped>
+/* XRAG final layout polish */
+.layout-root,
+.layout-body {
+  background: var(--xrag-bg) !important;
+}
+
+.sidebar,
+.sidebar-logo,
+.top-header,
+.collapse-btn,
+.header-action-btn,
+.user-trigger {
+  background: var(--xrag-panel) !important;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(111, 134, 166, 0.32) !important;
+}
+
+.sidebar-logo,
+.top-header {
+  border-color: rgba(111, 134, 166, 0.28) !important;
+}
+
+.logo-text,
+.page-title,
+.user-name,
+:deep(.sidebar-menu .el-menu-item),
+:deep(.sidebar-menu .el-sub-menu__title),
+:deep(.sidebar-menu .el-menu-item .el-icon),
+:deep(.sidebar-menu .el-sub-menu__title .el-icon) {
+  color: var(--xrag-text) !important;
+}
+
+.user-role,
+.menu-group-title,
+.collapse-btn,
+.collapse-text {
+  color: var(--xrag-text-soft) !important;
+}
+
+:deep(.sidebar-menu .el-menu-item),
+:deep(.sidebar-menu .el-sub-menu__title) {
+  height: 44px !important;
+  margin: 4px 10px !important;
+  padding-left: 14px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+:deep(.sidebar-menu .el-menu-item:hover),
+:deep(.sidebar-menu .el-sub-menu__title:hover),
+.collapse-btn:hover,
+.header-action-btn:hover,
+.user-trigger:hover {
+  background: rgba(74, 158, 255, 0.10) !important;
+  border-color: rgba(74, 158, 255, 0.22) !important;
+  color: #f4f8ff !important;
+  box-shadow: none !important;
+}
+
+:deep(.sidebar-menu .el-menu-item.is-active) {
+  background: rgba(74, 158, 255, 0.12) !important;
+  color: #f4f8ff !important;
+  border-color: rgba(74, 158, 255, 0.14) !important;
+  box-shadow: inset 3px 0 0 #4A9EFF !important;
+}
+
+.user-avatar {
+  display: none !important;
+}
+
+.user-meta {
+  margin-left: 0 !important;
+}
+</style>
