@@ -223,3 +223,31 @@ jobs:
              fi; \
              if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi; \
              docker image prune -f >/dev/null 2>&1 || true"
+
+      - name: Frontend smoke test (key)
+        if: ${{ env.SSH_PRIVATE_KEY != '' }}
+        run: |
+          OUT=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -p "${SERVER_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
+            "docker ps --filter name=${REMOTE_CONTAINER_NAME_FRONTEND} --format '{{.Names}} {{.Status}} {{.Ports}}' | head -n1; \
+             if command -v curl >/dev/null 2>&1; then \
+               code=\$(curl -I -m 5 -s -o /dev/null -w '%{http_code}' http://127.0.0.1/ || echo ERR); \
+               echo \"localhost:80=\$code\"; \
+             fi")
+          OUT="${OUT//'%'/'%25'}"
+          OUT="${OUT//$'\n'/'%0A'}"
+          OUT="${OUT//$'\r'/'%0D'}"
+          echo "::notice::FRONTEND_SMOKE ${OUT}"
+
+      - name: Frontend smoke test (password)
+        if: ${{ env.SSH_PRIVATE_KEY == '' && env.SERVER_PASSWORD != '' }}
+        run: |
+          OUT=$(sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p "${SERVER_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
+            "docker ps --filter name=${REMOTE_CONTAINER_NAME_FRONTEND} --format '{{.Names}} {{.Status}} {{.Ports}}' | head -n1; \
+             if command -v curl >/dev/null 2>&1; then \
+               code=\$(curl -I -m 5 -s -o /dev/null -w '%{http_code}' http://127.0.0.1/ || echo ERR); \
+               echo \"localhost:80=\$code\"; \
+             fi")
+          OUT="${OUT//'%'/'%25'}"
+          OUT="${OUT//$'\n'/'%0A'}"
+          OUT="${OUT//$'\r'/'%0D'}"
+          echo "::notice::FRONTEND_SMOKE ${OUT}"
