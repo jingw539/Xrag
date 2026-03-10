@@ -87,6 +87,7 @@ fix_clip_encoder.py
 # Markdown (keep repo README)
 *.md
 !/README.md
+!/.github/*.md
 
 # Backend test/tools scripts not for deployment
 backend/_*.py
