@@ -180,6 +180,13 @@ public class OperationLogServiceImpl implements OperationLogService {
 
     private String csvCell(Object value) {
         String text = value == null ? "" : String.valueOf(value);
+        String trimmed = text.stripLeading();
+        if (!trimmed.isEmpty()) {
+            char first = trimmed.charAt(0);
+            if (first == '=' || first == '+' || first == '-' || first == '@') {
+                text = "'" + text;
+            }
+        }
         return '"' + text.replace("\"", "\"\"").replace("\r", " ").replace("\n", " ") + '"';
     }
 }

@@ -14,6 +14,7 @@ import com.hospital.xray.mapper.CaseInfoMapper;
 import com.hospital.xray.mapper.ImageInfoMapper;
 import com.hospital.xray.mapper.RetrievalLogMapper;
 import com.hospital.xray.service.ImageService;
+import com.hospital.xray.util.SecurityUtils;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -141,6 +142,7 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public List<ImageVO> listImagesByCaseId(Long caseId) {
+        assertCaseAccessible(caseId);
         return imageInfoMapper.selectList(new LambdaQueryWrapper<ImageInfo>()
                         .eq(ImageInfo::getCaseId, caseId)
                         .orderByAsc(ImageInfo::getCreatedAt))
@@ -151,6 +153,7 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public List<ImageVO> listPriorImages(Long caseId, Long currentImageId) {
+        assertCaseAccessible(caseId);
         CaseInfo currentCase = caseInfoMapper.selectById(caseId);
         if (currentCase == null || currentCase.getPatientAnonId() == null) {
             return List.of();
@@ -180,6 +183,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("影像不存在");
         }
+        assertImageAccessible(imageInfo);
         imageInfo.setPixelSpacingXmm(dto.getPixelSpacingXmm());
         imageInfo.setPixelSpacingYmm(dto.getPixelSpacingYmm());
         imageInfoMapper.updateById(imageInfo);
@@ -193,6 +197,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("影像不存在");
         }
+        assertImageAccessible(imageInfo);
 
         LambdaUpdateWrapper<RetrievalLog> clearRef = new LambdaUpdateWrapper<>();
         clearRef.eq(RetrievalLog::getQueryImageId, imageId)
@@ -287,6 +292,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("影像不存在: " + imageId);
         }
+        assertImageAccessible(imageInfo);
         String objectName = thumbnail ? generateThumbnailObjectName(imageInfo.getFilePath()) : imageInfo.getFilePath();
         try (InputStream inputStream = minioClient.getObject(
                 GetObjectArgs.builder().bucket(bucketName).object(objectName).build())) {
@@ -302,6 +308,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("影像不存在: " + imageId);
         }
+        assertImageAccessible(imageInfo);
         if (thumbnail) {
             return "image/jpeg";
         }
@@ -338,6 +345,31 @@ public class ImageServiceImpl implements ImageService {
     private String generateThumbnailObjectName(String originalPath) {
         int dot = originalPath.lastIndexOf('.');
         return dot > 0 ? originalPath.substring(0, dot) + "_thumb.jpg" : originalPath + "_thumb.jpg";
+    }
+
+    private void assertCaseAccessible(Long caseId) {
+        if (!SecurityUtils.hasRole("DOCTOR")) {
+            return;
+        }
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new BusinessException(401, "未登录");
+        }
+        CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
+        if (caseInfo == null) {
+            throw new BusinessException(404, "病例不存在: " + caseId);
+        }
+        if (caseInfo.getResponsibleDoctorId() == null) {
+            throw new BusinessException(403, "病例尚未分配责任医生");
+        }
+        if (!currentUserId.equals(caseInfo.getResponsibleDoctorId())) {
+            throw new BusinessException(403, "无权访问其他医生负责的病例");
+        }
+    }
+
+    private void assertImageAccessible(ImageInfo imageInfo) {
+        if (imageInfo == null) return;
+        assertCaseAccessible(imageInfo.getCaseId());
     }
 
     private ImageMetadata extractImageMetadata(MultipartFile file) {

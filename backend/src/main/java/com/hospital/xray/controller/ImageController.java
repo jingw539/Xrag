@@ -30,6 +30,7 @@ public class ImageController {
 
     @Operation(summary = "上传影像")
     @PostMapping("/upload")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'DOCTOR')")
     @OperationLog(type = "IMAGE_UPLOAD", detail = "上传影像")
     public Result<ImageUploadResult> uploadImage(
             @RequestParam("file") MultipartFile file,
@@ -45,12 +46,14 @@ public class ImageController {
 
     @Operation(summary = "查询病例影像")
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'DOCTOR')")
     public Result<List<ImageVO>> listImages(@RequestParam("caseId") String caseId) {
         return Result.success(imageService.listImagesByCaseId(Long.parseLong(caseId)));
     }
 
     @Operation(summary = "获取影像原图")
     @GetMapping("/{imageId}/content")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'DOCTOR')")
     public ResponseEntity<byte[]> getImageContent(@PathVariable String imageId) {
         Long id = Long.parseLong(imageId);
         return ResponseEntity.ok()
@@ -62,6 +65,7 @@ public class ImageController {
 
     @Operation(summary = "获取影像缩略图")
     @GetMapping("/{imageId}/thumbnail")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'DOCTOR')")
     public ResponseEntity<byte[]> getImageThumbnail(@PathVariable String imageId) {
         Long id = Long.parseLong(imageId);
         return ResponseEntity.ok()
@@ -73,6 +77,7 @@ public class ImageController {
 
     @Operation(summary = "查询历史影像")
     @GetMapping("/prior")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'DOCTOR')")
     public Result<List<ImageVO>> listPriorImages(@RequestParam("caseId") String caseId,
                                                  @RequestParam(value = "currentImageId", required = false) String currentImageId) {
         return Result.success(imageService.listPriorImages(Long.parseLong(caseId),

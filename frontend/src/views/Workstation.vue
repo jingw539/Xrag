@@ -719,7 +719,7 @@ import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, getCaseById, markTypical, createCase, deleteCase, importCases } from '@/api/case'
-import { listImages, listPriorImages, uploadImage, deleteImage } from '@/api/image'
+import { listImages, listPriorImages, uploadImage, deleteImage, fetchImageBlob } from '@/api/image'
 import { generateReport, regenerateReport, saveDraft, signReport, listReports, getEditHistory, polishReport, revertReport, getAiAdvice } from '@/api/report'
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { analyzeTerms, getTermsByReportId, acceptCorrection, dismissCorrection } from '@/api/term'
@@ -813,6 +813,41 @@ const reverting = ref(false)
 const termCorrections = ref([])
 const termLoading = ref(false)
 
+const revokeImageUrls = (list) => {
+  if (!list || !Array.isArray(list)) return
+  list.forEach(img => {
+    if (img?._thumbUrl && img._thumbUrl.startsWith('blob:')) URL.revokeObjectURL(img._thumbUrl)
+    if (img?._fullUrl && img._fullUrl.startsWith('blob:')) URL.revokeObjectURL(img._fullUrl)
+    if (img) {
+      img._thumbUrl = null
+      img._fullUrl = null
+    }
+  })
+}
+
+const buildImageUrl = async (imageId, thumbnail = false) => {
+  const res = await fetchImageBlob(imageId, thumbnail)
+  return URL.createObjectURL(res.data)
+}
+
+const ensureThumbnailUrl = async (img) => {
+  if (!img || img._thumbUrl) return
+  try {
+    const url = await buildImageUrl(img.imageId, true)
+    img._thumbUrl = url
+    img.thumbnailUrl = url
+  } catch (_) {}
+}
+
+const ensureFullUrl = async (img) => {
+  if (!img || img._fullUrl) return
+  try {
+    const url = await buildImageUrl(img.imageId, false)
+    img._fullUrl = url
+    img.fullUrl = url
+  } catch (_) {}
+}
+
 const selectCaseById = async (caseId) => {
   const found = caseList.value.find(c => String(c.caseId) === String(caseId))
   if (found) {
@@ -857,20 +892,30 @@ const loadCaseDetail = async () => {
 const loadImages = async () => {
   try {
     const res = await listImages(selectedCaseId.value)
+    revokeImageUrls(images.value)
     images.value = res.data || []
+    await Promise.all(images.value.map(ensureThumbnailUrl))
     currentImage.value = images.value[0] || null
-  } catch (_) { images.value = [] }
+    if (currentImage.value) await ensureFullUrl(currentImage.value)
+  } catch (_) {
+    revokeImageUrls(images.value)
+    images.value = []
+  }
 }
 
 const loadPriorImageSummary = async (imageId) => {
   if (!selectedCaseId.value || !imageId) {
+    revokeImageUrls(priorImages.value)
     priorImages.value = []
     return
   }
   try {
     const res = await listPriorImages(selectedCaseId.value, imageId)
+    revokeImageUrls(priorImages.value)
     priorImages.value = res.data || []
+    await Promise.all(priorImages.value.map(ensureThumbnailUrl))
   } catch (_) {
+    revokeImageUrls(priorImages.value)
     priorImages.value = []
   }
 }
@@ -1022,6 +1067,7 @@ const handleDeleteImage = async (img) => {
   } catch (_) { return }
   try {
     await deleteImage(img.imageId)
+    revokeImageUrls([img])
     images.value = images.value.filter(i => i.imageId !== img.imageId)
     if (currentImage.value?.imageId === img.imageId) {
       currentImage.value = images.value[0] || null
@@ -2169,7 +2215,7 @@ const deleteSelectedAnno = () => {
 }
 
 /* currentImage 切换时加载标注 */
-watch(currentImage, (img) => {
+watch(currentImage, async (img) => {
   annotations.value = []
   selectedAnnoId.value = null
   hoveredHandle.value = null
@@ -2179,9 +2225,14 @@ watch(currentImage, (img) => {
   imgNW = 0; imgNH = 0
   priorImages.value = []
   if (img) {
+    await ensureFullUrl(img)
     loadAnnotations(img.imageId)
     loadPriorImageSummary(img.imageId)
   }
+})
+
+watch(compareImage, (img) => {
+  if (img) ensureFullUrl(img)
 })
 
 const beforeUpload = (file) => {
@@ -2191,8 +2242,11 @@ const beforeUpload = (file) => {
 const handleUpload = async ({ file }) => {
   try {
     const res = await uploadImage(file, selectedCaseId.value, 'PA')
-    images.value.push(res.data)
-    currentImage.value = res.data
+    const data = res.data
+    await ensureThumbnailUrl(data)
+    await ensureFullUrl(data)
+    images.value.push(data)
+    currentImage.value = data
     ElMessage.success('影像上传成功')
     searchRetrieval(selectedCaseId.value, res.data.imageId).catch(() => {})
     if (!currentReport.value) {
@@ -2346,6 +2400,8 @@ onUnmounted(() => {
   clearTimeout(annoPersistTimer)
   window.removeEventListener('keydown', handleViewerShortcut)
   window.removeEventListener('resize', syncRenderedImageSize)
+  revokeImageUrls(images.value)
+  revokeImageUrls(priorImages.value)
 })
 
 /* ─────────────── AI 报告润色 ─────────────── */

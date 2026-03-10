@@ -46,8 +46,6 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         List<String> publicEndpoints = new ArrayList<>(List.of(
                 "/api/auth/**",
-                "/api/images/*/content",
-                "/api/images/*/thumbnail",
                 "/favicon.ico"
         ));
         if (exposeActuator) {
