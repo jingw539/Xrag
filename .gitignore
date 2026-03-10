@@ -1,4 +1,4 @@
-# Environment variables
+﻿# Environment variables
 .env
 
 # IDE
@@ -20,7 +20,80 @@ data/
 frontend/node_modules/
 frontend/dist/
 backend/target/
+test-results/
+
+# Temporary debug / local artifacts
+backend/*.class
+backend/*.err
+backend/cp.txt
+backend/run_cleanup.cmd
+backend/*Tmp.java
+backend/ApplyCaseDoctorMigration.java
+backend/GenerateJwt.java
+backend/QueryDoctorRole.java
+backend/QueryTables.java
+backend/QueryUserColumns.java
+backend/QueryUserHashes.java
+backend/QueryUsers.java
+backend/ResetDoctorPasswords.java
+frontend/src/views/*_backup.vue
 
 # Python cache
 ai_service/__pycache__/
 *.pyc
+
+# Non-deployable docs/training/research assets
+docs/
+ai_service/
+llava_scripts/
+scripts/
+ssh/
+test-assets/
+test-results/
+.kiro/
+CODE_SUMMARY_FOR_REVIEW.md
+COMPLETE_EVALUATION_GUIDE.md
+INFERENCE_5K_GUIDE.md
+PYTHON_TRAINING_GUIDE.md
+QUICK_START.md
+RECOVERY_GUIDE.md
+THESIS_TEMPLATE.md
+UPLOAD_AND_RUN_GUIDE.md
+design.md
+设计.md
+调研.md
+raw_data_example.json
+train_llava_med.py
+run_inference_10k.sh
+run_inference_and_eval.sh
+test_data.json
+test_image_processor_fix.py
+test_inference_fix.sh
+verify_clip_structure.py
+debug_image_processor.py
+fix_clip_encoder.py
+
+# Backend test/tools scripts not for deployment
+backend/_*.py
+backend/docs/
+backend/tools/
+
+# GitLab CI (GitHub Actions only)
+.gitlab-ci.yml
+# Evaluation outputs / local debug
+frontend/*.err
+eval_checkpoint.py
+predictions_5k_checkpoint_800.json
+predictions_5k_checkpoint_800_evaluation.json
+predictions_5k_checkpoint_800_metrics.txt
+test_multiple_checkpoints.md
+backend/cp-repair.txt
+EVALUATION_SUMMARY.md
+backend/src/main/resources/db/test_data.sql
+predictions_*.json
+*_metrics.txt
+*_evaluation.json
+
+# Local env files
+backend.env
+
