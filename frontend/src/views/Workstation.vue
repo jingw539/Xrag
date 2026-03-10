@@ -98,10 +98,6 @@
             {{ genderLabel(caseInfo.gender) }} · {{ caseInfo.age }}岁 ·
             {{ caseInfo.department }} · {{ formatDate(caseInfo.examTime) }}
           </span>
-          <el-tag v-if="pendingCaseAlerts" type="danger" size="small"
-            style="cursor:pointer;margin-left:4px" @click="reportTab = 'eval'">
-            <el-icon><Warning /></el-icon> {{ pendingCaseAlerts }} 危急值
-          </el-tag>
         </div>
         <div class="ws-actions">
           <el-button size="small" plain @click="handleRegenerate" :loading="generating"
@@ -315,15 +311,7 @@
                   </div>
                 </div>
               </div>
-              <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-                <div v-if="evalResult" class="signed-grade-badge" :style="{ background: gradeColor(evalResult.qualityGrade) }">
-                  {{ evalResult.qualityGrade || '?' }}
-                </div>
-                <el-button v-if="evalResult && (!evalResult.qualityGrade || evalResult.qualityGrade === 'C' || evalResult.qualityGrade === 'D')"
-                  size="small" type="warning" plain @click="handleRevertToEdit" :loading="reverting">
-                  <el-icon><Edit /></el-icon> 返回修改
-                </el-button>
-              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-left:auto"></div>
             </div>
 
             <div class="signed-content">
@@ -357,79 +345,6 @@
               </div>
             </div>
 
-            <div class="signed-eval-section" v-loading="evalLoading">
-              <div class="signed-eval-header">
-                <el-icon style="color:#722ed1"><DataAnalysis /></el-icon>
-                <span>CheXbert 质控评测</span>
-              </div>
-              <template v-if="evalResult">
-                <div class="signed-eval-metrics">
-                  <div class="metric-card" v-for="m in [
-                    { label: 'F1 Score', value: pct(evalResult.f1Score), color: gradeColor(evalResult.qualityGrade) },
-                    { label: '精确率', value: pct(evalResult.precisionScore), color: '#1890ff' },
-                    { label: '召回率', value: pct(evalResult.recallScore), color: '#13c2c2' },
-                    { label: 'BLEU-4', value: pct(evalResult.bleu4Score), color: '#722ed1' },
-                    { label: 'ROUGE-L', value: pct(evalResult.rougeLScore), color: '#eb2f96' }
-                  ]" :key="m.label">
-                    <div class="metric-value" :style="{ color: m.color }">{{ m.value }}</div>
-                    <div class="metric-label">{{ m.label }}</div>
-                  </div>
-                </div>
-
-                <!-- 14类标签概率可视化 -->
-                <div v-if="parsedLabelProbs.length > 0" class="ai-label-chart" style="margin:10px 0">
-                  <div class="label-chart-title">CheXpert 14类病理标签概率</div>
-                  <div class="label-bars">
-                    <div v-for="p in parsedLabelProbs" :key="p.label" class="label-bar-row">
-                      <span class="label-bar-name" :title="p.label">{{ p.labelCn }}</span>
-                      <div class="label-bar-track">
-                        <div class="label-bar-fill" :style="{ width: Math.round(p.prob * 100) + '%', background: labelBarColor(p.prob) }"></div>
-                      </div>
-                      <span class="label-bar-pct" :style="{ color: labelBarColor(p.prob) }">{{ Math.round(p.prob * 100) }}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="signed-eval-advice" :class="'advice-' + (evalResult.qualityGrade || 'D')">
-                  {{ gradeAdvice(evalResult.qualityGrade) }}
-                </div>
-
-                <div v-if="evalResult.missingLabels && evalResult.missingLabels.length" class="signed-label-row">
-                  <span class="label-row-title danger">AI漏诊风险：</span>
-                  <el-tag v-for="l in evalResult.missingLabels" :key="l" type="danger" size="small" style="margin:2px">
-                    {{ LABEL_CN[l] || l }}
-                  </el-tag>
-                </div>
-                <div v-if="evalResult.extraLabels && evalResult.extraLabels.length" class="signed-label-row">
-                  <span class="label-row-title warning">过度诊断：</span>
-                  <el-tag v-for="l in evalResult.extraLabels" :key="l" type="warning" size="small" style="margin:2px">
-                    {{ LABEL_CN[l] || l }}
-                  </el-tag>
-                </div>
-              </template>
-              <div v-else style="text-align:center;color:#bbb;font-size:12px;padding:16px 0">暂无评测结果</div>
-
-              <template v-if="caseAlerts.length">
-                <el-divider style="margin:10px 0" />
-                <div style="font-size:12px;font-weight:600;color:#f56c6c;margin-bottom:6px">
-                  <el-icon><Warning /></el-icon> 危急值预警
-                </div>
-                <div v-for="a in caseAlerts" :key="a.alertId" class="alert-item-row"
-                  :class="a.alertStatus === 'PENDING' ? 'alert-pending' : 'alert-resolved'">
-                  <el-icon :style="{ color: a.alertStatus === 'PENDING' ? '#f56c6c' : '#67c23a' }">
-                    <WarningFilled v-if="a.alertStatus === 'PENDING'" /><CircleCheckFilled v-else />
-                  </el-icon>
-                  <span class="alert-label">{{ a.labelType }}</span>
-                  <span class="alert-prob">{{ Math.round(a.labelProb * 100) }}%</span>
-                  <span class="alert-note">{{ a.alertStatus === 'PENDING' ? '待处理' : '已处理' }}</span>
-                  <el-button v-if="a.alertStatus === 'PENDING'" size="small" type="danger" plain
-                    style="margin-left:auto;font-size:11px"
-                    @click="handleRespondAlert(a.alertId)">
-                    标记已处理
-                  </el-button>
-                </div>
-              </template>
-            </div>
           </div>
 
           <!-- ═══ 非签发状态：标签页模式 ═══ -->
@@ -493,8 +408,8 @@
                   </span>
                 </div>
 
-                <!-- AI审核建议（有评测结果且质量C/D时在编辑区展示） -->
-                <template v-if="evalResult && (!evalResult.qualityGrade || evalResult.qualityGrade === 'C' || evalResult.qualityGrade === 'D')">
+                <!-- AI审核建议 -->
+                <template>
                   <el-divider style="margin:10px 0" />
                   <el-button size="small" type="warning" plain style="width:100%"
                     :loading="aiAdviceLoading" @click="handleGetAiAdvice">
@@ -576,51 +491,6 @@
               </div>
             </el-tab-pane>
 
-            <el-tab-pane name="eval">
-              <template #label>
-                AI评测
-                <el-badge v-if="pendingCaseAlerts" :value="pendingCaseAlerts" type="danger" class="tab-badge" />
-              </template>
-              <div v-loading="evalLoading" style="padding:8px">
-                <template v-if="evalResult">
-                  <div class="eval-summary">
-                    <div class="eval-grade" :style="{ color: gradeColor(evalResult.qualityGrade) }">{{ evalResult.qualityGrade || '—' }}</div>
-                    <el-descriptions :column="2" border size="small" style="flex:1">
-                      <el-descriptions-item label="F1">{{ pct(evalResult.f1Score) }}</el-descriptions-item>
-                      <el-descriptions-item label="精确率">{{ pct(evalResult.precisionScore) }}</el-descriptions-item>
-                      <el-descriptions-item label="召回率">{{ pct(evalResult.recallScore) }}</el-descriptions-item>
-                      <el-descriptions-item label="BLEU-4">{{ pct(evalResult.bleu4Score) }}</el-descriptions-item>
-                    </el-descriptions>
-                  </div>
-                  <div v-if="evalResult.missingLabels && evalResult.missingLabels.length" style="margin-top:8px">
-                    <div style="font-size:11px;color:var(--xrag-text-faint);margin-bottom:4px">AI漏诊标签</div>
-                    <el-tag v-for="l in evalResult.missingLabels" :key="l" type="danger" size="small" style="margin:2px">{{ l }}</el-tag>
-                  </div>
-                  <div v-if="evalResult.extraLabels && evalResult.extraLabels.length" style="margin-top:6px">
-                    <div style="font-size:11px;color:var(--xrag-text-faint);margin-bottom:4px">AI误诊标签</div>
-                    <el-tag v-for="l in evalResult.extraLabels" :key="l" type="warning" size="small" style="margin:2px">{{ l }}</el-tag>
-                  </div>
-                </template>
-                <el-empty v-else description="暂无评测结果" :image-size="50" />
-                <template v-if="caseAlerts.length">
-                  <el-divider style="margin:10px 0">危急值预警</el-divider>
-                  <div v-for="a in caseAlerts" :key="a.alertId" class="alert-item-row"
-                    :class="a.alertStatus === 'PENDING' ? 'alert-pending' : 'alert-resolved'">
-                    <el-icon :style="{ color: a.alertStatus === 'PENDING' ? '#f56c6c' : '#67c23a' }">
-                      <WarningFilled v-if="a.alertStatus === 'PENDING'" /><CircleCheckFilled v-else />
-                    </el-icon>
-                    <span class="alert-label">{{ a.labelType }}</span>
-                    <span class="alert-prob">{{ Math.round(a.labelProb * 100) }}%</span>
-                    <span class="alert-note">{{ a.alertStatus === 'PENDING' ? '待处理' : '已处理' }}</span>
-                    <el-button v-if="a.alertStatus === 'PENDING'" size="small" type="danger" plain
-                      style="margin-left:auto;font-size:11px"
-                      @click="handleRespondAlert(a.alertId)">
-                      标记已处理
-                    </el-button>
-                  </div>
-                </template>
-              </div>
-            </el-tab-pane>
           </el-tabs>
         </div>
       </div>
@@ -674,78 +544,6 @@
         </div>
       </div>
 
-      <!-- AI 智能分析面板 -->
-      <div class="ai-analysis-section" v-if="currentReport && (evalResult || evalPolling)">
-        <div class="section-title">
-          <el-icon style="color:#722ed1"><Cpu /></el-icon>
-          AI 智能分析
-          <span v-if="evalPolling && !evalResult" style="font-size:11px;color:var(--xrag-text-faint);margin-left:8px">
-            <el-icon class="is-loading"><Loading /></el-icon> 分析中...
-          </span>
-        </div>
-
-        <template v-if="evalResult">
-          <!-- 风险评估卡 -->
-          <div class="ai-risk-card" :style="{ background: riskLevel.bg, borderColor: riskLevel.color }">
-            <div class="risk-header">
-              <div class="risk-badge" :style="{ background: riskLevel.color }">{{ riskLevel.text }}</div>
-              <div class="risk-grade">
-                <span class="risk-grade-letter" :style="{ color: gradeColor(evalResult.qualityGrade) }">{{ evalResult.qualityGrade }}</span>
-                <span class="risk-grade-label">质量等级</span>
-              </div>
-              <div class="risk-metrics">
-                <span>F1 <b>{{ pct(evalResult.f1Score) }}</b></span>
-                <span>精确率 <b>{{ pct(evalResult.precisionScore) }}</b></span>
-                <span>召回率 <b>{{ pct(evalResult.recallScore) }}</b></span>
-                <span>BLEU-4 <b>{{ pct(evalResult.bleu4Score) }}</b></span>
-                <span>ROUGE-L <b>{{ pct(evalResult.rougeLScore) }}</b></span>
-              </div>
-            </div>
-            <div v-if="topFindings.length > 0" class="risk-findings">
-              <span class="risk-findings-label">AI 检出：</span>
-              <el-tag v-for="f in topFindings.slice(0, 4)" :key="f.label"
-                :color="labelBarColor(f.prob)" effect="dark" size="small"
-                style="margin:2px;border:none">
-                {{ f.labelCn }} {{ Math.round(f.prob * 100) }}%
-              </el-tag>
-            </div>
-          </div>
-
-          <!-- 14类标签概率分布 -->
-          <div class="ai-label-chart" v-if="parsedLabelProbs.length > 0">
-            <div class="label-chart-title">CheXpert 14类病理标签概率</div>
-            <div class="label-bars">
-              <div v-for="p in parsedLabelProbs" :key="p.label" class="label-bar-row">
-                <span class="label-bar-name" :title="p.label">{{ p.labelCn }}</span>
-                <div class="label-bar-track">
-                  <div class="label-bar-fill" :style="{ width: Math.round(p.prob * 100) + '%', background: labelBarColor(p.prob) }"></div>
-                </div>
-                <span class="label-bar-pct" :style="{ color: labelBarColor(p.prob) }">{{ Math.round(p.prob * 100) }}%</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 漏诊/误诊标签 -->
-          <div v-if="(evalResult.missingLabels && evalResult.missingLabels.length) || (evalResult.extraLabels && evalResult.extraLabels.length)"
-            class="ai-label-alerts">
-            <div v-if="evalResult.missingLabels && evalResult.missingLabels.length" class="label-alert-row">
-              <span class="label-alert-icon" style="color:#f5222d">⚠</span>
-              <span class="label-alert-title">漏诊风险：</span>
-              <el-tag v-for="l in evalResult.missingLabels" :key="l" type="danger" size="small" style="margin:2px">
-                {{ LABEL_CN[l] || l }}
-              </el-tag>
-            </div>
-            <div v-if="evalResult.extraLabels && evalResult.extraLabels.length" class="label-alert-row">
-              <span class="label-alert-icon" style="color:#fa8c16">⚡</span>
-              <span class="label-alert-title">过度诊断：</span>
-              <el-tag v-for="l in evalResult.extraLabels" :key="l" type="warning" size="small" style="margin:2px">
-                {{ LABEL_CN[l] || l }}
-              </el-tag>
-            </div>
-          </div>
-        </template>
-      </div>
-
       </div><!-- /ws-scroll -->
 
       <!-- 底部操作栏 -->
@@ -759,24 +557,12 @@
           </el-button>
         </div>
 
-        <!-- 内联决策摘要：置信度 + 评测等级 + 危急值 -->
+        <!-- 内联决策摘要：置信度 -->
         <div v-if="currentReport && currentReport.reportStatus !== 'SIGNED'" class="footer-eval-bar">
           <span v-if="currentReport.modelConfidence" class="feval-chip"
             :class="currentReport.modelConfidence >= 0.85 ? 'feval-high' : 'feval-mid'">
             AI {{ Math.round(currentReport.modelConfidence * 100) }}%
           </span>
-          <span v-if="evalResult" class="feval-chip feval-grade"
-            :style="{ background: gradeColor(evalResult.qualityGrade), color: '#fff' }">
-            {{ evalResult.qualityGrade }}级
-          </span>
-          <span v-else-if="evalPolling" class="feval-chip feval-pending">
-            <el-icon class="is-loading" style="vertical-align:-2px"><Loading /></el-icon> 评测中
-          </span>
-          <span v-if="pendingCaseAlerts" class="feval-chip feval-alert">
-            <el-icon style="vertical-align:-2px"><Warning /></el-icon> {{ pendingCaseAlerts }} 危急值
-          </span>
-          <span v-if="evalResult && !evalResult.missingLabels?.length && !pendingCaseAlerts"
-            class="feval-chip feval-safe">✓ 无漏诊风险</span>
         </div>
 
         <div class="footer-actions" v-if="currentReport">
@@ -788,10 +574,6 @@
             :loading="signing"
             v-if="currentReport.reportStatus !== 'SIGNED'">
             <el-icon><Check /></el-icon> 签发报告
-            <el-tag v-if="evalResult" size="small"
-              :style="{ background: gradeColor(evalResult.qualityGrade), borderColor: 'transparent', color:'#fff', marginLeft:'6px', padding:'0 5px' }">
-              {{ evalResult.qualityGrade }}级
-            </el-tag>
           </el-button>
         </div>
         <div class="footer-actions" v-else-if="currentImage">
@@ -940,10 +722,8 @@ import { listCases, getCaseById, markTypical, createCase, deleteCase, importCase
 import { listImages, listPriorImages, uploadImage, deleteImage } from '@/api/image'
 import { generateReport, regenerateReport, saveDraft, signReport, listReports, getEditHistory, polishReport, revertReport, getAiAdvice } from '@/api/report'
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
-import { triggerEval, getEvalByReportId } from '@/api/eval'
 import { analyzeTerms, getTermsByReportId, acceptCorrection, dismissCorrection } from '@/api/term'
-import { getAlertsByCaseId, respondAlert } from '@/api/alert'
-import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation, generateAiAnnotations } from '@/api/annotation'
+import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -1026,17 +806,12 @@ const editHistory = ref([])
 const historyLoading = ref(false)
 const similarCases = ref([])
 const priorImages = ref([])
-const evalResult = ref(null)
-const evalLoading = ref(false)
-const evalPolling = ref(false)
-let pollTimer = null
 const showAiCompare = ref(false)
 const aiAdvice = ref(null)
 const aiAdviceLoading = ref(false)
 const reverting = ref(false)
 const termCorrections = ref([])
 const termLoading = ref(false)
-const caseAlerts = ref([])
 
 const selectCaseById = async (caseId) => {
   const found = caseList.value.find(c => String(c.caseId) === String(caseId))
@@ -1052,14 +827,11 @@ const selectCaseById = async (caseId) => {
 
 const selectCase = async (c) => {
   if (selectedCaseId.value === c.caseId) return
-  clearInterval(pollTimer)
-  evalPolling.value = false
   currentReport.value = null
   draftFindings.value = ''
   draftImpression.value = ''
   editHistory.value = []
   similarCases.value = []
-  evalResult.value = null
   aiAdvice.value = null
   termCorrections.value = []
   annotations.value = []
@@ -1071,7 +843,7 @@ const selectCase = async (c) => {
   selectedCaseId.value = c.caseId
   caseInfo.value = c
   reportTab.value = 'edit'
-  await Promise.all([loadCaseDetail(), loadImages(), loadCaseAlerts()])
+  await Promise.all([loadCaseDetail(), loadImages()])
   await loadReport()
 }
 
@@ -1111,14 +883,13 @@ const loadReport = async () => {
       currentReport.value = records[0]
       draftFindings.value = currentReport.value.finalFindings || currentReport.value.aiFindings || ''
       draftImpression.value = currentReport.value.finalImpression || currentReport.value.aiImpression || ''
-      await Promise.all([loadHistory(currentReport.value.reportId), loadSimilarCases(), loadEvalResult(currentReport.value.reportId), loadTermCorrections(currentReport.value.reportId)])
+      await Promise.all([loadHistory(currentReport.value.reportId), loadSimilarCases(), loadTermCorrections(currentReport.value.reportId)])
     } else {
       currentReport.value = null
       draftFindings.value = ''
       draftImpression.value = ''
       similarCases.value = []
       editHistory.value = []
-      evalResult.value = null
       termCorrections.value = []
       // 数据自愈：case_info.report_status 非 NONE 但 report_info 无记录，本地纠正为 NONE
       if (caseInfo.value && caseInfo.value.reportStatus && caseInfo.value.reportStatus !== 'NONE') {
@@ -1145,16 +916,6 @@ const loadSimilarCases = async () => {
   } catch (_) { similarCases.value = [] }
 }
 
-const loadEvalResult = async (reportId) => {
-  evalLoading.value = true
-  try {
-    const res = await getEvalByReportId(reportId)
-    const list = res.data || []
-    evalResult.value = list.length ? list[0] : null
-  } catch (_) { evalResult.value = null }
-  finally { evalLoading.value = false }
-}
-
 const loadTermCorrections = async (reportId) => {
   termLoading.value = true
   try {
@@ -1162,23 +923,6 @@ const loadTermCorrections = async (reportId) => {
     termCorrections.value = res.data || []
   } catch (_) { termCorrections.value = [] }
   finally { termLoading.value = false }
-}
-
-const loadCaseAlerts = async () => {
-  try {
-    const res = await getAlertsByCaseId(selectedCaseId.value)
-    caseAlerts.value = res.data || []
-  } catch (_) { caseAlerts.value = [] }
-}
-
-const handleRespondAlert = async (alertId) => {
-  try {
-    await respondAlert(alertId, { action: 'ACKNOWLEDGED', note: '医生已确认处理' })
-    ElMessage.success('危急值已标记为处理')
-    await loadCaseAlerts()
-  } catch (_) {
-    ElMessage.error('操作失败，请重试')
-  }
 }
 
 /* ─────────────── 术语标准化 ─────────────── */
@@ -1257,7 +1001,6 @@ const handleDeleteCase = async () => {
     images.value = []
     currentImage.value = null
     currentReport.value = null
-    caseAlerts.value = []
     await fetchCases()
   } catch (_) {}
 }
@@ -1358,8 +1101,6 @@ const handleGenerate = async () => {
     
     ElMessage.success('AI报告生成完成')
     fetchCases()
-    evalResult.value = null
-    startEvalPoll(res.data.reportId)
     analyzeTerms(res.data.reportId, {
       findings: draftFindings.value,
       impression: draftImpression.value
@@ -1381,8 +1122,6 @@ const handleRegenerate = async () => {
     
     ElMessage.success('报告已重新生成')
     fetchCases()
-    evalResult.value = null
-    startEvalPoll(res.data.reportId)
     analyzeTerms(res.data.reportId, {
       findings: draftFindings.value,
       impression: draftImpression.value
@@ -1457,13 +1196,6 @@ const handleSign = async () => {
     await loadReport()
     fetchCases()
 
-    // 仅在医生修改过内容时触发重新评测，否则复用生成时的基线评测
-    const finalFindings = currentReport.value?.finalFindings || draftFindings.value
-    const contentChanged = finalFindings !== aiFindings
-    if (contentChanged) {
-      evalResult.value = null
-      triggerEval(reportId).then(() => startEvalPoll(reportId)).catch(() => {})
-    }
   } catch (err) {
     ElMessage.error('签发失败：' + (err?.message || '请检查网络或重新登录'))
     await loadReport()
@@ -2436,16 +2168,6 @@ const deleteSelectedAnno = () => {
   if (selectedAnnoId.value) handleDeleteAnno(selectedAnnoId.value)
 }
 
-/* evalResult 就绪后自动生成 AI 标注区域 */
-watch(evalResult, async (newVal, oldVal) => {
-  if (!newVal || !currentImage.value) return
-  if (oldVal?.evalId === newVal.evalId) return
-  if (!newVal.aiLabels) return
-  await generateAiAnnotations(currentImage.value.imageId, newVal.reportId, newVal.aiLabels)
-    .catch(() => {})
-  await loadAnnotations(currentImage.value.imageId)
-})
-
 /* currentImage 切换时加载标注 */
 watch(currentImage, (img) => {
   annotations.value = []
@@ -2617,47 +2339,14 @@ const handleCreateCase = async () => {
   } finally { creating.value = false }
 }
 
-/* ─────────────── 评测 / 术语 计算属性 ─────────────── */
-const evalLabels = computed(() => evalResult.value || {})
+/* ─────────────── 术语 计算属性 ─────────────── */
 const pendingTermCount = computed(() => termCorrections.value.filter(t => !t.isAccepted || t.isAccepted === 0).length)
-const pendingCaseAlerts = computed(() => caseAlerts.value.filter(a => a.alertStatus === 'PENDING').length)
-const gradeColor = (g) => ({ A: '#52c41a', B: '#73d13d', C: '#faad14', D: '#ff7875', F: '#f5222d' }[g] || '#909399')
-const gradeAdvice = (g) => ({
-  A: '质量优秀 — 可直接签发',
-  B: '质量良好 — 快速审核后签发',
-  C: '质量一般 — 请仔细审核再签发',
-  D: '质量较差 — 建议重写或重新生成',
-}[g] || '评测完成')
-const pct = (v) => v != null ? (Number(v) * 100).toFixed(1) + '%' : '—'
 
 onUnmounted(() => {
-  clearInterval(pollTimer)
   clearTimeout(annoPersistTimer)
   window.removeEventListener('keydown', handleViewerShortcut)
   window.removeEventListener('resize', syncRenderedImageSize)
 })
-
-const startEvalPoll = (reportId) => {
-  evalPolling.value = true
-  let attempts = 0
-  clearInterval(pollTimer)
-  pollTimer = setInterval(async () => {
-    if (currentReport.value?.reportId !== reportId) {
-      clearInterval(pollTimer)
-      evalPolling.value = false
-      return
-    }
-    attempts++
-    await loadEvalResult(reportId)
-    if (evalResult.value || attempts >= 12) {
-      clearInterval(pollTimer)
-      evalPolling.value = false
-      if (evalResult.value && currentImage.value) {
-        loadAnnotations(currentImage.value.imageId)
-      }
-    }
-  }, 3000)
-}
 
 /* ─────────────── AI 报告润色 ─────────────── */
 const polishing = ref(false)
@@ -2683,42 +2372,6 @@ const applyPolish = () => {
     polishDialogVisible.value = false
     ElMessage.success('AI润色内容已应用')
   }
-}
-
-/* ─────────────── AI 鉴别诊断解析 ─────────────── */
-const LABEL_CN = {
-  'Atelectasis': '肺不张', 'Cardiomegaly': '心脏肥大', 'Consolidation': '实变',
-  'Edema': '水肿', 'Enlarged Cardiomediastinum': '纵隔增宽', 'Fracture': '骨折',
-  'Lung Lesion': '肺部病变', 'Lung Opacity': '肺部阴影', 'No Finding': '未见异常',
-  'Pleural Effusion': '胸腔积液', 'Pleural Other': '其他胸膜异常', 'Pneumonia': '肺炎',
-  'Pneumothorax': '气胸', 'Support Devices': '辅助器械'
-}
-
-const parsedLabelProbs = computed(() => {
-  if (!evalResult.value?.aiLabels) return []
-  try {
-    const obj = typeof evalResult.value.aiLabels === 'string'
-      ? JSON.parse(evalResult.value.aiLabels) : evalResult.value.aiLabels
-    return Object.entries(obj)
-      .map(([k, v]) => ({ label: k, labelCn: LABEL_CN[k] || k, prob: Number(v) }))
-      .sort((a, b) => b.prob - a.prob)
-  } catch (_) { return [] }
-})
-
-const topFindings = computed(() => parsedLabelProbs.value.filter(p => p.prob >= 0.3 && p.label !== 'No Finding'))
-
-const riskLevel = computed(() => {
-  const max = topFindings.value.length > 0 ? topFindings.value[0].prob : 0
-  if (max >= 0.8) return { text: '高风险', color: '#f5222d', bg: 'rgba(245,34,45,0.08)' }
-  if (max >= 0.5) return { text: '中风险', color: '#fa8c16', bg: 'rgba(250,140,22,0.08)' }
-  if (max >= 0.3) return { text: '低风险', color: '#52c41a', bg: 'rgba(82,196,26,0.08)' }
-  return { text: '正常', color: '#1890ff', bg: 'rgba(24,144,255,0.08)' }
-})
-
-const labelBarColor = (prob) => {
-  if (prob >= 0.7) return '#f5222d'
-  if (prob >= 0.4) return '#fa8c16'
-  return '#1890ff'
 }
 
 /* ─────────────── 置信度颜色 ─────────────── */

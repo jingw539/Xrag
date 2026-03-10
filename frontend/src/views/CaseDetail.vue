@@ -181,57 +181,6 @@
         </el-row>
       </el-tab-pane>
 
-      <el-tab-pane label="CheXbert评测" name="eval">
-        <el-card v-if="evalResult">
-          <template #header>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-              <span>评测结果</span>
-              <el-button type="primary" size="small" @click="handleTriggerEval" :loading="evaluating">重新评测</el-button>
-            </div>
-          </template>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <div style="font-weight:600;margin-bottom:8px">评测指标</div>
-              <el-descriptions :column="2" border size="small">
-                <el-descriptions-item label="F1">
-                  <el-tag :type="(evalResult.f1Score || 0) > 0.7 ? 'success' : 'warning'">{{ ((evalResult.f1Score || 0) * 100).toFixed(1) }}%</el-tag>
-                </el-descriptions-item>
-                <el-descriptions-item label="BLEU-4">{{ ((evalResult.bleu4Score || 0) * 100).toFixed(1) }}%</el-descriptions-item>
-                <el-descriptions-item label="Precision">{{ ((evalResult.precisionScore || 0) * 100).toFixed(1) }}%</el-descriptions-item>
-                <el-descriptions-item label="ROUGE-L">{{ ((evalResult.rougeLScore || 0) * 100).toFixed(1) }}%</el-descriptions-item>
-                <el-descriptions-item label="Recall">{{ ((evalResult.recallScore || 0) * 100).toFixed(1) }}%</el-descriptions-item>
-                <el-descriptions-item label="质量评级">
-                  <el-tag :type="gradeType(evalResult.qualityGrade)">{{ evalResult.qualityGrade || '-' }}</el-tag>
-                </el-descriptions-item>
-              </el-descriptions>
-            </el-col>
-            <el-col :span="12">
-              <div style="font-weight:600;margin-bottom:8px">额外预测标签</div>
-              <div v-if="extraEvalLabels.length">
-                <el-tag v-for="label in extraEvalLabels" :key="label" type="danger" style="margin:3px">{{ label }}</el-tag>
-              </div>
-              <div v-if="missingEvalLabels.length" style="margin-top:8px">
-                <div style="font-weight:600;margin-bottom:4px;color:#e6a23c">漏检标签</div>
-                <el-tag v-for="label in missingEvalLabels" :key="label" type="warning" style="margin:3px">{{ label }}</el-tag>
-              </div>
-              <el-empty v-if="!extraEvalLabels.length && !missingEvalLabels.length" description="标签匹配良好" :image-size="40" />
-              <el-alert
-                v-if="caseAlerts.length"
-                type="error"
-                :closable="false"
-                style="margin-top:12px"
-                :title="`⚠️ ${caseAlerts.length} 条危急值预警`"
-                :description="alertSummary"
-              />
-            </el-col>
-          </el-row>
-        </el-card>
-        <div v-else style="text-align:center;padding:40px">
-          <el-empty description="暂无评测结果" />
-          <el-button type="primary" @click="handleTriggerEval" :loading="evaluating" style="margin-top:16px">触发评测</el-button>
-        </div>
-      </el-tab-pane>
-
       <el-tab-pane label="术语校正" name="terms">
         <el-card>
           <template #header>
@@ -294,9 +243,7 @@ import { getCaseById, markTypical } from '@/api/case'
 import { listImages, uploadImage, deleteImage } from '@/api/image'
 import { generateReport, regenerateReport, saveDraft, signReport, listReports, getReport } from '@/api/report'
 import { searchRetrieval } from '@/api/retrieval'
-import { triggerEval, getEvalByReportId } from '@/api/eval'
 import { analyzeTerms, acceptCorrection, dismissCorrection } from '@/api/term'
-import { getAlertsByCaseId } from '@/api/alert'
 
 const route = useRoute()
 const caseId = computed(() => Number(route.params.id))
@@ -311,39 +258,14 @@ const editFindings = ref('')
 const editImpression = ref('')
 const editHistory = ref([])
 const retrieval = ref(null)
-const evalResult = ref(null)
 const termCorrections = ref([])
-const caseAlerts = ref([])
 const generating = ref(false)
 const saving = ref(false)
-const evaluating = ref(false)
 const analyzingTerms = ref(false)
 const showTypicalDialog = ref(false)
 const typicalForm = reactive({ tags: '', remark: '' })
 
 const retrievalCases = computed(() => retrieval.value?.similarCases || retrieval.value?.cases || [])
-const normalizeEvalLabels = (value) => {
-  if (!value) return []
-  const raw = Array.isArray(value) ? value : [value]
-  return raw
-    .flatMap(item => {
-      if (Array.isArray(item)) return item
-      if (typeof item !== 'string') return [item]
-      const text = item.trim()
-      if (!text || text === '[]') return []
-      try {
-        const parsed = JSON.parse(text)
-        if (Array.isArray(parsed)) return parsed.filter(Boolean)
-      } catch (_) {}
-      return [text]
-    })
-    .map(item => String(item).trim())
-    .filter(item => item && item !== '[]')
-}
-
-const extraEvalLabels = computed(() => normalizeEvalLabels(evalResult.value?.extraLabels))
-const missingEvalLabels = computed(() => normalizeEvalLabels(evalResult.value?.missingLabels))
-const alertSummary = computed(() => caseAlerts.value.map(item => item.labelType || item.alertType || item.message || '未命名预警').join('、'))
 
 const loadAll = async () => {
   pageLoading.value = true
@@ -365,22 +287,14 @@ const loadAll = async () => {
           await loadReportDetail(list[0].reportId)
         } else {
           report.value = null
-          evalResult.value = null
           termCorrections.value = []
           editHistory.value = []
         }
       } catch (_) {}
-
-      try {
-        const alertRes = await getAlertsByCaseId(caseId.value)
-        caseAlerts.value = alertRes.data || []
-      } catch (_) {}
     } else {
       report.value = null
-      evalResult.value = null
       termCorrections.value = []
       editHistory.value = []
-      caseAlerts.value = []
     }
   } finally {
     pageLoading.value = false
@@ -394,7 +308,6 @@ const loadReportDetail = async (reportId) => {
   editFindings.value = detail.finalFindings || detail.aiFindings || ''
   editImpression.value = detail.finalImpression || detail.aiImpression || ''
   editHistory.value = detail.editHistory || []
-  if (detail.latestEval) evalResult.value = detail.latestEval
   if (detail.termCorrections) termCorrections.value = detail.termCorrections
 }
 
@@ -461,24 +374,6 @@ const handleSign = async () => {
   ElMessage.success('报告已签发')
 }
 
-const handleTriggerEval = async () => {
-  if (!report.value) return ElMessage.warning('请先生成报告')
-  evaluating.value = true
-  activeTab.value = 'eval'
-  try {
-    await triggerEval(report.value.reportId)
-    const [evalRes, alertRes] = await Promise.all([
-      getEvalByReportId(report.value.reportId),
-      getAlertsByCaseId(caseId.value)
-    ])
-    const evalList = Array.isArray(evalRes.data) ? evalRes.data : [evalRes.data]
-    evalResult.value = evalList.length ? evalList[evalList.length - 1] : null
-    caseAlerts.value = alertRes.data || []
-    ElMessage.success('评测完成')
-  } finally {
-    evaluating.value = false
-  }
-}
 
 const handleAnalyzeTerms = async () => {
   if (!report.value) return ElMessage.warning('请先生成报告')

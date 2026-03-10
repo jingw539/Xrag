@@ -101,30 +101,6 @@ CREATE INDEX IF NOT EXISTS idx_hist_report_id ON report_edit_history(report_id);
 CREATE INDEX IF NOT EXISTS idx_hist_edit_time ON report_edit_history(edit_time DESC);
 
 -- ============================================================
--- 5. critical_alert (危急值预警)
--- ============================================================
-CREATE TABLE IF NOT EXISTS critical_alert (
-    alert_id        BIGINT       PRIMARY KEY,
-    case_id         BIGINT       NOT NULL,
-    report_id       BIGINT       NOT NULL,
-    label_type      VARCHAR(64)  NOT NULL,
-    label_prob      NUMERIC(5,4) NOT NULL,
-    alert_status    VARCHAR(16)  NOT NULL DEFAULT 'PENDING',
-    responder_id    BIGINT,
-    response_action VARCHAR(16),
-    response_time   TIMESTAMP,
-    response_note   VARCHAR(512),
-    alert_time      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_alert_case      FOREIGN KEY (case_id)      REFERENCES case_info(case_id),
-    CONSTRAINT fk_alert_report    FOREIGN KEY (report_id)    REFERENCES report_info(report_id),
-    CONSTRAINT fk_alert_responder FOREIGN KEY (responder_id) REFERENCES sys_user(user_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_alert_case_id ON critical_alert(case_id);
-CREATE INDEX IF NOT EXISTS idx_alert_status  ON critical_alert(alert_status);
-CREATE INDEX IF NOT EXISTS idx_alert_time    ON critical_alert(alert_time DESC);
-
--- ============================================================
 -- 6. term_correction (术语规范化纠错)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS term_correction (
@@ -141,33 +117,3 @@ CREATE TABLE IF NOT EXISTS term_correction (
 CREATE INDEX IF NOT EXISTS idx_term_report_id ON term_correction(report_id);
 
 -- ============================================================
--- 7. 补全 eval_result 缺失字段 (V9 遗漏)
--- ============================================================
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='eval_type') THEN
-        ALTER TABLE eval_result ADD COLUMN eval_type VARCHAR(16) DEFAULT 'AI' NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='bleu4_score') THEN
-        ALTER TABLE eval_result ADD COLUMN bleu4_score NUMERIC(5,4);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='rouge_l_score') THEN
-        ALTER TABLE eval_result ADD COLUMN rouge_l_score NUMERIC(5,4);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='quality_grade') THEN
-        ALTER TABLE eval_result ADD COLUMN quality_grade CHAR(1);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='missing_labels') THEN
-        ALTER TABLE eval_result ADD COLUMN missing_labels TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='extra_labels') THEN
-        ALTER TABLE eval_result ADD COLUMN extra_labels TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='elapsed_ms') THEN
-        ALTER TABLE eval_result ADD COLUMN elapsed_ms INT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='eval_result' AND column_name='created_at') THEN
-        ALTER TABLE eval_result ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL;
-    END IF;
-END $$;
-
-CREATE INDEX IF NOT EXISTS idx_eval_grade ON eval_result(quality_grade);

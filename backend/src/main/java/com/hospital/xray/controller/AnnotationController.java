@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "标注管理", description = "医生标注与 AI 自动标注相关接口")
+@Tag(name = "Annotations", description = "Manual annotations APIs")
 @RestController
 @RequestMapping("/api/annotations")
 @RequiredArgsConstructor
@@ -22,43 +22,32 @@ public class AnnotationController {
 
     private final AnnotationService annotationService;
 
-    @Operation(summary = "查询影像标注")
+    @Operation(summary = "List annotations by image")
     @GetMapping("/image/{imageId}")
     @PreAuthorize("hasAnyAuthority('DOCTOR', 'QC', 'ADMIN')")
     public Result<List<AnnotationVO>> listByImage(@PathVariable Long imageId) {
         return Result.success(annotationService.listByImage(imageId));
     }
 
-    @Operation(summary = "创建人工标注")
+    @Operation(summary = "Create manual annotation")
     @PostMapping
     @PreAuthorize("hasAnyAuthority('DOCTOR', 'ADMIN')")
     public Result<AnnotationVO> create(@RequestBody AnnotationCreateDTO dto) {
         return Result.success(annotationService.create(dto, SecurityUtils.getCurrentUserId()));
     }
 
-    @Operation(summary = "更新人工标注")
+    @Operation(summary = "Update manual annotation")
     @PutMapping("/{annotationId}")
     @PreAuthorize("hasAnyAuthority('DOCTOR', 'ADMIN')")
     public Result<AnnotationVO> update(@PathVariable Long annotationId, @RequestBody AnnotationUpdateDTO dto) {
         return Result.success(annotationService.update(annotationId, dto, SecurityUtils.getCurrentUserId()));
     }
 
-    @Operation(summary = "删除人工标注")
+    @Operation(summary = "Delete manual annotation")
     @DeleteMapping("/{annotationId}")
     @PreAuthorize("hasAnyAuthority('DOCTOR', 'ADMIN')")
     public Result<Void> delete(@PathVariable Long annotationId) {
         annotationService.delete(annotationId, SecurityUtils.getCurrentUserId());
-        return Result.success(null);
-    }
-
-    @Operation(summary = "根据 CheXbert 结果生成 AI 标注")
-    @PostMapping("/ai/{imageId}/{reportId}")
-    @PreAuthorize("hasAnyAuthority('DOCTOR', 'QC', 'ADMIN')")
-    public Result<Void> generateAiAnnotations(@PathVariable Long imageId,
-                                              @PathVariable Long reportId,
-                                              @RequestParam String aiLabels) {
-        annotationService.deleteAiAnnotations(imageId, reportId);
-        annotationService.generateAiAnnotations(imageId, reportId, aiLabels);
         return Result.success(null);
     }
 }

@@ -11,10 +11,3 @@ export const updateAnnotation = (id, data) =>
 
 export const deleteAnnotation = (id) =>
   request({ url: `/annotations/${id}`, method: 'delete' })
-
-export const generateAiAnnotations = (imageId, reportId, aiLabels) =>
-  request({
-    url: `/annotations/ai/${imageId}/${reportId}`,
-    method: 'post',
-    params: { aiLabels }
-  })

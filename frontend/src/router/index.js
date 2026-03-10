@@ -24,7 +24,6 @@ const routes = [
       { path: 'cases', name: 'Workstation', component: () => import('@/views/Workstation.vue'), meta: { requiresDoctor: true } },
       { path: 'cases/:id', name: 'CaseDetail', component: () => import('@/views/CaseDetail.vue'), meta: { requiresDoctor: true } },
       { path: 'typical-cases', name: 'TypicalCaseList', component: () => import('@/views/TypicalCaseList.vue'), meta: { requiresDoctor: true } },
-      { path: 'alerts', name: 'AlertList', component: () => import('@/views/AlertList.vue') },
       { path: 'statistics', name: 'Statistics', component: () => import('@/views/Statistics.vue') },
       { path: 'users', name: 'UserManagement', component: () => import('@/views/UserManagement.vue'), meta: { requiresAdmin: true } },
       { path: 'config', name: 'SystemConfig', component: () => import('@/views/SystemConfig.vue'), meta: { requiresAdmin: true } },

@@ -2,7 +2,7 @@
   <div class="layout-root">
     <aside :class="['sidebar', { 'is-collapsed': collapsed }]">
       <div class="sidebar-logo">
-        <span v-show="!collapsed" class="logo-text">胸部X光智能辅助诊断系统</span>
+        <span v-show="!collapsed" class="logo-text">胸部X光智能辅助诊断系�?/span>
       </div>
 
       <el-scrollbar class="sidebar-scroll">
@@ -18,27 +18,17 @@
           <template v-if="userStore.isDoctor">
             <el-menu-item index="/cases">
               <el-icon><Folder /></el-icon>
-              <template #title>诊断工作台</template>
+              <template #title>诊断工作�?/template>
             </el-menu-item>
 
             <el-menu-item index="/typical-cases">
               <el-icon><Star /></el-icon>
-              <template #title>典型病例库</template>
+              <template #title>典型病例�?/template>
             </el-menu-item>
           </template>
 
           <template v-if="!userStore.isAdmin">
-            <el-menu-item index="/alerts">
-              <el-icon><Bell /></el-icon>
-              <template #title>
-                <span>危急值预警</span>
-                <el-tag v-if="pendingAlertCount" type="danger" size="small" round class="menu-badge">
-                  {{ pendingAlertCount }}
-                </el-tag>
-              </template>
-            </el-menu-item>
-
-            <el-menu-item index="/statistics">
+<el-menu-item index="/statistics">
               <el-icon><DataAnalysis /></el-icon>
               <template #title>质控统计</template>
             </el-menu-item>
@@ -92,15 +82,6 @@
         </div>
 
         <div class="header-right">
-          <el-tooltip v-if="!userStore.isAdmin" content="危急值预警" placement="bottom">
-            <div class="header-action-btn" @click="router.push('/alerts')">
-              <el-badge :value="pendingAlertCount" :hidden="!pendingAlertCount" type="danger">
-                <el-icon :size="18"><Bell /></el-icon>
-              </el-badge>
-            </div>
-          </el-tooltip>
-
-          <el-divider v-if="!userStore.isAdmin" direction="vertical" style="height:20px;margin:0 12px;" />
 
           <el-dropdown @command="handleCommand" trigger="click">
             <div class="user-trigger">
@@ -116,8 +97,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="logout">
-                  <el-icon><SwitchButton /></el-icon> 退出登录
-                </el-dropdown-item>
+                  <el-icon><SwitchButton /></el-icon> 退出登�?                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -135,20 +115,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getPendingCount } from '@/api/alert'
 import { getMe } from '@/api/auth'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const collapsed = ref(false)
-const pendingAlertCount = ref(0)
-
 const PAGE_NAME_MAP = {
-  '/cases': '诊断工作台',
-  '/typical-cases': '典型病例库',
-  '/alerts': '危急值预警',
-  '/statistics': '质控统计',
+  '/cases': '诊断工作�?,
+  '/typical-cases': '典型病例�?,
+  '  '/statistics': '质控统计',
   '/users': '用户管理',
   '/config': '系统配置',
   '/logs': '操作日志'
@@ -157,21 +133,9 @@ const PAGE_NAME_MAP = {
 const currentPageName = computed(() => PAGE_NAME_MAP[route.path] || '')
 
 const roleLabel = computed(() => {
-  const map = { ADMIN: '管理员', QC: '质控员', DOCTOR: '医生' }
+  const map = { ADMIN: '管理�?, QC: '质控�?, DOCTOR: '医生' }
   return map[userStore.userInfo.roleCode] || userStore.userInfo.roleCode
 })
-
-const fetchPendingCount = async () => {
-  if (userStore.isAdmin) {
-    pendingAlertCount.value = 0
-    return
-  }
-  try {
-    const res = await getPendingCount()
-    pendingAlertCount.value = res.data || 0
-  } catch (_) {}
-}
-
 const handleCommand = async (command) => {
   if (command === 'logout') {
     await userStore.logout()
@@ -187,10 +151,7 @@ const refreshUserInfo = async () => {
 }
 
 onMounted(() => {
-  refreshUserInfo()
-  fetchPendingCount()
-  setInterval(fetchPendingCount, 60000)
-})
+  refreshUserInfo()})
 </script>
 <style scoped>
 .layout-root {

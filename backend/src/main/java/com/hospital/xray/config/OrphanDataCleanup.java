@@ -41,37 +41,25 @@ public class OrphanDataCleanup implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
-            int cleanedEval = cleanupOrphanEvalResults();
             int cleanedTerms = cleanupOrphanTermCorrections();
             int cleanedHistory = cleanupOrphanEditHistory();
-            int cleanedAlerts = cleanupOrphanCriticalAlerts();
             int cleanedReportAnnotations = cleanupOrphanReportAnnotations();
             int cleanedReports = cleanupOrphanReports();
             int cleanedImageAnnotations = cleanupOrphanImageAnnotations();
-            int cleanedCaseAlerts = cleanupOrphanCaseAlerts();
 
-            int total = cleanedReports + cleanedEval + cleanedTerms + cleanedHistory
-                    + cleanedAlerts + cleanedReportAnnotations + cleanedImageAnnotations + cleanedCaseAlerts;
+            int total = cleanedReports + cleanedTerms + cleanedHistory
+                    + cleanedReportAnnotations + cleanedImageAnnotations;
 
             if (total > 0) {
-                log.info("[OrphanDataCleanup] cleanup finished, total={} report={} eval={} term={} history={} reportAnno={} alert={} imageAnno={} caseAlert={}",
-                        total, cleanedReports, cleanedEval, cleanedTerms, cleanedHistory,
-                        cleanedReportAnnotations, cleanedAlerts, cleanedImageAnnotations, cleanedCaseAlerts);
+                log.info("[OrphanDataCleanup] cleanup finished, total={} report={} term={} history={} reportAnno={} imageAnno={}",
+                        total, cleanedReports, cleanedTerms, cleanedHistory,
+                        cleanedReportAnnotations, cleanedImageAnnotations);
             } else {
                 log.info("[OrphanDataCleanup] no orphan data found");
             }
         } catch (Exception e) {
             log.error("[OrphanDataCleanup] cleanup failed: {}", e.getMessage(), e);
         }
-    }
-
-    private int cleanupOrphanEvalResults() {
-        return jdbcTemplate.update(ORPHAN_REPORT_CTE + """
-                DELETE FROM eval_result e
-                WHERE EXISTS (
-                    SELECT 1 FROM orphan_reports o WHERE o.report_id = e.report_id
-                )
-                """);
     }
 
     private int cleanupOrphanTermCorrections() {
@@ -89,16 +77,6 @@ public class OrphanDataCleanup implements ApplicationRunner {
                 WHERE EXISTS (
                     SELECT 1 FROM orphan_reports o WHERE o.report_id = h.report_id
                 )
-                """);
-    }
-
-    private int cleanupOrphanCriticalAlerts() {
-        return jdbcTemplate.update(ORPHAN_REPORT_CTE + """
-                DELETE FROM critical_alert a
-                WHERE a.report_id IS NOT NULL
-                  AND EXISTS (
-                      SELECT 1 FROM orphan_reports o WHERE o.report_id = a.report_id
-                  )
                 """);
     }
 
@@ -126,15 +104,6 @@ public class OrphanDataCleanup implements ApplicationRunner {
                 DELETE FROM image_annotation a
                 WHERE NOT EXISTS (
                     SELECT 1 FROM image_info i WHERE i.image_id = a.image_id
-                )
-                """);
-    }
-
-    private int cleanupOrphanCaseAlerts() {
-        return jdbcTemplate.update("""
-                DELETE FROM critical_alert a
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM case_info c WHERE c.case_id = a.case_id
                 )
                 """);
     }

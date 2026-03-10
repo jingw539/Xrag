@@ -71,7 +71,7 @@ public class OperationLogServiceImpl implements OperationLogService {
         SysOperationLog entity = new SysOperationLog();
         entity.setUserId(SecurityUtils.getCurrentUserId());
         entity.setOperationType(operationType);
-        entity.setDetail("错误: " + errorMessage);
+        entity.setDetail(ERROR_MARKER + " 操作失败: " + errorMessage);
         entity.setClientIp(RequestUtils.getClientIp());
         entity.setApiPath(RequestUtils.getRequestPath());
         entity.setCreatedAt(LocalDateTime.now());
