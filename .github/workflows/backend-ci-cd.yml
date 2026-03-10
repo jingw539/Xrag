@@ -49,6 +49,21 @@ jobs:
           set -o pipefail
           mvn -f "$BACKEND_DIR/pom.xml" test -DskipTests=false -DskipITs 2>&1 | tee maven-test.log
 
+      - name: Backend Checkstyle
+        shell: bash
+        run: |
+          mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true checkstyle:check
+
+      - name: Backend Spotless
+        shell: bash
+        run: |
+          mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true spotless:check
+
+      - name: Backend Dependency Check
+        shell: bash
+        run: |
+          mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true dependency-check:check
+
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
