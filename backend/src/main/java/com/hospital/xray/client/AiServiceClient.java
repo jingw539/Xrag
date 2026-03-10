@@ -73,7 +73,8 @@ public class AiServiceClient {
         sb.append("""
                 You are a senior thoracic radiologist. Analyze this chest X-ray and generate a clinically usable, standardized radiology report.
                 Do not produce vague text. The report must be specific, structured, cautious, and suitable for clinical review.
-                In findings, prioritize these structures when visible: lung fields, lung markings, hilar regions, trachea, mediastinum, cardiac silhouette, aortic arch, diaphragms, costophrenic angles, pleura, and visible thoracic bony structures.
+                In findings, prioritize these structures when visible: lung fields, lung markings, hilar regions, trachea, mediastinum,
+                cardiac silhouette, aortic arch, diaphragms, costophrenic angles, pleura, and visible thoracic bony structures.
                 If the study is essentially normal, still describe key normal structures instead of writing only a generic normal statement.
                 If an abnormality is present, describe side, location, extent, density or lucency change, morphology, and associated findings.
                 If cardiac size can be reasonably estimated, you may mention an approximate cardiothoracic ratio; if not reliable, do not fabricate a number.

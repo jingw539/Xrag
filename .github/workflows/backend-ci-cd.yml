@@ -60,7 +60,10 @@ jobs:
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true spotless:check
 
       - name: Backend Dependency Check
+        if: ${{ secrets.NVD_API_KEY != '' }}
         shell: bash
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true dependency-check:check
 
