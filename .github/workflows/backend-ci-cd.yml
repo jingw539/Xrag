@@ -38,7 +38,27 @@ jobs:
           cache: maven
 
       - name: Build backend with Maven
-        run: mvn -f "$BACKEND_DIR/pom.xml" clean package -DskipTests
+        shell: bash
+        run: |
+          set -o pipefail
+          mvn -f "$BACKEND_DIR/pom.xml" clean package -DskipTests 2>&1 | tee maven.log
+
+      - name: Surface Maven error (if any)
+        if: failure()
+        shell: bash
+        run: |
+          echo "Maven build failed. Showing last 200 lines:" >> "$GITHUB_STEP_SUMMARY"
+          tail -n 200 maven.log >> "$GITHUB_STEP_SUMMARY"
+          # Emit a compact annotation for API visibility
+          msg="$(grep -m 1 -E '\\[ERROR\\]' maven.log | head -n 1 || true)"
+          if [ -n "$msg" ]; then
+            msg="${msg//'%'/'%25'}"
+            msg="${msg//$'\n'/'%0A'}"
+            msg="${msg//$'\r'/'%0D'}"
+            echo "::error::$msg"
+          else
+            echo "::error::Maven build failed. See step summary for details."
+          fi
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
