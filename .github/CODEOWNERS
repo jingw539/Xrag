@@ -1,0 +1,7 @@
+# Default reviewer for all files
+* @jingw539
+
+# Optional module-specific ownership
+/backend/  @jingw539
+/frontend/ @jingw539
+/.github/  @jingw539
