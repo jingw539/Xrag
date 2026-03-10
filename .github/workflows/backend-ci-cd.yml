@@ -48,17 +48,21 @@ jobs:
         shell: bash
         run: |
           echo "Maven build failed. Showing last 200 lines:" >> "$GITHUB_STEP_SUMMARY"
-          tail -n 200 maven.log >> "$GITHUB_STEP_SUMMARY"
-          # Emit a compact annotation for API visibility
-          msg="$(grep -m 1 -E '\\[ERROR\\]' maven.log | head -n 1 || true)"
-          if [ -n "$msg" ]; then
-            msg="${msg//'%'/'%25'}"
-            msg="${msg//$'\n'/'%0A'}"
-            msg="${msg//$'\r'/'%0D'}"
-            echo "::error::$msg"
+          if [ -f maven.log ]; then
+            tail -n 200 maven.log >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "::error::Maven build failed. See step summary for details."
+            echo "maven.log not found" >> "$GITHUB_STEP_SUMMARY"
           fi
+          # Emit a compact annotation for API visibility
+          if [ -f maven.log ]; then
+            tail_msg="$(tail -n 30 maven.log | tr '\n' ' ' | sed 's/  */ /g')"
+          else
+            tail_msg="maven.log not found"
+          fi
+          tail_msg="${tail_msg//'%'/'%25'}"
+          tail_msg="${tail_msg//$'\n'/'%0A'}"
+          tail_msg="${tail_msg//$'\r'/'%0D'}"
+          echo "::error::Maven build failed. Last lines: ${tail_msg}"
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
