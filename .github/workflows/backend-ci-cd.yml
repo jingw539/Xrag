@@ -22,6 +22,9 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
 
     steps:
       - name: Checkout code
@@ -57,7 +60,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y openssh-client sshpass
 
       - name: Add SSH private key (if set)
-        if: ${{ secrets.SSH_PRIVATE_KEY != '' }}
+        if: ${{ env.SSH_PRIVATE_KEY != '' }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -65,7 +68,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
 
       - name: Deploy via SSH with key
-        if: ${{ secrets.SSH_PRIVATE_KEY != '' }}
+        if: ${{ env.SSH_PRIVATE_KEY != '' }}
         run: |
           IMAGE_REPO="${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKER_IMAGE_NAME }}"
           IMAGE_TAG="${GITHUB_SHA}"
@@ -76,7 +79,7 @@ jobs:
              --network host --env-file ${REMOTE_ENV_FILE} $IMAGE_REPO:$IMAGE_TAG"
 
       - name: Deploy via SSH with password
-        if: ${{ secrets.SSH_PRIVATE_KEY == '' && secrets.SERVER_PASSWORD != '' }}
+        if: ${{ env.SSH_PRIVATE_KEY == '' && env.SERVER_PASSWORD != '' }}
         run: |
           IMAGE_REPO="${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKER_IMAGE_NAME }}"
           IMAGE_TAG="${GITHUB_SHA}"
