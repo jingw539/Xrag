@@ -178,11 +178,13 @@ jobs:
                     (command -v netstat >/dev/null 2>&1 && ! netstat -tln 2>/dev/null | awk '{print \$4}' | grep -q \":\$p\$\" ); then echo \$p; return; fi; \
                done; echo ${REMOTE_FRONTEND_FALLBACK_PORT}; }; \
              if [ \"\$port_in_use\" -ne 0 ]; then \
-               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p 80:80 $IMAGE_REPO:$IMAGE_TAG; \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
+               --add-host=host.docker.internal:host-gateway -p 80:80 $IMAGE_REPO:$IMAGE_TAG; \
                echo \"frontend running on port 80\"; \
              else \
                use_port=\$(choose_port); \
-               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p \"\$use_port\":80 $IMAGE_REPO:$IMAGE_TAG; \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
+               --add-host=host.docker.internal:host-gateway -p \"\$use_port\":80 $IMAGE_REPO:$IMAGE_TAG; \
                echo \"frontend running on port \$use_port\"; \
                if command -v nginx >/dev/null 2>&1; then \
                  cat >/etc/nginx/conf.d/xrag-frontend.conf <<'EOF'\nserver {\n  listen 80;\n  server_name _;\n  location / {\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n    proxy_pass http://127.0.0.1:__FRONTEND_PORT__;\n  }\n}\nEOF\n; \
@@ -209,11 +211,13 @@ jobs:
                     (command -v netstat >/dev/null 2>&1 && ! netstat -tln 2>/dev/null | awk '{print \$4}' | grep -q \":\$p\$\" ); then echo \$p; return; fi; \
                done; echo ${REMOTE_FRONTEND_FALLBACK_PORT}; }; \
              if [ \"\$port_in_use\" -ne 0 ]; then \
-               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p 80:80 $IMAGE_REPO:$IMAGE_TAG; \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
+               --add-host=host.docker.internal:host-gateway -p 80:80 $IMAGE_REPO:$IMAGE_TAG; \
                echo \"frontend running on port 80\"; \
              else \
                use_port=\$(choose_port); \
-               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped -p \"\$use_port\":80 $IMAGE_REPO:$IMAGE_TAG; \
+               docker run -d --name ${REMOTE_CONTAINER_NAME_FRONTEND} --restart unless-stopped \
+               --add-host=host.docker.internal:host-gateway -p \"\$use_port\":80 $IMAGE_REPO:$IMAGE_TAG; \
                echo \"frontend running on port \$use_port\"; \
                if command -v nginx >/dev/null 2>&1; then \
                  cat >/etc/nginx/conf.d/xrag-frontend.conf <<'EOF'\nserver {\n  listen 80;\n  server_name _;\n  location / {\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n    proxy_pass http://127.0.0.1:__FRONTEND_PORT__;\n  }\n}\nEOF\n; \
