@@ -164,7 +164,9 @@ jobs:
 
       - name: Deploy frontend via SSH with key
         if: ${{ env.SSH_PRIVATE_KEY != '' }}
+        shell: bash
         run: |
+          set -o pipefail
           IMAGE_REPO="${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKER_IMAGE_NAME_FRONTEND }}"
           IMAGE_TAG="${GITHUB_SHA}"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -p "${SERVER_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
@@ -193,11 +195,14 @@ jobs:
                fi; \
              fi; \
              if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi; \
-             docker image prune -f >/dev/null 2>&1 || true"
+             docker image prune -f >/dev/null 2>&1 || true" 2>&1 | tee frontend_deploy.log
+          test ${PIPESTATUS[0]} -eq 0
 
       - name: Deploy frontend via SSH with password
         if: ${{ env.SSH_PRIVATE_KEY == '' && env.SERVER_PASSWORD != '' }}
+        shell: bash
         run: |
+          set -o pipefail
           IMAGE_REPO="${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKER_IMAGE_NAME_FRONTEND }}"
           IMAGE_TAG="${GITHUB_SHA}"
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p "${SERVER_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
@@ -226,7 +231,25 @@ jobs:
                fi; \
              fi; \
              if [ -n \"\$old_image\" ]; then docker rmi -f \"\$old_image\" >/dev/null 2>&1 || true; fi; \
-             docker image prune -f >/dev/null 2>&1 || true"
+             docker image prune -f >/dev/null 2>&1 || true" 2>&1 | tee frontend_deploy.log
+          test ${PIPESTATUS[0]} -eq 0
+
+      - name: Surface frontend deploy log (if failed)
+        if: failure()
+        shell: bash
+        run: |
+          echo "Frontend deploy failed. Last 200 lines:" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f frontend_deploy.log ]; then
+            tail -n 200 frontend_deploy.log >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "frontend_deploy.log not found" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          tail_msg="$(tail -n 50 frontend_deploy.log 2>/dev/null | tr '\n' ' ' | sed 's/  */ /g')"
+          if [ -z "$tail_msg" ]; then tail_msg="frontend_deploy.log not found or empty"; fi
+          tail_msg="${tail_msg//'%'/'%25'}"
+          tail_msg="${tail_msg//$'\n'/'%0A'}"
+          tail_msg="${tail_msg//$'\r'/'%0D'}"
+          echo "::error::Frontend deploy failed. ${tail_msg}"
 
       - name: Frontend smoke test (key)
         if: ${{ env.SSH_PRIVATE_KEY != '' }}
