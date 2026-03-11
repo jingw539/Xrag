@@ -234,7 +234,9 @@
                 <artifactId>dependency-check-maven</artifactId>
                 <version>${dependency-check.version}</version>
                 <configuration>
-                    <format>HTML</format>
+                    <format>ALL</format>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <reportFilename>dependency-check-report</reportFilename>
                     <failBuildOnCVSS>11</failBuildOnCVSS>
                     <failOnError>false</failOnError>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
