@@ -290,7 +290,9 @@ const loadAll = async () => {
           termCorrections.value = []
           editHistory.value = []
         }
-      } catch (_) {}
+      } catch (error) {
+        console.warn('Failed to load report list', error)
+      }
     } else {
       report.value = null
       termCorrections.value = []
@@ -415,7 +417,6 @@ const handleUnmarkTypical = async () => {
 const formatDate = (val) => val ? String(val).replace('T', ' ').substring(0, 16) : '-'
 const statusLabel = (s) => ({ NONE: '待生成', AI_DRAFT: 'AI草稿', EDITING: '编辑中', SIGNED: '已签发' }[s] || s || '-')
 const statusType = (s) => ({ NONE: 'info', AI_DRAFT: 'info', EDITING: 'warning', SIGNED: 'success' }[s] || 'info')
-const gradeType = (g) => ({ A: 'success', B: 'success', C: 'warning', D: 'danger', F: 'danger' }[g] || '')
 const termStatusLabel = (v) => (v === 1 ? '已采纳' : v === -1 ? '已忽略' : '待处理')
 const termStatusType = (v) => (v === 1 ? 'success' : v === -1 ? 'info' : 'warning')
 

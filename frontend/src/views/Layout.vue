@@ -147,7 +147,9 @@ const refreshUserInfo = async () => {
   try {
     const res = await getMe()
     if (res.data) userStore.setUserInfo(res.data)
-  } catch (_) {}
+  } catch (error) {
+    console.warn('Failed to refresh user info', error)
+  }
 }
 
 onMounted(() => {

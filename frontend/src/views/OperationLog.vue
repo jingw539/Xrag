@@ -107,7 +107,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { List } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { exportLogsFile, listLogs } from '@/api/log'
+import { listLogs } from '@/api/log'
 
 const loading = ref(false)
 const rawLogs = ref([])

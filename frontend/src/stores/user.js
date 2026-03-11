@@ -29,7 +29,11 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const logout = async () => {
-    try { await logoutApi() } catch (_) {}
+    try {
+      await logoutApi()
+    } catch (error) {
+      console.warn('Logout request failed', error)
+    }
     token.value = ''
     refreshToken.value = ''
     userInfo.value = {}
