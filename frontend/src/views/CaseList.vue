@@ -43,41 +43,77 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="cases" v-loading="loading" border stripe row-key="caseId" @row-click="goDetail" style="cursor:pointer">
-        <el-table-column prop="examNo" label="检查号" width="130" />
-        <el-table-column prop="patientAnonId" label="患者ID" width="130" />
-        <el-table-column prop="gender" label="性别" width="60" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.gender === 'M' ? 'primary' : row.gender === 'F' ? 'danger' : 'info'" size="small">
-              {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="age" label="年龄" width="70" align="center" />
-        <el-table-column prop="bodyPart" label="检查部位" width="100" />
-        <el-table-column prop="department" label="科室" min-width="100" />
-        <el-table-column prop="examTime" label="检查时间" width="160">
-          <template #default="{ row }">{{ formatDate(row.examTime) }}</template>
-        </el-table-column>
-        <el-table-column prop="reportStatus" label="报告状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.reportStatus)" size="small">
-              {{ statusLabel(row.reportStatus) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="isTypical" label="典型病例" width="90" align="center">
-          <template #default="{ row }">
-            <el-icon v-if="row.isTypical" color="#f5a623"><Star /></el-icon>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click.stop="goDetail(row)">详情</el-button>
-            <el-button size="small" type="danger" @click.stop="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-wrap" v-loading="loading">
+        <el-table
+          v-if="!isMobile"
+          :data="cases"
+          border
+          stripe
+          row-key="caseId"
+          @row-click="goDetail"
+          style="cursor:pointer"
+        >
+          <el-table-column prop="examNo" label="检查号" width="130" />
+          <el-table-column prop="patientAnonId" label="患者ID" width="130" />
+          <el-table-column prop="gender" label="性别" width="60" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.gender === 'M' ? 'primary' : row.gender === 'F' ? 'danger' : 'info'" size="small">
+                {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="age" label="年龄" width="70" align="center" />
+          <el-table-column prop="bodyPart" label="检查部位" width="100" />
+          <el-table-column prop="department" label="科室" min-width="100" />
+          <el-table-column prop="examTime" label="检查时间" width="160">
+            <template #default="{ row }">{{ formatDate(row.examTime) }}</template>
+          </el-table-column>
+          <el-table-column prop="reportStatus" label="报告状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="statusType(row.reportStatus)" size="small">
+                {{ statusLabel(row.reportStatus) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="isTypical" label="典型病例" width="90" align="center">
+            <template #default="{ row }">
+              <el-icon v-if="row.isTypical" color="#f5a623"><Star /></el-icon>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="160" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" @click.stop="goDetail(row)">详情</el-button>
+              <el-button size="small" type="danger" @click.stop="handleDelete(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div v-else class="card-list">
+          <div v-for="row in cases" :key="row.caseId" class="case-card" @click="goDetail(row)">
+            <div class="case-card-top">
+              <span class="case-no">{{ row.examNo }}</span>
+              <el-tag :type="statusType(row.reportStatus)" size="small">
+                {{ statusLabel(row.reportStatus) }}
+              </el-tag>
+            </div>
+            <div class="case-card-meta">
+              <span>{{ row.patientAnonId }}</span>
+              <span>{{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}</span>
+              <span>{{ row.age }}岁</span>
+            </div>
+            <div class="case-card-info">
+              <span>{{ row.bodyPart || '胸部' }}</span>
+              <span>{{ row.department || '—' }}</span>
+              <span>{{ formatDate(row.examTime) }}</span>
+            </div>
+            <div class="case-card-actions">
+              <el-button size="small" @click.stop="goDetail(row)">详情</el-button>
+              <el-button size="small" type="danger" @click.stop="handleDelete(row)">删除</el-button>
+            </div>
+          </div>
+          <el-empty v-if="cases.length === 0" description="暂无病例" :image-size="60" />
+        </div>
+      </div>
 
       <el-pagination
         class="pagination"
@@ -133,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, createCase, deleteCase } from '@/api/case'
@@ -146,6 +182,7 @@ const total = ref(0)
 const showCreateDialog = ref(false)
 const createFormRef = ref(null)
 const dateRange = ref([])
+const isMobile = ref(false)
 
 const query = reactive({ page: 1, pageSize: 20, examNo: '', reportStatus: '', department: '', startTime: '', endTime: '' })
 const createForm = reactive({ examNo: '', patientAnonId: '', gender: 'M', age: null, bodyPart: '胸部', department: '', examTime: '' })
@@ -153,6 +190,10 @@ const createRules = {
   examNo: [{ required: true, message: '请输入检查号', trigger: 'blur' }],
   patientAnonId: [{ required: true, message: '请输入患者ID', trigger: 'blur' }],
   examTime: [{ required: true, message: '请选择检查时间', trigger: 'change' }]
+}
+
+const updateIsMobile = () => {
+  isMobile.value = window.innerWidth <= 768
 }
 
 const fetchList = async () => {
@@ -203,34 +244,45 @@ const formatDate = (val) => val ? val.replace('T', ' ').substring(0, 16) : '-'
 const statusLabel = (s) => ({ NONE: '待生成', AI_DRAFT: 'AI草稿', EDITING: '编辑中', SIGNED: '已签发' }[s] || s || '-')
 const statusType = (s) => ({ NONE: 'info', AI_DRAFT: 'info', EDITING: 'warning', SIGNED: 'success' }[s] || 'info')
 
-onMounted(fetchList)
+onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
+  fetchList()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateIsMobile)
+})
 </script>
 
 <style scoped>
 .page-wrap {
   min-height: 100%;
   padding: 20px;
-  background: #0d1420;
-  color: #d0dcf0;
+  background: var(--xrag-bg);
+  color: var(--xrag-text);
   box-sizing: border-box;
 }
 .page-card { min-height: calc(100vh - 100px); }
 .full-card {
-  border: 1px solid rgba(111, 134, 166, 0.16);
-  background: #0d1420;
-  box-shadow: none;
+  border: 1px solid var(--xrag-border);
+  background: var(--xrag-bg);
+  box-shadow: var(--xrag-shadow);
 }
 :deep(.full-card .el-card__header) {
-  border-bottom: 1px solid rgba(111, 134, 166, 0.16);
-  background: #0d1420;
+  border-bottom: 1px solid var(--xrag-border);
+  background: var(--xrag-bg);
 }
 :deep(.full-card .el-card__body) {
-  background: #0d1420;
+  background: var(--xrag-bg);
 }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .page-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 6px; color: #e8f0ff; }
 .search-form { margin-bottom: 12px; }
 .pagination { margin-top: 16px; justify-content: flex-end; }
+
+.table-wrap { min-height: 240px; }
+
 :deep(.el-table) {
   --el-table-bg-color: #0f1923;
   --el-table-tr-bg-color: #0f1923;
@@ -253,133 +305,72 @@ onMounted(fetchList)
   color: #d0dcf0 !important;
   border: 1px solid rgba(111, 134, 166, 0.2) !important;
 }
-</style>
 
-<style scoped>
-.page-wrap {
-  background: var(--xrag-bg) !important;
-  color: var(--xrag-text) !important;
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.full-card {
-  background: var(--xrag-bg) !important;
-  border-color: var(--xrag-border) !important;
-  box-shadow: var(--xrag-shadow) !important;
+.case-card {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--xrag-border);
+  background: rgba(15, 25, 35, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-:deep(.full-card .el-card__header),
-:deep(.full-card .el-card__body) {
-  background: var(--xrag-bg) !important;
-  border-color: var(--xrag-border) !important;
-  color: var(--xrag-text) !important;
+.case-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
 
-:deep(.el-form-item__label),
-:deep(.el-dialog__title),
-:deep(.el-empty__description),
-:deep(.el-pagination__total),
-:deep(.el-pagination__jump),
-:deep(.el-table .cell),
-:deep(.el-descriptions__label),
-:deep(.el-descriptions__content) {
-  color: var(--xrag-text) !important;
+.case-no {
+  font-weight: 600;
+  color: var(--xrag-text);
 }
 
-:deep(.el-input__wrapper),
-:deep(.el-textarea__inner),
-:deep(.el-select__wrapper),
-:deep(.el-date-editor.el-input__wrapper) {
-  background: rgba(233, 238, 245, 0.05) !important;
-  border-color: var(--xrag-border-strong) !important;
-  box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.18) inset !important;
+.case-card-meta,
+.case-card-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--xrag-text-soft);
 }
 
-:deep(.el-input__inner),
-:deep(.el-textarea__inner),
-:deep(.el-select__placeholder),
-:deep(.el-select__selected-item),
-:deep(.el-range-input),
-:deep(.el-switch__label) {
-  color: var(--xrag-text) !important;
+.case-card-actions {
+  display: flex;
+  gap: 8px;
 }
 
-:deep(.el-button--default),
-:deep(.el-button.is-link),
-:deep(.el-button.is-plain) {
-  background: rgba(233, 238, 245, 0.06) !important;
-  border-color: rgba(111, 134, 166, 0.28) !important;
-  color: var(--xrag-text) !important;
-}
+@media (max-width: 768px) {
+  .page-wrap {
+    padding: 12px;
+  }
 
-:deep(.el-button--default:hover),
-:deep(.el-button.is-link:hover),
-:deep(.el-button.is-plain:hover) {
-  background: rgba(74, 158, 255, 0.10) !important;
-  border-color: rgba(74, 158, 255, 0.28) !important;
-  color: #f4f8ff !important;
-}
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-:deep(.el-button--primary) {
-  background: linear-gradient(180deg, #4A9EFF 0%, #3A86E8 100%) !important;
-  border-color: #4A9EFF !important;
-  color: #fff !important;
-}
+  .search-form :deep(.el-form-item) {
+    margin-right: 0;
+    width: 100%;
+  }
 
-:deep(.el-table),
-:deep(.el-table__inner-wrapper),
-:deep(.el-table tr),
-:deep(.el-table th.el-table__cell),
-:deep(.el-table td.el-table__cell),
-:deep(.el-table__body),
-:deep(.el-table__header),
-:deep(.el-table__empty-block),
-:deep(.el-descriptions__body),
-:deep(.el-descriptions__table) {
-  background: var(--xrag-panel) !important;
-  color: var(--xrag-text) !important;
-  border-color: var(--xrag-border) !important;
-}
+  .search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
-:deep(.el-table--border::before),
-:deep(.el-table--border::after),
-:deep(.el-table__inner-wrapper::before),
-:deep(.el-table td.el-table__cell),
-:deep(.el-table th.el-table__cell),
-:deep(.el-descriptions__cell) {
-  border-color: rgba(111, 134, 166, 0.24) !important;
-}
-
-:deep(.el-table__body tr:hover > td.el-table__cell) {
-  background: rgba(111, 134, 166, 0.12) !important;
-}
-
-:deep(.el-tag),
-:deep(.el-badge__content) {
-  background: rgba(111, 134, 166, 0.2) !important;
-  color: var(--xrag-text) !important;
-  border-color: rgba(111, 134, 166, 0.35) !important;
-}
-
-:deep(.el-dialog),
-:deep(.el-dialog__header),
-:deep(.el-dialog__body),
-:deep(.el-dialog__footer) {
-  background: var(--xrag-panel) !important;
-  color: var(--xrag-text) !important;
-  border-color: var(--xrag-border) !important;
-}
-
-:deep(.el-pagination .btn-prev),
-:deep(.el-pagination .btn-next),
-:deep(.el-pagination .el-pager li) {
-  background: var(--xrag-panel) !important;
-  color: var(--xrag-text) !important;
-  border: 1px solid rgba(111, 134, 166, 0.2) !important;
-}
-
-:deep(.el-pagination .el-pager li.is-active) {
-  background: rgba(64, 158, 255, 0.35) !important;
-  color: #fff !important;
-  border-color: rgba(64, 158, 255, 0.5) !important;
+  .pagination {
+    justify-content: center;
+  }
 }
 </style>

@@ -165,7 +165,7 @@ const loadData = async () => {
     ])
     overview.value = overviewRes.data || {}
     reportTrend.value = reportRes.data || []
-  } catch (_) {
+  } catch {
     ElMessage.error('统计数据加载失败')
   }
 }

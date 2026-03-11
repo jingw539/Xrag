@@ -10,13 +10,13 @@
         </div>
       </template>
 
-      <el-table class="admin-table" :data="users" v-loading="loading" border>
+      <el-table v-if="!isMobile" class="admin-table" :data="users" v-loading="loading" border>
         <el-table-column prop="username" label="用户名" width="130" />
         <el-table-column prop="realName" label="姓名" width="120" />
         <el-table-column prop="roleCode" label="角色" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="{ ADMIN: 'danger', QC: 'warning', DOCTOR: 'primary' }[row.roleCode]" size="small">
-              {{ { ADMIN: '管理员', QC: '质控', DOCTOR: '医生' }[row.roleCode] || row.roleCode }}
+            <el-tag :type="roleTagType(row.roleCode)" size="small">
+              {{ roleLabel(row.roleCode) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -39,6 +39,34 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-else class="user-card-list" v-loading="loading">
+        <div v-for="row in users" :key="row.userId" class="user-card">
+          <div class="user-card-top">
+            <div class="user-identity">
+              <span class="user-name">{{ row.realName || row.username }}</span>
+              <span class="user-username">@{{ row.username }}</span>
+            </div>
+            <el-tag :type="roleTagType(row.roleCode)" size="small">
+              {{ roleLabel(row.roleCode) }}
+            </el-tag>
+          </div>
+          <div class="user-card-meta">
+            <span>{{ row.department || '—' }}</span>
+            <span>{{ formatDate(row.lastLoginAt) }}</span>
+          </div>
+          <div class="user-card-status">
+            <span>{{ row.status === 1 ? '启用' : '禁用' }}</span>
+            <el-switch :model-value="row.status === 1" @change="toggleStatus(row)" />
+          </div>
+          <div class="user-card-actions">
+            <el-button size="small" type="primary" @click.stop="openEdit(row)">编辑</el-button>
+            <el-button size="small" type="warning" @click.stop="openResetPwd(row)">重置</el-button>
+            <el-button size="small" type="danger" @click.stop="handleDelete(row)">删除</el-button>
+          </div>
+        </div>
+        <el-empty v-if="users.length === 0" description="暂无用户" :image-size="60" />
+      </div>
 
       <el-pagination
         class="pagination"
@@ -104,7 +132,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, onBeforeUnmount, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Avatar, Plus } from '@element-plus/icons-vue'
 import { createUser, deleteUser, listUsers, resetPassword, toggleUserStatus, updateUser } from '@/api/user'
@@ -113,6 +141,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const users = ref([])
 const total = ref(0)
+const isMobile = ref(false)
 const formVisible = ref(false)
 const pwdVisible = ref(false)
 const editingId = ref(null)
@@ -128,6 +157,13 @@ const rules = {
   roleCode: [{ required: true, message: '请选择角色', trigger: 'change' }],
   password: [{ required: true, message: '请输入初始密码', trigger: 'blur' }]
 }
+
+const updateIsMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+const roleLabel = (code) => ({ ADMIN: '管理员', QC: '质控', DOCTOR: '医生' }[code] || code || '-')
+const roleTagType = (code) => ({ ADMIN: 'danger', QC: 'warning', DOCTOR: 'primary' }[code] || 'info')
 
 const fetchList = async () => {
   loading.value = true
@@ -210,13 +246,20 @@ const handleDelete = async (row) => {
     await deleteUser(row.userId)
     ElMessage.success('用户删除成功')
     fetchList()
-  } catch (_) {
-  }
+  } catch { /* ignore */ }
 }
 
 const formatDate = (value) => (value ? value.replace('T', ' ').substring(0, 16) : '-')
 
-onMounted(fetchList)
+onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
+  fetchList()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateIsMobile)
+})
 </script>
 
 <style scoped>
@@ -491,5 +534,82 @@ onMounted(fetchList)
   background: rgba(74, 158, 255, 0.24) !important;
   border-color: rgba(74, 158, 255, 0.42) !important;
   color: #ffffff !important;
+}
+
+.user-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-card {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--xrag-border);
+  background: var(--xrag-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--xrag-text);
+}
+
+.user-username {
+  font-size: 12px;
+  color: var(--xrag-text-faint);
+}
+
+.user-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--xrag-text-soft);
+}
+
+.user-card-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--xrag-text-soft);
+}
+
+.user-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .page-wrap {
+    padding: 12px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
 }
 </style>

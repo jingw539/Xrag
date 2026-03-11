@@ -1,0 +1,25 @@
+﻿:root {
+  --xrag-bg: #0d1420;
+  --xrag-bg-soft: #111a26;
+  --xrag-panel: #0f1923;
+  --xrag-panel-2: #131f2c;
+  --xrag-border: rgba(111, 134, 166, 0.18);
+  --xrag-border-strong: rgba(111, 134, 166, 0.28);
+  --xrag-text: #d0dcf0;
+  --xrag-text-soft: rgba(208, 220, 240, 0.72);
+  --xrag-text-faint: rgba(208, 220, 240, 0.46);
+  --xrag-primary: #4a9eff;
+  --xrag-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+  --xrag-radius-sm: 6px;
+  --xrag-radius-md: 10px;
+  --xrag-radius-lg: 14px;
+  --xrag-space-1: 4px;
+  --xrag-space-2: 8px;
+  --xrag-space-3: 12px;
+  --xrag-space-4: 16px;
+  --xrag-space-5: 20px;
+  --xrag-space-6: 24px;
+  --xrag-sidebar-width: 220px;
+  --xrag-sidebar-collapsed: 64px;
+  --xrag-header-height: 64px;
+}

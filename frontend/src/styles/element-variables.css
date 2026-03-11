@@ -1,0 +1,12 @@
+﻿:root {
+  --el-color-primary: var(--xrag-primary);
+  --el-color-success: #2da44e;
+  --el-color-warning: #d29922;
+  --el-color-danger: #cf222e;
+  --el-border-radius-base: var(--xrag-radius-sm);
+  --el-font-size-base: 14px;
+  --el-text-color-primary: var(--xrag-text);
+  --el-text-color-regular: var(--xrag-text-soft);
+  --el-bg-color: var(--xrag-panel);
+  --el-bg-color-page: var(--xrag-bg);
+}

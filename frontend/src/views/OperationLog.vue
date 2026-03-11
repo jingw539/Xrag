@@ -41,7 +41,7 @@
         </el-form-item>
       </el-form>
 
-      <el-table class="admin-table" :data="logs" v-loading="loading" border>
+      <el-table v-if="!isMobile" class="admin-table" :data="logs" v-loading="loading" border>
         <el-table-column prop="userName" label="操作用户" width="120" />
         <el-table-column prop="operationType" label="操作类型" width="160">
           <template #default="{ row }">
@@ -71,6 +71,32 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-else class="log-card-list" v-loading="loading">
+        <div v-for="row in logs" :key="row.logId || row.createdAt" class="log-card">
+          <div class="log-card-top">
+            <div class="log-title">
+              <span class="log-user">{{ row.userName || '—' }}</span>
+              <el-tag size="small" :type="row.errorMsg ? 'danger' : 'info'">{{ row.operationType || '-' }}</el-tag>
+            </div>
+            <el-tag size="small" :type="row.errorMsg ? 'danger' : 'success'">{{ row.errorMsg ? '失败' : '成功' }}</el-tag>
+          </div>
+          <div class="log-meta">
+            <span>目标ID：{{ row.targetId || '—' }}</span>
+            <span>耗时：{{ row.elapsedMs ?? '-' }} ms</span>
+          </div>
+          <div class="log-meta">
+            <span>IP：{{ row.clientIp || '—' }}</span>
+            <span>{{ formatDate(row.createdAt) }}</span>
+          </div>
+          <div class="log-api">接口：{{ row.apiPath || '—' }}</div>
+          <div v-if="row.errorMsg" class="log-error">{{ row.errorMsg }}</div>
+          <div class="log-actions">
+            <el-button size="small" @click.stop="showDetail(row)">查看详情</el-button>
+          </div>
+        </div>
+        <el-empty v-if="logs.length === 0" description="暂无日志" :image-size="60" />
+      </div>
 
       <el-pagination
         class="pagination"
@@ -104,7 +130,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { List } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { listLogs } from '@/api/log'
@@ -115,6 +141,7 @@ const total = ref(0)
 const dateRange = ref([])
 const detailVisible = ref(false)
 const current = ref({})
+const isMobile = ref(false)
 const query = reactive({
   page: 1,
   pageSize: 20,
@@ -130,6 +157,10 @@ const logs = computed(() => rawLogs.value.filter(item => {
   const matchError = !query.errorKeyword || String(item.errorMsg || '').toLowerCase().includes(query.errorKeyword.toLowerCase())
   return matchResult && matchError
 }))
+
+const updateIsMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+}
 
 const fetchList = async () => {
   loading.value = true
@@ -194,7 +225,15 @@ const exportLogs = () => {
   URL.revokeObjectURL(link.href)
 }
 
-onMounted(fetchList)
+onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
+  fetchList()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateIsMobile)
+})
 </script>
 
 <style scoped>
@@ -473,5 +512,85 @@ onMounted(fetchList)
   background: rgba(64, 158, 255, 0.35) !important;
   color: #fff !important;
   border-color: rgba(64, 158, 255, 0.5) !important;
+}
+
+.log-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.log-card {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--xrag-border);
+  background: var(--xrag-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.log-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.log-user {
+  font-weight: 600;
+  color: var(--xrag-text);
+}
+
+.log-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--xrag-text-soft);
+  flex-wrap: wrap;
+}
+
+.log-api {
+  font-size: 12px;
+  color: var(--xrag-text-soft);
+  word-break: break-all;
+}
+
+.log-error {
+  font-size: 12px;
+  color: #ff9c9c;
+  background: rgba(245, 34, 45, 0.12);
+  border: 1px solid rgba(255, 120, 117, 0.24);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.log-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .page-wrap {
+    padding: 12px;
+  }
+
+  .header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
 }
 </style>

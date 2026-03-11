@@ -93,7 +93,7 @@ const formatDate = (val) => (val ? val.replace('T', ' ').substring(0, 16) : '-')
 const handleUnmark = async (row) => {
   try {
     await ElMessageBox.confirm(`确认将“${row.examNo}”从典型病例库移除吗？`, '提示', { type: 'warning' })
-  } catch (_) {
+  } catch {
     return
   }
   await markTypical(row.caseId, { isTypical: 0 })
@@ -341,7 +341,6 @@ onMounted(fetchList)
   border-top-right-radius: 12px !important;
 }
 </style>
-
 
 
 
