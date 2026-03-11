@@ -14,11 +14,31 @@ mybatis-plus:
 
 minio:
   enabled: false
+  endpoint: http://localhost:9000
+  access-key: test-minio
+  secret-key: test-minio-secret
+  bucket-name: cxr-images
 
 app:
   security:
     expose-docs: false
     expose-actuator: false
+
+jwt:
+  secret: test-jwt-secret-key-32-chars-min
+  expiration: 7200
+  refresh-expiration: 604800
+
+ai:
+  qwen:
+    api-key: test-dummy
+    base-url: http://localhost
+    model: qwen-vl-plus
+    timeout: 120000
+  deepseek:
+    api-key: test-dummy
+    base-url: http://localhost
+    timeout: 60000
 
 logging:
   level:

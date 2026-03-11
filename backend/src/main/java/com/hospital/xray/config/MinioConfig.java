@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
  */
 @Slf4j
 @Configuration
-@ConditionalOnProperty(name = "minio.enabled", havingValue = "true", matchIfMissing = true)
 public class MinioConfig {
     
     @Value("${minio.endpoint}")
@@ -39,6 +38,7 @@ public class MinioConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "minio.enabled", havingValue = "true", matchIfMissing = true)
     public ApplicationRunner ensureMinioBucket(MinioClient minioClient) {
         return args -> {
             try {

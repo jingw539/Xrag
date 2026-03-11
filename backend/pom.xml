@@ -29,6 +29,8 @@
         <spotless.version>2.43.0</spotless.version>
         <jacoco.version>0.8.11</jacoco.version>
         <dependency-check.version>9.2.0</dependency-check.version>
+        <spring.profiles.active>test</spring.profiles.active>
+        <minio.enabled>false</minio.enabled>
     </properties>
 
     <dependencies>
@@ -181,8 +183,8 @@
                         <classpathDependencyExclude>org.opengauss:opengauss-jdbc</classpathDependencyExclude>
                     </classpathDependencyExcludes>
                     <systemPropertyVariables>
-                        <spring.profiles.active>test</spring.profiles.active>
-                        <minio.enabled>false</minio.enabled>
+                        <spring.profiles.active>${spring.profiles.active}</spring.profiles.active>
+                        <minio.enabled>${minio.enabled}</minio.enabled>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -191,8 +193,8 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <spring.profiles.active>test</spring.profiles.active>
-                        <minio.enabled>false</minio.enabled>
+                        <spring.profiles.active>${spring.profiles.active}</spring.profiles.active>
+                        <minio.enabled>${minio.enabled}</minio.enabled>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
