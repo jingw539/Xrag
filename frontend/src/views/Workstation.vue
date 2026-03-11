@@ -396,17 +396,20 @@
                     placeholder="请输入影像印象，概括主要结论及诊断倾向" resize="none" />
                 </div>
 
-                <div class="edit-toolbar" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <el-button size="small" type="primary" plain :loading="polishing" @click="handlePolish">
-                    <el-icon><MagicStick /></el-icon> AI 润色
-                  </el-button>
-                  <el-button size="small" :loading="termLoading" @click="handleTermNormalize">
-                    <el-icon><Edit /></el-icon> 术语纠正
-                  </el-button>
-                  <span v-if="termLastCount > 0" style="font-size:11px;color:#52c41a">
-                    已替换 {{ termLastCount }} 处术语
-                  </span>
-                </div>
+                  <div class="edit-toolbar" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <el-button size="small" type="primary" plain :loading="polishing" @click="handlePolish">
+                      <el-icon><MagicStick /></el-icon> AI 润色
+                    </el-button>
+                    <el-button size="small" :loading="termLoading" @click="handleTermNormalize">
+                      <el-icon><Edit /></el-icon> 术语纠正
+                    </el-button>
+                    <span v-if="termLastCount > 0" style="font-size:11px;color:#52c41a">
+                      已替换 {{ termLastCount }} 处术语
+                    </span>
+                    <span v-if="termHint" style="font-size:11px;color:var(--xrag-text-faint)">
+                      {{ termHint }}
+                    </span>
+                  </div>
 
                 <!-- AI审核建议 -->
                 <template>
@@ -971,32 +974,35 @@ const loadTermCorrections = async (reportId) => {
 
 /* ─────────────── 术语标准化 ─────────────── */
 const termDialogVisible = ref(false)
-const termDialogList = ref([])
-const termSelectedItems = ref([])
-const termLastCount = ref(0)
+  const termDialogList = ref([])
+  const termSelectedItems = ref([])
+  const termLastCount = ref(0)
+  const termHint = ref('')
 
 const onTermSelectionChange = (rows) => { termSelectedItems.value = rows }
 
-const handleTermNormalize = async () => {
-  if (!currentReport.value) return
-  termLoading.value = true
-  try {
-    const payload = { findings: draftFindings.value || '', impression: draftImpression.value || '' }
-    const res = await analyzeTerms(currentReport.value.reportId, payload)
-    const list = res.data || []
-    // 筛选出待处理的纠正项（isAccepted === 0 或 null）
-    termDialogList.value = list.filter(t => !t.isAccepted || t.isAccepted === 0)
-    termCorrections.value = list
-    if (termDialogList.value.length === 0) {
-      ElMessage.success('未发现需要纠正的术语')
-    } else {
-      termSelectedItems.value = [...termDialogList.value]
-      termDialogVisible.value = true
-    }
-  } catch (_) {
-    // 请求拦截器已展示错误
-  } finally { termLoading.value = false }
-}
+  const handleTermNormalize = async () => {
+    if (!currentReport.value) return
+    termLoading.value = true
+    termHint.value = ''
+    try {
+      const payload = { findings: draftFindings.value || '', impression: draftImpression.value || '' }
+      const res = await analyzeTerms(currentReport.value.reportId, payload)
+      const list = res.data || []
+      // 筛选出待处理的纠正项（isAccepted === 0 或 null）
+      termDialogList.value = list.filter(t => !t.isAccepted || t.isAccepted === 0)
+      termCorrections.value = list
+      if (termDialogList.value.length === 0) {
+        ElMessage.success('未发现需要纠正的术语')
+        termHint.value = '未发现需要纠正的术语'
+      } else {
+        termSelectedItems.value = [...termDialogList.value]
+        termDialogVisible.value = true
+      }
+    } catch (_) {
+      // 请求拦截器已展示错误
+    } finally { termLoading.value = false }
+  }
 
 const confirmTermReplace = async () => {
   let count = 0

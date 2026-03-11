@@ -119,16 +119,30 @@ public class AiServiceClient {
     public Map<String, Object> polishReport(String findings, String impression) {
         StringBuilder polishBuilder = new StringBuilder();
         polishBuilder.append("""
-                You are a senior radiologist. Polish the draft CXR report to be clearer, standardized, and clinically precise.
+                你是一名资深放射科医师，请对胸片报告草稿进行润色，使其更规范、清晰、临床可用。
+                要求：
+                1. 必须使用中文医学表述，禁止输出英文。
+                2. 保持语义一致，不虚构不存在的病灶。
+                3. 影像所见为一段完整中文描述；影像印象为1-3条简洁结论。
+                4. 建议项请输出为中文数组。
 
-                Draft report:
+                草稿：
                 """.stripIndent());
-        polishBuilder.append("Findings: ").append(findings != null ? findings : "").append("\n");
-        polishBuilder.append("Impression: ").append(impression != null ? impression : "").append("\n\n");
-        polishBuilder.append("Output JSON only with fields: polished_findings, polished_impression, changes_summary, suggestions.\n");
+        polishBuilder.append("影像所见：").append(findings != null ? findings : "").append("\n");
+        polishBuilder.append("影像印象：").append(impression != null ? impression : "").append("\n\n");
+        polishBuilder.append("""
+                仅返回 JSON，格式如下：
+                {
+                  "polished_findings": "润色后的影像所见（中文）",
+                  "polished_impression": "润色后的影像印象（中文）",
+                  "changes_summary": "改动摘要（中文）",
+                  "suggestions": ["建议1","建议2"]
+                }
+                """.stripIndent());
 
         String prompt = polishBuilder.toString();
-        return callDeepSeek(prompt);
+        Map<String, Object> result = callDeepSeek(prompt);
+        return normalizePolishResult(result);
     }
 
     /**
@@ -139,16 +153,31 @@ public class AiServiceClient {
                                                List<String> missingLabels, List<String> extraLabels) {
         StringBuilder reviewBuilder = new StringBuilder();
         reviewBuilder.append("""
-                You are a senior radiologist and quality reviewer. Provide concise, actionable review advice for the signed report.
+                你是一名资深放射科医师与质控审核员，请针对已签发报告给出简洁、可执行的中文审核建议。
+                要求：
+                1. 必须使用中文医学表述，禁止输出英文。
+                2. key_issues 和 check_points 必须是中文数组。
+                3. suggested_findings / suggested_impression 为中文参考文本。
 
-                Report:
+                报告：
                 """.stripIndent());
-        reviewBuilder.append("Findings: ").append(findings != null ? findings : "").append("\n");
-        reviewBuilder.append("Impression: ").append(impression != null ? impression : "").append("\n\n");
-        reviewBuilder.append("Return JSON only with: overall_assessment, key_issues, check_points, suggested_findings, suggested_impression, priority.\n");
+        reviewBuilder.append("影像所见：").append(findings != null ? findings : "").append("\n");
+        reviewBuilder.append("影像印象：").append(impression != null ? impression : "").append("\n\n");
+        reviewBuilder.append("""
+                仅返回 JSON，字段如下：
+                {
+                  "overall_assessment": "...",
+                  "key_issues": ["..."],
+                  "check_points": ["..."],
+                  "suggested_findings": "...",
+                  "suggested_impression": "...",
+                  "priority": "low|medium|high"
+                }
+                """.stripIndent());
 
         String prompt = reviewBuilder.toString();
-        return callDeepSeek(prompt);
+        Map<String, Object> result = callDeepSeek(prompt);
+        return normalizeReviewAdvice(result);
     }
 
     /**
@@ -299,5 +328,75 @@ public class AiServiceClient {
             log.warn("Failed to parse AI response JSON: {}", content);
             return fallback;
         }
+    }
+
+    private Map<String, Object> normalizePolishResult(Map<String, Object> result) {
+        if (result == null) return new HashMap<>();
+        Object suggestions = result.get("suggestions");
+        if (suggestions instanceof String s) {
+            result.put("suggestions", splitSuggestions(s));
+        } else if (suggestions instanceof List<?>) {
+            // keep as is
+        } else if (suggestions != null) {
+            result.put("suggestions", List.of(suggestions.toString()));
+        }
+        return result;
+    }
+
+    private Map<String, Object> normalizeReviewAdvice(Map<String, Object> result) {
+        if (result == null) return new HashMap<>();
+        normalizeListField(result, "key_issues");
+        normalizeListField(result, "check_points");
+        return result;
+    }
+
+    private void normalizeListField(Map<String, Object> result, String key) {
+        Object val = result.get(key);
+        if (val instanceof String s) {
+            result.put(key, splitSuggestions(s));
+        } else if (val instanceof List<?>) {
+            // ok
+        } else if (val != null) {
+            result.put(key, List.of(val.toString()));
+        }
+    }
+
+    private List<String> splitSuggestions(String input) {
+        if (input == null) return List.of();
+        String text = input.trim();
+        if (text.isBlank()) return List.of();
+        List<String> parts = new ArrayList<>();
+        String[] lines = text.split("\\r?\\n");
+        if (lines.length > 1) {
+            for (String line : lines) {
+                String s = cleanupBullet(line);
+                if (!s.isBlank()) parts.add(s);
+            }
+            if (!parts.isEmpty()) return parts;
+        }
+        if (text.contains("；") || text.contains(";")) {
+            String[] segs = text.split("[；;]");
+            for (String seg : segs) {
+                String s = cleanupBullet(seg);
+                if (!s.isBlank()) parts.add(s);
+            }
+            if (!parts.isEmpty()) return parts;
+        }
+        if (text.matches(".*\\d+[\\.、].*")) {
+            String[] segs = text.split("(?=\\d+[\\.、])");
+            for (String seg : segs) {
+                String s = cleanupBullet(seg);
+                if (!s.isBlank()) parts.add(s);
+            }
+            if (!parts.isEmpty()) return parts;
+        }
+        return List.of(text);
+    }
+
+    private String cleanupBullet(String s) {
+        if (s == null) return "";
+        return s.replaceAll("^\\s*[\\-•]\\s*", "")
+                .replaceAll("^\\s*\\d+[\\.、]\\s*", "")
+                .trim();
     }
 }
