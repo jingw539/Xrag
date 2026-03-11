@@ -21,10 +21,11 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -94,7 +95,9 @@ public class ReportServiceImpl implements ReportService {
         if (confObj != null) {
             try {
                 report.setModelConfidence(new BigDecimal(confObj.toString()));
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException e) {
+                log.warn("Invalid model confidence: {}", confObj);
+            }
         }
 
         String caseIds = retrieval.getSimilarCases().stream()
@@ -267,11 +270,20 @@ public class ReportServiceImpl implements ReportService {
         ReportInfo report = reportInfoMapper.selectById(reportId);
         if (report == null) throw new BusinessException(404, "Report not found");
         assertDoctorOwnsCase(report.getCaseId(), false);
-        return editHistoryMapper.selectList(
+        List<ReportEditHistory> histories = editHistoryMapper.selectList(
                         new LambdaQueryWrapper<ReportEditHistory>()
                                 .eq(ReportEditHistory::getReportId, reportId)
-                                .orderByDesc(ReportEditHistory::getEditTime))
-                .stream().map(this::toHistoryVO).collect(Collectors.toList());
+                                .orderByDesc(ReportEditHistory::getEditTime));
+        List<Long> editorIds = histories.stream()
+                .map(ReportEditHistory::getEditorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, String> editorNameMap = editorIds.isEmpty()
+                ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(editorIds).stream()
+                .collect(Collectors.toMap(SysUser::getUserId, u -> u.getRealName() != null ? u.getRealName() : ""));
+        return histories.stream().map(h -> toHistoryVO(h, editorNameMap)).collect(Collectors.toList());
     }
 
     private ReportVO toVO(ReportInfo r) {
@@ -322,8 +334,17 @@ public class ReportServiceImpl implements ReportService {
         vo.setAiGenerateTime(r.getAiGenerateTime());
         vo.setCreatedAt(r.getCreatedAt());
         if (r.getSimilarCaseIds() != null && !r.getSimilarCaseIds().isBlank()) {
-            vo.setSimilarCaseIds(Arrays.stream(r.getSimilarCaseIds().split(","))
-                    .map(Long::parseLong).collect(Collectors.toList()));
+            List<Long> ids = new ArrayList<>();
+            for (String token : r.getSimilarCaseIds().split(",")) {
+                String trimmed = token.trim();
+                if (trimmed.isEmpty()) continue;
+                try {
+                    ids.add(Long.parseLong(trimmed));
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid similar case id in report {}: {}", r.getReportId(), trimmed);
+                }
+            }
+            vo.setSimilarCaseIds(ids);
         } else {
             vo.setSimilarCaseIds(Collections.emptyList());
         }
@@ -334,11 +355,13 @@ public class ReportServiceImpl implements ReportService {
         vo.setEditHistory(getEditHistory(r.getReportId()));
         try {
             vo.setTermCorrections(termService.getByReportId(r.getReportId()));
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("Failed to load term corrections for report {}: {}", r.getReportId(), e.getMessage());
+        }
         return vo;
     }
 
-    private ReportEditHistoryVO toHistoryVO(ReportEditHistory h) {
+    private ReportEditHistoryVO toHistoryVO(ReportEditHistory h, Map<Long, String> editorNameMap) {
         ReportEditHistoryVO vo = new ReportEditHistoryVO();
         vo.setHistoryId(h.getHistoryId());
         vo.setReportId(h.getReportId());
@@ -350,8 +373,12 @@ public class ReportServiceImpl implements ReportService {
         vo.setEditNote(h.getEditNote());
         vo.setEditTime(h.getEditTime());
         if (h.getEditorId() != null) {
-            var editor = sysUserMapper.selectById(h.getEditorId());
-            if (editor != null) vo.setEditorName(editor.getRealName());
+            if (editorNameMap != null) {
+                vo.setEditorName(editorNameMap.get(h.getEditorId()));
+            } else {
+                var editor = sysUserMapper.selectById(h.getEditorId());
+                if (editor != null) vo.setEditorName(editor.getRealName());
+            }
         }
         return vo;
     }

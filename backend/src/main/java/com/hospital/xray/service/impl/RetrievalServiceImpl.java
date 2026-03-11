@@ -21,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -107,9 +109,14 @@ public class RetrievalServiceImpl implements RetrievalService {
                         .orderByDesc(CaseInfo::getExamTime)
                         .last("LIMIT " + topK));
 
+        List<Long> caseIds = typicalCases.stream()
+                .map(CaseInfo::getCaseId)
+                .collect(Collectors.toList());
+        Map<Long, ReportInfo> latestReportMap = fetchLatestReports(caseIds);
+
         List<SimilarCaseVO> result = new ArrayList<>();
         for (CaseInfo tc : typicalCases) {
-            ReportInfo report = reportInfoMapper.selectLatestByCaseId(tc.getCaseId());
+            ReportInfo report = latestReportMap.get(tc.getCaseId());
             SimilarCaseVO vo = new SimilarCaseVO();
             vo.setCaseId(tc.getCaseId());
             vo.setExamNo(tc.getExamNo());
@@ -142,29 +149,49 @@ public class RetrievalServiceImpl implements RetrievalService {
         if (caseIdsStr == null || caseIdsStr.isBlank()) return new ArrayList<>();
         String[] ids    = caseIdsStr.split(",");
         String[] scores = scoresStr != null ? scoresStr.split(",") : new String[0];
-        List<SimilarCaseVO> result = new ArrayList<>();
+        List<Long> caseIds = new ArrayList<>();
+        List<BigDecimal> scoreList = new ArrayList<>();
         for (int i = 0; i < ids.length; i++) {
             String idStr = ids[i].trim();
             if (idStr.isEmpty()) continue;
             try {
                 Long caseId = Long.parseLong(idStr);
-                CaseInfo c  = caseInfoMapper.selectById(caseId);
-                ReportInfo r = reportInfoMapper.selectLatestByCaseId(caseId);
-                SimilarCaseVO vo = new SimilarCaseVO();
-                vo.setCaseId(caseId);
-                vo.setExamNo(c != null ? c.getExamNo() : null);
                 BigDecimal score = i < scores.length
                         ? new BigDecimal(scores[i].trim()) : BigDecimal.ZERO;
-                vo.setSimilarityScore(score);
-                if (r != null) {
-                    vo.setFindings(r.getFinalFindings() != null
-                            ? r.getFinalFindings() : r.getAiFindings());
-                    vo.setImpression(r.getFinalImpression() != null
-                            ? r.getFinalImpression() : r.getAiImpression());
-                }
-                result.add(vo);
-            } catch (NumberFormatException ignored) {}
+                caseIds.add(caseId);
+                scoreList.add(score);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid similar case id: {}", idStr);
+            }
+        }
+        if (caseIds.isEmpty()) return new ArrayList<>();
+        Map<Long, CaseInfo> caseMap = caseInfoMapper.selectBatchIds(caseIds).stream()
+                .collect(Collectors.toMap(CaseInfo::getCaseId, c -> c, (a, b) -> a));
+        Map<Long, ReportInfo> latestReportMap = fetchLatestReports(caseIds);
+        List<SimilarCaseVO> result = new ArrayList<>();
+        for (int i = 0; i < caseIds.size(); i++) {
+            Long caseId = caseIds.get(i);
+            SimilarCaseVO vo = new SimilarCaseVO();
+            vo.setCaseId(caseId);
+            CaseInfo c = caseMap.get(caseId);
+            if (c != null) vo.setExamNo(c.getExamNo());
+            BigDecimal score = i < scoreList.size() ? scoreList.get(i) : BigDecimal.ZERO;
+            vo.setSimilarityScore(score);
+            ReportInfo r = latestReportMap.get(caseId);
+            if (r != null) {
+                vo.setFindings(r.getFinalFindings() != null
+                        ? r.getFinalFindings() : r.getAiFindings());
+                vo.setImpression(r.getFinalImpression() != null
+                        ? r.getFinalImpression() : r.getAiImpression());
+            }
+            result.add(vo);
         }
         return result;
+    }
+
+    private Map<Long, ReportInfo> fetchLatestReports(List<Long> caseIds) {
+        if (caseIds == null || caseIds.isEmpty()) return Collections.emptyMap();
+        return reportInfoMapper.selectLatestByCaseIds(caseIds).stream()
+                .collect(Collectors.toMap(ReportInfo::getCaseId, r -> r, (a, b) -> a));
     }
 }

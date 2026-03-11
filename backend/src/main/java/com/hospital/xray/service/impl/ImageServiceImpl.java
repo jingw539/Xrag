@@ -223,12 +223,17 @@ public class ImageServiceImpl implements ImageService {
     public void deleteImagesByCaseId(Long caseId) {
         List<ImageInfo> images = imageInfoMapper.selectList(new LambdaQueryWrapper<ImageInfo>()
                 .eq(ImageInfo::getCaseId, caseId));
+        List<Long> imageIds = images.stream()
+                .map(ImageInfo::getImageId)
+                .collect(Collectors.toList());
+        if (!imageIds.isEmpty()) {
+            LambdaUpdateWrapper<RetrievalLog> clearRef = new LambdaUpdateWrapper<>();
+            clearRef.in(RetrievalLog::getQueryImageId, imageIds)
+                    .set(RetrievalLog::getQueryImageId, null);
+            retrievalLogMapper.update(null, clearRef);
+        }
         for (ImageInfo image : images) {
             try {
-                LambdaUpdateWrapper<RetrievalLog> clearRef = new LambdaUpdateWrapper<>();
-                clearRef.eq(RetrievalLog::getQueryImageId, image.getImageId())
-                        .set(RetrievalLog::getQueryImageId, null);
-                retrievalLogMapper.update(null, clearRef);
                 deleteMinioObject(image.getFilePath());
             } catch (Exception e) {
                 log.warn("删除原图失败: {}", e.getMessage());

@@ -14,7 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,12 +30,21 @@ public class AnnotationServiceImpl implements AnnotationService {
 
     @Override
     public List<AnnotationVO> listByImage(Long imageId) {
-        return annotationMapper.selectList(
+        List<ImageAnnotation> annotations = annotationMapper.selectList(
                         new LambdaQueryWrapper<ImageAnnotation>()
                                 .eq(ImageAnnotation::getImageId, imageId)
                                 .orderByAsc(ImageAnnotation::getSource)
-                                .orderByAsc(ImageAnnotation::getCreatedAt))
-                .stream().map(this::toVO).collect(Collectors.toList());
+                                .orderByAsc(ImageAnnotation::getCreatedAt));
+        List<Long> userIds = annotations.stream()
+                .map(ImageAnnotation::getCreatedBy)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, String> userNameMap = userIds.isEmpty()
+                ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(u -> u.getUserId(), u -> u.getRealName() != null ? u.getRealName() : ""));
+        return annotations.stream().map(a -> toVO(a, userNameMap)).collect(Collectors.toList());
     }
 
     @Override
@@ -57,7 +69,7 @@ public class AnnotationServiceImpl implements AnnotationService {
         anno.setCreatedBy(userId);
         anno.setCreatedAt(LocalDateTime.now());
         annotationMapper.insert(anno);
-        return toVO(anno);
+        return toVO(anno, null);
     }
 
     @Override
@@ -78,7 +90,7 @@ public class AnnotationServiceImpl implements AnnotationService {
         if (dto.getCompareNote() != null) anno.setCompareNote(dto.getCompareNote());
         if (dto.getColor() != null) anno.setColor(dto.getColor());
         annotationMapper.updateById(anno);
-        return toVO(annotationMapper.selectById(annotationId));
+        return toVO(annotationMapper.selectById(annotationId), null);
     }
 
     @Override
@@ -89,7 +101,7 @@ public class AnnotationServiceImpl implements AnnotationService {
         annotationMapper.deleteById(annotationId);
     }
 
-    private AnnotationVO toVO(ImageAnnotation a) {
+    private AnnotationVO toVO(ImageAnnotation a, Map<Long, String> userNameMap) {
         AnnotationVO vo = new AnnotationVO();
         vo.setAnnotationId(a.getAnnotationId());
         vo.setImageId(a.getImageId());
@@ -110,8 +122,12 @@ public class AnnotationServiceImpl implements AnnotationService {
         vo.setConfidence(a.getConfidence());
         vo.setCreatedAt(a.getCreatedAt());
         if (a.getCreatedBy() != null) {
-            var user = sysUserMapper.selectById(a.getCreatedBy());
-            if (user != null) vo.setCreatedByName(user.getRealName());
+            if (userNameMap != null) {
+                vo.setCreatedByName(userNameMap.get(a.getCreatedBy()));
+            } else {
+                var user = sysUserMapper.selectById(a.getCreatedBy());
+                if (user != null) vo.setCreatedByName(user.getRealName());
+            }
         }
         return vo;
     }

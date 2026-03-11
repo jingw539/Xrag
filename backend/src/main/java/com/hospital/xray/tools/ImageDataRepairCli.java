@@ -9,6 +9,7 @@ import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.StatObjectArgs;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class ImageDataRepairCli {
     public static void main(String[] args) {
         ConfigurableApplicationContext context = new SpringApplicationBuilder(ChestXrayApplication.class)
@@ -34,7 +36,7 @@ public class ImageDataRepairCli {
         try {
             context.getBean(Runner.class).run(args);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Image repair failed", e);
             exitCode = 1;
         } finally {
             org.springframework.boot.SpringApplication.exit(context);
@@ -70,15 +72,16 @@ public class ImageDataRepairCli {
         private void repairImage(Long imageId) throws Exception {
             ImageInfo target = imageInfoMapper.selectById(imageId);
             if (target == null) {
-                System.out.println("[SKIP] image not found: " + imageId);
+                log.warn("[SKIP] image not found: {}", imageId);
                 return;
             }
             String thumbPath = thumbnailPath(target.getFilePath());
             boolean originalExists = objectExistsSafe(target.getFilePath());
             boolean thumbnailExists = objectExistsSafe(thumbPath);
-            System.out.println("[CHECK] imageId=" + imageId + " original=" + originalExists + " thumbnail=" + thumbnailExists + " path=" + target.getFilePath());
+            log.info("[CHECK] imageId={} original={} thumbnail={} path={}",
+                    imageId, originalExists, thumbnailExists, target.getFilePath());
             if (originalExists && thumbnailExists) {
-                System.out.println("[OK] image already complete: " + imageId);
+                log.info("[OK] image already complete: {}", imageId);
                 return;
             }
 
@@ -88,7 +91,7 @@ public class ImageDataRepairCli {
                     .orderByDesc(ImageInfo::getCreatedAt));
             ImageInfo source = candidates.stream().filter(img -> objectExistsSafe(img.getFilePath())).findFirst().orElse(null);
             if (source == null) {
-                System.out.println("[WARN] no valid source object found in same case for imageId=" + imageId);
+                log.warn("[WARN] no valid source object found in same case for imageId={}", imageId);
                 return;
             }
 
@@ -104,12 +107,12 @@ public class ImageDataRepairCli {
                 target.setImgWidth(payload.width);
                 target.setImgHeight(payload.height);
                 imageInfoMapper.updateById(target);
-                System.out.println("[REPAIRED] original restored for imageId=" + imageId + " from source=" + source.getImageId());
+                log.info("[REPAIRED] original restored for imageId={} from source={}", imageId, source.getImageId());
             }
 
             if (!thumbnailExists) {
                 imageService.generateThumbnail(target.getFilePath(), thumbPath);
-                System.out.println("[REPAIRED] thumbnail regenerated for imageId=" + imageId);
+                log.info("[REPAIRED] thumbnail regenerated for imageId={}", imageId);
             }
         }
 
