@@ -9,6 +9,13 @@ export default defineConfig({
       '@': resolve(__dirname, 'src')
     }
   },
+  test: {
+    environment: 'jsdom',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html']
+    }
+  },
   server: {
     port: 5173,
     proxy: {
