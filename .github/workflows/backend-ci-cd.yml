@@ -51,10 +51,43 @@ jobs:
           set -o pipefail
           mvn -f "$BACKEND_DIR/pom.xml" test -DskipTests=false -DskipITs 2>&1 | tee maven-test.log
 
+      - name: Test Summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "### Test Summary" >> "$GITHUB_STEP_SUMMARY"
+          if ls "$BACKEND_DIR/target/surefire-reports/"*.xml >/dev/null 2>&1; then
+            total=$(grep -h "tests=" "$BACKEND_DIR/target/surefire-reports/"*.xml | awk -F'tests="' '{print $2}' | awk -F'"' '{sum += $1} END {print sum+0}')
+            failures=$(grep -h "failures=" "$BACKEND_DIR/target/surefire-reports/"*.xml | awk -F'failures="' '{print $2}' | awk -F'"' '{sum += $1} END {print sum+0}')
+            errors=$(grep -h "errors=" "$BACKEND_DIR/target/surefire-reports/"*.xml | awk -F'errors="' '{print $2}' | awk -F'"' '{sum += $1} END {print sum+0}')
+            skipped=$(grep -h "skipped=" "$BACKEND_DIR/target/surefire-reports/"*.xml | awk -F'skipped="' '{print $2}' | awk -F'"' '{sum += $1} END {print sum+0}')
+            echo "Tests: ${total}, Failures: ${failures}, Errors: ${errors}, Skipped: ${skipped}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No surefire XML reports found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Test Reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/**
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Backend Checkstyle
         shell: bash
         run: |
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true checkstyle:check
+
+      - name: Upload Checkstyle Report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-report
+          path: backend/target/checkstyle-result.xml
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Backend Spotless
         shell: bash
@@ -68,7 +101,7 @@ jobs:
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true dependency-check:check
 
       - name: Dependency Check Summary
-        if: ${{ env.NVD_API_KEY != '' }}
+        if: ${{ env.NVD_API_KEY != '' && always() }}
         shell: bash
         run: |
           echo "### Dependency-Check" >> "$GITHUB_STEP_SUMMARY"
@@ -80,12 +113,33 @@ jobs:
           fi
 
       - name: Upload Dependency-Check report
-        if: ${{ env.NVD_API_KEY != '' }}
+        if: ${{ env.NVD_API_KEY != '' && always() }}
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: |
             backend/target/dependency-check-report.*
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: JaCoCo Summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "### JaCoCo Coverage" >> "$GITHUB_STEP_SUMMARY"
+          report="$BACKEND_DIR/target/site/jacoco/jacoco.csv"
+          if [ -f "$report" ]; then
+            awk -F, 'NR>1{lm+=$8; lc+=$9} END{total=lm+lc; if(total>0){printf("Line coverage: %.2f%% (%d/%d)\n", (lc/total)*100, lc, total)} else {print "Line coverage: n/a"}}' "$report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No jacoco.csv found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload JaCoCo report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/**
           if-no-files-found: warn
           retention-days: 7
 
