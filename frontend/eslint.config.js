@@ -19,8 +19,8 @@ export default [
       }
     },
     rules: {
-      "no-unused-vars": "warn",
-      "no-empty": "warn",
+      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+      "no-empty": ["warn", { "allowEmptyCatch": true }],
       "vue/attributes-order": "off",
       "vue/html-closing-bracket-newline": "off",
       "vue/html-indent": "off",
