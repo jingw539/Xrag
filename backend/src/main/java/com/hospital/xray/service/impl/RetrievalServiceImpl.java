@@ -1,15 +1,18 @@
 package com.hospital.xray.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.hospital.xray.client.RagServiceClient;
 import com.hospital.xray.dto.RetrievalResultVO;
 import com.hospital.xray.dto.SimilarCaseVO;
 import com.hospital.xray.entity.CaseInfo;
 import com.hospital.xray.entity.ImageInfo;
+import com.hospital.xray.entity.ImageAnnotation;
 import com.hospital.xray.entity.ReportInfo;
 import com.hospital.xray.entity.RetrievalLog;
 import com.hospital.xray.exception.BusinessException;
 import com.hospital.xray.mapper.CaseInfoMapper;
 import com.hospital.xray.mapper.ImageInfoMapper;
+import com.hospital.xray.mapper.ImageAnnotationMapper;
 import com.hospital.xray.mapper.ReportInfoMapper;
 import com.hospital.xray.mapper.RetrievalLogMapper;
 import com.hospital.xray.service.RetrievalService;
@@ -24,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +39,8 @@ public class RetrievalServiceImpl implements RetrievalService {
     private final ImageInfoMapper imageInfoMapper;
     private final CaseInfoMapper caseInfoMapper;
     private final ReportInfoMapper reportInfoMapper;
+    private final ImageAnnotationMapper imageAnnotationMapper;
+    private final RagServiceClient ragServiceClient;
 
     @Override
     @Transactional
@@ -45,7 +51,10 @@ public class RetrievalServiceImpl implements RetrievalService {
         }
 
         long startMs = System.currentTimeMillis();
-        List<SimilarCaseVO> similarCases = retrieveTypicalCases(caseId, topK);
+        List<SimilarCaseVO> similarCases = retrieveByRag(caseId, imageId, topK);
+        if (similarCases.isEmpty()) {
+            similarCases = retrieveTypicalCases(caseId, topK);
+        }
         int elapsedMs = (int) (System.currentTimeMillis() - startMs);
 
         String caseIds = similarCases.stream()
@@ -130,6 +139,56 @@ public class RetrievalServiceImpl implements RetrievalService {
             result.add(vo);
         }
         return result;
+    }
+
+    private List<SimilarCaseVO> retrieveByRag(Long caseId, Long imageId, int topK) {
+        if (!ragServiceClient.isEnabled()) return List.of();
+        String queryText = buildQueryText(caseId, imageId);
+        if (queryText.isBlank()) return List.of();
+        List<SimilarCaseVO> results = ragServiceClient.searchSimilarCases(queryText, topK);
+        if (results.isEmpty()) return results;
+        List<Long> caseIds = results.stream()
+                .map(SimilarCaseVO::getCaseId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, CaseInfo> caseMap = caseIds.isEmpty()
+                ? Collections.emptyMap()
+                : caseInfoMapper.selectBatchIds(caseIds).stream()
+                .collect(Collectors.toMap(CaseInfo::getCaseId, c -> c));
+        for (SimilarCaseVO vo : results) {
+            if (vo.getCaseId() == null) continue;
+            CaseInfo c = caseMap.get(vo.getCaseId());
+            if (c != null) vo.setExamNo(c.getExamNo());
+        }
+        return results;
+    }
+
+    private String buildQueryText(Long caseId, Long imageId) {
+        if (caseId != null) {
+            ReportInfo latest = reportInfoMapper.selectLatestByCaseId(caseId);
+            if (latest != null) {
+                String findings = latest.getFinalFindings() != null ? latest.getFinalFindings() : latest.getAiFindings();
+                String impression = latest.getFinalImpression() != null ? latest.getFinalImpression() : latest.getAiImpression();
+                String merged = (findings != null ? findings : "") + "\n" + (impression != null ? impression : "");
+                if (!merged.isBlank()) return merged.trim();
+            }
+        }
+        if (imageId != null) {
+            List<ImageAnnotation> annos = imageAnnotationMapper.selectList(
+                    new LambdaQueryWrapper<ImageAnnotation>()
+                            .eq(ImageAnnotation::getImageId, imageId)
+                            .eq(ImageAnnotation::getSource, "AI"));
+            if (annos != null && !annos.isEmpty()) {
+                String labels = annos.stream()
+                        .map(ImageAnnotation::getLabel)
+                        .filter(s -> s != null && !s.isBlank())
+                        .distinct()
+                        .collect(Collectors.joining(", "));
+                if (!labels.isBlank()) return labels;
+            }
+        }
+        return "";
     }
 
     private RetrievalResultVO toVO(RetrievalLog retrievalLog) {

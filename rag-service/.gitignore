@@ -1,0 +1,6 @@
+__pycache__/
+*.log
+rag_ingest.jsonl
+/data/
+index.faiss
+meta.json

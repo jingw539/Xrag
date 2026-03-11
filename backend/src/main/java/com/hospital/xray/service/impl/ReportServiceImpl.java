@@ -3,6 +3,7 @@ package com.hospital.xray.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hospital.xray.client.AiServiceClient;
+import com.hospital.xray.client.RagServiceClient;
 import com.hospital.xray.dto.*;
 import com.hospital.xray.entity.*;
 import com.hospital.xray.exception.BusinessException;
@@ -40,6 +41,7 @@ public class ReportServiceImpl implements ReportService {
     private final RetrievalLogMapper retrievalLogMapper;
     private final CaseInfoMapper caseInfoMapper;
     private final AiServiceClient aiServiceClient;
+    private final RagServiceClient ragServiceClient;
     private final ImageService imageService;
     private final RetrievalService retrievalService;
     private final TermService termService;
@@ -219,6 +221,16 @@ public class ReportServiceImpl implements ReportService {
             caseInfo.setReportStatus("SIGNED");
             caseInfo.setUpdatedAt(LocalDateTime.now());
             caseInfoMapper.updateById(caseInfo);
+        }
+        try {
+            ragServiceClient.upsertReport(
+                    report.getReportId(),
+                    report.getCaseId(),
+                    report.getFinalFindings(),
+                    report.getFinalImpression()
+            );
+        } catch (Exception e) {
+            log.warn("RAG index update skipped: {}", e.getMessage());
         }
     }
 
