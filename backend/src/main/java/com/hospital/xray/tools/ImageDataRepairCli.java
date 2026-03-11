@@ -11,6 +11,7 @@ import io.minio.PutObjectArgs;
 import io.minio.StatObjectArgs;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.WebApplicationType;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class ImageDataRepairCli {
     public static void main(String[] args) {
         ConfigurableApplicationContext context = new SpringApplicationBuilder(ChestXrayApplication.class)
@@ -34,7 +36,7 @@ public class ImageDataRepairCli {
         try {
             context.getBean(Runner.class).run(args);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Image data repair failed", e);
             exitCode = 1;
         } finally {
             org.springframework.boot.SpringApplication.exit(context);
