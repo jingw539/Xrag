@@ -94,6 +94,13 @@ jobs:
         run: |
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true spotless:check
 
+      - name: Spotless Summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "### Spotless" >> "$GITHUB_STEP_SUMMARY"
+          echo "spotless:check completed (see logs for details)." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Backend Dependency Check
         if: ${{ env.NVD_API_KEY != '' }}
         shell: bash
@@ -156,6 +163,13 @@ jobs:
           npm ci --no-audit --no-fund
           npm run lint
           npm run build
+
+      - name: Frontend Summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "### Frontend" >> "$GITHUB_STEP_SUMMARY"
+          echo "npm ci / lint / build completed (see logs for details)." >> "$GITHUB_STEP_SUMMARY"
 
   build-and-deploy:
     runs-on: ubuntu-latest
