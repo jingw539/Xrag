@@ -38,6 +38,11 @@ jobs:
       DB_NAME: chest_xray_db
       DB_USER: gaussdb
       DB_PASSWORD: xrag-ci-db-password
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/chest_xray_db
+      SPRING_DATASOURCE_USERNAME: gaussdb
+      SPRING_DATASOURCE_PASSWORD: xrag-ci-db-password
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       MINIO_ENDPOINT: http://127.0.0.1:9000
       MINIO_USER: xrag-ci-minio
       MINIO_PASSWORD: xrag-ci-minio-password
@@ -77,9 +82,15 @@ jobs:
             echo "Waiting for PostgreSQL..."
             sleep 2
           done
-          psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$BACKEND_DIR/src/main/resources/db/1.sql"
+          run_sql() {
+            local file="$1"
+            local tmp="/tmp/$(basename "$file")"
+            iconv -f UTF-8 -t UTF-8 -c "$file" > "$tmp"
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$tmp"
+          }
+          run_sql "$BACKEND_DIR/src/main/resources/db/1.sql"
           for f in "$BACKEND_DIR"/src/main/resources/db/migration/*.sql; do
-            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$f"
+            run_sql "$f"
           done
 
       - name: Start MinIO
