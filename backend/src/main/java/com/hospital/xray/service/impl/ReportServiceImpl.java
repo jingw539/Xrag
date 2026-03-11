@@ -94,7 +94,9 @@ public class ReportServiceImpl implements ReportService {
         if (confObj != null) {
             try {
                 report.setModelConfidence(new BigDecimal(confObj.toString()));
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException e) {
+                log.warn("Failed to parse model confidence: {}", confObj, e);
+            }
         }
 
         String caseIds = retrieval.getSimilarCases().stream()
