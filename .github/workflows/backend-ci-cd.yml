@@ -31,6 +31,8 @@ env:
 jobs:
   code-checks:
     runs-on: ubuntu-latest
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
     steps:
       - name: Checkout code
@@ -60,10 +62,8 @@ jobs:
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true spotless:check
 
       - name: Backend Dependency Check
-        if: ${{ secrets.NVD_API_KEY != '' }}
+        if: ${{ env.NVD_API_KEY != '' }}
         shell: bash
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true dependency-check:check
 
