@@ -720,9 +720,9 @@ import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, getCaseById, markTypical, createCase, deleteCase, importCases } from '@/api/case'
 import { listImages, listPriorImages, uploadImage, deleteImage, fetchImageBlob } from '@/api/image'
-import { generateReport, regenerateReport, saveDraft, signReport, listReports, getEditHistory, polishReport, revertReport, getAiAdvice } from '@/api/report'
+import { generateReport, regenerateReport, saveDraft, signReport, listReports, getEditHistory, polishReport, getAiAdvice } from '@/api/report'
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
-import { analyzeTerms, getTermsByReportId, acceptCorrection, dismissCorrection } from '@/api/term'
+import { analyzeTerms, getTermsByReportId, acceptCorrection } from '@/api/term'
 import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
 
 const route = useRoute()
@@ -809,7 +809,6 @@ const priorImages = ref([])
 const showAiCompare = ref(false)
 const aiAdvice = ref(null)
 const aiAdviceLoading = ref(false)
-const reverting = ref(false)
 const termCorrections = ref([])
 const termLoading = ref(false)
 
