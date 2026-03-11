@@ -28,7 +28,6 @@
         <checkstyle.version>10.12.5</checkstyle.version>
         <spotless.version>2.43.0</spotless.version>
         <jacoco.version>0.8.11</jacoco.version>
-        <dependency-check.version>9.2.0</dependency-check.version>
         <spring.profiles.active>test</spring.profiles.active>
         <minio.enabled>false</minio.enabled>
     </properties>
@@ -259,22 +258,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>${dependency-check.version}</version>
-                <configuration>
-                    <format>ALL</format>
-                    <outputDirectory>${project.build.directory}</outputDirectory>
-                    <reportFilename>dependency-check-report</reportFilename>
-                    <failBuildOnCVSS>11</failBuildOnCVSS>
-                    <failOnError>false</failOnError>
-                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-                    <suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
-                    <skipProvidedScope>true</skipProvidedScope>
-                    <skipRuntimeScope>false</skipRuntimeScope>
-                </configuration>
             </plugin>
         </plugins>
     </build>

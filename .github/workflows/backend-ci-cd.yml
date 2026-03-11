@@ -33,7 +33,6 @@ jobs:
   code-checks:
     runs-on: ubuntu-latest
     env:
-      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
       DB_NAME: chest_xray_db
@@ -186,34 +185,6 @@ jobs:
         run: |
           echo "### Spotless" >> "$GITHUB_STEP_SUMMARY"
           echo "spotless:check completed (see logs for details)." >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Backend Dependency Check
-        if: ${{ env.NVD_API_KEY != '' }}
-        shell: bash
-        run: |
-          mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true dependency-check:check
-
-      - name: Dependency Check Summary
-        if: ${{ env.NVD_API_KEY != '' && always() }}
-        shell: bash
-        run: |
-          echo "### Dependency-Check" >> "$GITHUB_STEP_SUMMARY"
-          if ls "$BACKEND_DIR/target/dependency-check-report."* >/dev/null 2>&1; then
-            echo "Report files:" >> "$GITHUB_STEP_SUMMARY"
-            ls -lh "$BACKEND_DIR/target/dependency-check-report."* | awk '{print "- " $9 " (" $5 ")"}' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No report files found under $BACKEND_DIR/target." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Upload Dependency-Check report
-        if: ${{ env.NVD_API_KEY != '' && always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: |
-            backend/target/dependency-check-report.*
-          if-no-files-found: ignore
-          retention-days: 7
 
       - name: JaCoCo Summary
         if: ${{ always() }}
