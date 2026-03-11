@@ -22,6 +22,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -107,9 +110,30 @@ public class RetrievalServiceImpl implements RetrievalService {
                         .orderByDesc(CaseInfo::getExamTime)
                         .last("LIMIT " + topK));
 
+        if (typicalCases.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> caseIds = typicalCases.stream()
+                .map(CaseInfo::getCaseId)
+                .collect(Collectors.toList());
+
+        List<ReportInfo> reports = reportInfoMapper.selectList(
+                new LambdaQueryWrapper<ReportInfo>()
+                        .in(ReportInfo::getCaseId, caseIds)
+                        .orderByDesc(ReportInfo::getCreatedAt)
+        );
+
+        Map<Long, ReportInfo> latestReportsMap = reports.stream()
+                .collect(Collectors.toMap(
+                        ReportInfo::getCaseId,
+                        Function.identity(),
+                        (existing, replacement) -> existing
+                ));
+
         List<SimilarCaseVO> result = new ArrayList<>();
         for (CaseInfo tc : typicalCases) {
-            ReportInfo report = reportInfoMapper.selectLatestByCaseId(tc.getCaseId());
+            ReportInfo report = latestReportsMap.get(tc.getCaseId());
             SimilarCaseVO vo = new SimilarCaseVO();
             vo.setCaseId(tc.getCaseId());
             vo.setExamNo(tc.getExamNo());
@@ -142,14 +166,43 @@ public class RetrievalServiceImpl implements RetrievalService {
         if (caseIdsStr == null || caseIdsStr.isBlank()) return new ArrayList<>();
         String[] ids    = caseIdsStr.split(",");
         String[] scores = scoresStr != null ? scoresStr.split(",") : new String[0];
+
+        List<Long> parsedCaseIds = new ArrayList<>();
+        for (String idStr : ids) {
+            String trimmed = idStr.trim();
+            if (!trimmed.isEmpty()) {
+                try {
+                    parsedCaseIds.add(Long.parseLong(trimmed));
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+
+        if (parsedCaseIds.isEmpty()) return new ArrayList<>();
+
+        Map<Long, CaseInfo> caseMap = caseInfoMapper.selectBatchIds(parsedCaseIds).stream()
+                .collect(Collectors.toMap(CaseInfo::getCaseId, Function.identity()));
+
+        List<ReportInfo> reports = reportInfoMapper.selectList(
+                new LambdaQueryWrapper<ReportInfo>()
+                        .in(ReportInfo::getCaseId, parsedCaseIds)
+                        .orderByDesc(ReportInfo::getCreatedAt)
+        );
+        Map<Long, ReportInfo> latestReportsMap = reports.stream()
+                .collect(Collectors.toMap(
+                        ReportInfo::getCaseId,
+                        Function.identity(),
+                        (existing, replacement) -> existing
+                ));
+
         List<SimilarCaseVO> result = new ArrayList<>();
         for (int i = 0; i < ids.length; i++) {
             String idStr = ids[i].trim();
             if (idStr.isEmpty()) continue;
+
             try {
                 Long caseId = Long.parseLong(idStr);
-                CaseInfo c  = caseInfoMapper.selectById(caseId);
-                ReportInfo r = reportInfoMapper.selectLatestByCaseId(caseId);
+                CaseInfo c  = caseMap.get(caseId);
+                ReportInfo r = latestReportsMap.get(caseId);
                 SimilarCaseVO vo = new SimilarCaseVO();
                 vo.setCaseId(caseId);
                 vo.setExamNo(c != null ? c.getExamNo() : null);
