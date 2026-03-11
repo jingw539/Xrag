@@ -223,22 +223,50 @@ public class ImageServiceImpl implements ImageService {
     public void deleteImagesByCaseId(Long caseId) {
         List<ImageInfo> images = imageInfoMapper.selectList(new LambdaQueryWrapper<ImageInfo>()
                 .eq(ImageInfo::getCaseId, caseId));
+        if (images.isEmpty()) {
+            return;
+        }
+
+        List<Long> imageIds = images.stream()
+                .map(ImageInfo::getImageId)
+                .collect(Collectors.toList());
+
+        // Batch clear RetrievalLog references
+        try {
+            LambdaUpdateWrapper<RetrievalLog> clearRef = new LambdaUpdateWrapper<>();
+            clearRef.in(RetrievalLog::getQueryImageId, imageIds)
+                    .set(RetrievalLog::getQueryImageId, null);
+            retrievalLogMapper.update(null, clearRef);
+        } catch (Exception e) {
+            log.warn("批量清除检索记录关联失败: {}", e.getMessage());
+        }
+
+        // Collect all minio objects to delete
+        List<io.minio.messages.DeleteObject> objectsToDelete = new java.util.LinkedList<>();
         for (ImageInfo image : images) {
-            try {
-                LambdaUpdateWrapper<RetrievalLog> clearRef = new LambdaUpdateWrapper<>();
-                clearRef.eq(RetrievalLog::getQueryImageId, image.getImageId())
-                        .set(RetrievalLog::getQueryImageId, null);
-                retrievalLogMapper.update(null, clearRef);
-                deleteMinioObject(image.getFilePath());
-            } catch (Exception e) {
-                log.warn("删除原图失败: {}", e.getMessage());
-            }
-            try {
-                deleteMinioObject(generateThumbnailObjectName(image.getFilePath()));
-            } catch (Exception e) {
-                log.warn("删除缩略图失败: {}", e.getMessage());
+            if (image.getFilePath() != null) {
+                objectsToDelete.add(new io.minio.messages.DeleteObject(image.getFilePath()));
+                objectsToDelete.add(new io.minio.messages.DeleteObject(generateThumbnailObjectName(image.getFilePath())));
             }
         }
+
+        // Batch delete from MinIO
+        if (!objectsToDelete.isEmpty()) {
+            try {
+                Iterable<io.minio.Result<io.minio.messages.DeleteError>> results = minioClient.removeObjects(
+                        io.minio.RemoveObjectsArgs.builder()
+                                .bucket(bucketName)
+                                .objects(objectsToDelete)
+                                .build());
+                for (io.minio.Result<io.minio.messages.DeleteError> result : results) {
+                    io.minio.messages.DeleteError error = result.get();
+                    log.warn("批量删除MinIO对象失败: {}, {}", error.objectName(), error.message());
+                }
+            } catch (Exception e) {
+                log.warn("批量删除MinIO对象发生异常: {}", e.getMessage());
+            }
+        }
+
         imageInfoMapper.delete(new LambdaQueryWrapper<ImageInfo>().eq(ImageInfo::getCaseId, caseId));
     }
 
