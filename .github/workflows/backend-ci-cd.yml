@@ -75,6 +75,7 @@ jobs:
       - name: Init test database
         shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y postgresql-client
           export PGPASSWORD="${DB_PASSWORD}"
@@ -88,9 +89,9 @@ jobs:
             iconv -f UTF-8 -t UTF-8 -c "$file" > "$tmp"
             psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$tmp"
           }
-          for f in "$BACKEND_DIR"/src/main/resources/db/migration/*.sql; do
+          while IFS= read -r f; do
             run_sql "$f"
-          done
+          done < <(ls -1v "$BACKEND_DIR"/src/main/resources/db/migration/*.sql)
 
       - name: Start MinIO
         shell: bash
