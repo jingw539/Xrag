@@ -267,11 +267,19 @@ public class ReportServiceImpl implements ReportService {
         ReportInfo report = reportInfoMapper.selectById(reportId);
         if (report == null) throw new BusinessException(404, "Report not found");
         assertDoctorOwnsCase(report.getCaseId(), false);
-        return editHistoryMapper.selectList(
-                        new LambdaQueryWrapper<ReportEditHistory>()
-                                .eq(ReportEditHistory::getReportId, reportId)
-                                .orderByDesc(ReportEditHistory::getEditTime))
-                .stream().map(this::toHistoryVO).collect(Collectors.toList());
+        List<ReportEditHistory> histories = editHistoryMapper.selectList(
+                new LambdaQueryWrapper<ReportEditHistory>()
+                        .eq(ReportEditHistory::getReportId, reportId)
+                        .orderByDesc(ReportEditHistory::getEditTime));
+
+        List<Long> editorIds = histories.stream()
+                .map(ReportEditHistory::getEditorId).filter(java.util.Objects::nonNull)
+                .distinct().collect(Collectors.toList());
+        Map<Long, String> editorNameMap = editorIds.isEmpty() ? Collections.emptyMap() :
+                sysUserMapper.selectBatchIds(editorIds).stream()
+                        .collect(Collectors.toMap(u -> u.getUserId(), u -> u.getRealName() != null ? u.getRealName() : ""));
+
+        return histories.stream().map(h -> toHistoryVO(h, editorNameMap)).collect(Collectors.toList());
     }
 
     private ReportVO toVO(ReportInfo r) {
@@ -339,6 +347,10 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private ReportEditHistoryVO toHistoryVO(ReportEditHistory h) {
+        return toHistoryVO(h, null);
+    }
+
+    private ReportEditHistoryVO toHistoryVO(ReportEditHistory h, Map<Long, String> editorNameMap) {
         ReportEditHistoryVO vo = new ReportEditHistoryVO();
         vo.setHistoryId(h.getHistoryId());
         vo.setReportId(h.getReportId());
@@ -350,8 +362,12 @@ public class ReportServiceImpl implements ReportService {
         vo.setEditNote(h.getEditNote());
         vo.setEditTime(h.getEditTime());
         if (h.getEditorId() != null) {
-            var editor = sysUserMapper.selectById(h.getEditorId());
-            if (editor != null) vo.setEditorName(editor.getRealName());
+            if (editorNameMap != null) {
+                vo.setEditorName(editorNameMap.get(h.getEditorId()));
+            } else {
+                var editor = sysUserMapper.selectById(h.getEditorId());
+                if (editor != null) vo.setEditorName(editor.getRealName());
+            }
         }
         return vo;
     }
