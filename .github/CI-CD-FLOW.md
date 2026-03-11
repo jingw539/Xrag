@@ -15,19 +15,23 @@ Runs on every trigger. This job validates code and publishes reports.
 Steps:
 1. Checkout
 2. Setup JDK 17
-3. Backend tests (Surefire)
-4. Test summary in `GITHUB_STEP_SUMMARY`
-5. Upload Surefire reports artifact
-6. Checkstyle
-7. Upload Checkstyle report artifact
-8. Spotless check
-9. Spotless summary in `GITHUB_STEP_SUMMARY`
-10. Dependency-Check (only if `NVD_API_KEY` set)
-11. Dependency-Check summary + report artifact
-12. JaCoCo coverage summary + report artifact
-13. Setup Node 20
-14. Frontend build (npm ci / lint / build)
-15. Frontend summary in `GITHUB_STEP_SUMMARY`
+3. Start PostgreSQL service (CI)
+4. Initialize schema/data (`db/1.sql` + `db/migration/*.sql`)
+5. Start MinIO service (CI)
+6. Create MinIO bucket (`cxr-images`)
+7. Backend tests (Surefire)
+8. Test summary in `GITHUB_STEP_SUMMARY`
+9. Upload Surefire reports artifact
+10. Checkstyle
+11. Upload Checkstyle report artifact
+12. Spotless check
+13. Spotless summary in `GITHUB_STEP_SUMMARY`
+14. Dependency-Check (only if `NVD_API_KEY` set)
+15. Dependency-Check summary + report artifact
+16. JaCoCo coverage summary + report artifact
+17. Setup Node 20
+18. Frontend build (npm ci / lint / build)
+19. Frontend summary in `GITHUB_STEP_SUMMARY`
 
 Artifacts:
 - `surefire-reports`

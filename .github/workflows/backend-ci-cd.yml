@@ -33,6 +33,28 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: chest_xray_db
+      DB_USER: gaussdb
+      DB_PASSWORD: xrag-ci-db-password
+      MINIO_ENDPOINT: http://127.0.0.1:9000
+      MINIO_USER: xrag-ci-minio
+      MINIO_PASSWORD: xrag-ci-minio-password
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: chest_xray_db
+          POSTGRES_USER: gaussdb
+          POSTGRES_PASSWORD: xrag-ci-db-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gaussdb -d chest_xray_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout code
@@ -44,6 +66,45 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: maven
+
+      - name: Init test database
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          export PGPASSWORD="${DB_PASSWORD}"
+          until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$BACKEND_DIR/src/main/resources/db/1.sql"
+          for f in "$BACKEND_DIR"/src/main/resources/db/migration/*.sql; do
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$f"
+          done
+
+      - name: Start MinIO
+        shell: bash
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 -p 9001:9001 \
+            -e MINIO_ROOT_USER="$MINIO_USER" \
+            -e MINIO_ROOT_PASSWORD="$MINIO_PASSWORD" \
+            minio/minio:latest server /data --console-address ":9001"
+          for i in {1..30}; do
+            if curl -fsS "$MINIO_ENDPOINT/minio/health/ready" >/dev/null; then
+              echo "MinIO is ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Create MinIO bucket
+        shell: bash
+        run: |
+          curl -fsSLo mc https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          ./mc alias set local "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASSWORD"
+          ./mc mb --ignore-existing local/cxr-images
 
       - name: Backend tests
         shell: bash
