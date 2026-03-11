@@ -16,7 +16,7 @@ Steps:
 1. Checkout
 2. Setup JDK 17
 3. Start PostgreSQL service (CI)
-4. Initialize schema/data (`db/1.sql` + `db/migration/*.sql`)
+4. Initialize schema/data (`db/migration/*.sql`)
 5. Start MinIO service (CI)
 6. Create MinIO bucket (`cxr-images`)
 7. Backend tests (Surefire)
