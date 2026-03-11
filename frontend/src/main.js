@@ -7,15 +7,14 @@ import 'element-plus/es/components/message-box/style/css'
 import './styles/tokens.css'
 import './styles/element-variables.css'
 import './styles/base.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
+import { elementPlusIcons } from './icons'
 
 const app = createApp(App)
 const pinia = createPinia()
 
-// 注册所有 Element Plus 图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+for (const [key, component] of Object.entries(elementPlusIcons)) {
   app.component(key, component)
 }
 
