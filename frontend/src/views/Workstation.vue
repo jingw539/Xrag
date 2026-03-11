@@ -1031,11 +1031,6 @@ const handleRestoreHistory = async (h) => {
   } catch (_) {}
 }
 
-const handleDismissCorrection = async (item) => {
-  await dismissCorrection(item.correctionId)
-  item.isAccepted = -1
-}
-
 const handleDeleteCase = async () => {
   try {
     await ElMessageBox.confirm(`确认删除病例「${caseInfo.value.examNo}」？删除后不可恢复`, '删除病例', { type: 'warning' })
@@ -1226,8 +1221,6 @@ const handleSign = async () => {
   signing.value = true
   try {
     const reportId = currentReport.value.reportId
-    const aiFindings = currentReport.value.aiFindings || ''
-    const aiImpression = currentReport.value.aiImpression || ''
 
     if (currentReport.value.reportStatus === 'EDITING' || currentReport.value.reportStatus === 'AI_DRAFT') {
       // 签发前自动保存最新编辑内容
@@ -1248,36 +1241,6 @@ const handleSign = async () => {
   } finally { signing.value = false }
 }
 
-
-const handleRevertToEdit = async () => {
-  if (!currentReport.value?.reportId) return
-  try {
-    await ElMessageBox.confirm(
-      '撤回后报告将进入编辑状态，需重新签发。确认撤回？',
-      '撤回已签发报告', { confirmButtonText: '确认撤回', cancelButtonText: '取消', type: 'warning' }
-    )
-  } catch (_) { return }
-  reverting.value = true
-  // 保存已应用的AI建议内容（可能与原报告不同）
-  const advisedFindings = draftFindings.value
-  const advisedImpression = draftImpression.value
-  try {
-    await revertReport(currentReport.value.reportId)
-    ElMessage.success('报告已撤回，可重新编辑')
-    await loadReport()
-    // 若医生已通过AI建议修改了草稿内容，恢复（优先保留建议内容）
-    if (advisedFindings && advisedFindings !== currentReport.value.finalFindings) {
-      draftFindings.value = advisedFindings
-    }
-    if (advisedImpression && advisedImpression !== currentReport.value.finalImpression) {
-      draftImpression.value = advisedImpression
-    }
-    reportTab.value = 'edit'
-    fetchCases()
-  } catch (e) {
-    ElMessage.error('撤回失败：' + (e?.message || '请检查网络或重新登录'))
-  } finally { reverting.value = false }
-}
 
 const handleGetAiAdvice = async () => {
   if (!currentReport.value?.reportId) return
@@ -2289,19 +2252,6 @@ const confirmMarkTypical = async () => {
 /* ─────────────── 打印 ─────────────── */
 const handlePrint = () => { window.print() }
 
-/* ─────────────── DICOM 元信息 ─────────────── */
-const dicomMeta = computed(() => {
-  if (!currentImage.value) return {}
-  const img = currentImage.value
-  return {
-    '文件名': img.fileName || '—',
-    '拍摄体位': img.viewPosition || '正位(PA)',
-    '文件大小': img.fileSize ? (img.fileSize / 1024 / 1024).toFixed(2) + ' MB' : '—',
-    '上传时间': formatDate(img.createdAt),
-    '影像ID': img.imageId,
-  }
-})
-
 /* ─────────────── 工作流步骤 ─────────────── */
 const workflowSteps = computed(() => {
   const r = currentReport.value
@@ -2392,9 +2342,6 @@ const handleCreateCase = async () => {
     }
   } finally { creating.value = false }
 }
-
-/* ─────────────── 术语 计算属性 ─────────────── */
-const pendingTermCount = computed(() => termCorrections.value.filter(t => !t.isAccepted || t.isAccepted === 0).length)
 
 onUnmounted(() => {
   clearTimeout(annoPersistTimer)
