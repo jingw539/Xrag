@@ -67,6 +67,28 @@ jobs:
         run: |
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true dependency-check:check
 
+      - name: Dependency Check Summary
+        if: ${{ env.NVD_API_KEY != '' }}
+        shell: bash
+        run: |
+          echo "### Dependency-Check" >> "$GITHUB_STEP_SUMMARY"
+          if ls "$BACKEND_DIR/target/dependency-check-report."* >/dev/null 2>&1; then
+            echo "Report files:" >> "$GITHUB_STEP_SUMMARY"
+            ls -lh "$BACKEND_DIR/target/dependency-check-report."* | awk '{print "- " $9 " (" $5 ")"}' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No report files found under $BACKEND_DIR/target." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Dependency-Check report
+        if: ${{ env.NVD_API_KEY != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: |
+            backend/target/dependency-check-report.*
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
