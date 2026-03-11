@@ -334,7 +334,9 @@ public class ReportServiceImpl implements ReportService {
         vo.setEditHistory(getEditHistory(r.getReportId()));
         try {
             vo.setTermCorrections(termService.getByReportId(r.getReportId()));
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("Failed to get term corrections for report {}: {}", r.getReportId(), e.getMessage());
+        }
         return vo;
     }
 
