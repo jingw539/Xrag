@@ -49,7 +49,6 @@ describe('request transformResponse', () => {
   })
 
   it('handles arrays with snowflake IDs', () => {
-    const jsonStr = '[1234567890123456789, 123]'
     // The regex matches `:\s*(\d{16,})`, so an array literal like above won't match.
     // However, if the server returns an object containing an array, it should be handled based on whether there's a colon.
     // E.g., `{"ids": [1234567890123456789, 9876543210987654321]}` - Wait, the regex in request.js is `:\s*(\d{16,})`.
@@ -58,6 +57,6 @@ describe('request transformResponse', () => {
     // The regex `:\s*(\d{16,})` will NOT match `[1234567890123456789]`.
     // Let's test what the function actually outputs for nested arrays.
     const resultNested = transform(nestedArrayStr)
-    expect(resultNested).toEqual({ ids: [1234567890123456789] }) // Since regex requires a colon, this is not transformed
+    expect(resultNested).toEqual(JSON.parse(nestedArrayStr)) // Since regex requires a colon, this is not transformed
   })
 })
