@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 100;
   overflow: hidden;
-  background: var(--xrag-panel);
+  background: var(--xrag-panel-solid);
   border-right: 1px solid var(--xrag-border);
   box-shadow: var(--xrag-shadow);
   backdrop-filter: blur(18px);
@@ -223,9 +223,8 @@ onBeforeUnmount(() => {
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at top left, rgba(28, 168, 200, 0.18), transparent 32%),
-    linear-gradient(180deg, rgba(255, 190, 70, 0.08) 0%, transparent 24%);
+  background: var(--xrag-gradient-soft);
+  opacity: 0.7;
   pointer-events: none;
 }
 
@@ -382,7 +381,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   border: 1px solid var(--xrag-border);
   border-radius: 18px;
-  background: var(--xrag-panel);
+  background: var(--xrag-panel-solid);
   box-shadow: var(--xrag-shadow);
   backdrop-filter: blur(16px);
 }
