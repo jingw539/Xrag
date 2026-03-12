@@ -43,5 +43,21 @@ export default [
         __dirname: "readonly"
       }
     }
+  },
+  {
+    files: ["tests/**/*.{js,ts,vue}", "**/*.{spec,test}.{js,ts}"],
+    languageOptions: {
+      globals: {
+        ...globals.vitest,
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly"
+      }
+    }
   }
 ];
