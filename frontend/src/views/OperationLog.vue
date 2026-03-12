@@ -5,7 +5,7 @@
         <div class="header-row">
           <span class="page-title"><el-icon><List /></el-icon> 操作日志</span>
           <div class="header-actions">
-            <el-button size="small" plain @click="exportLogs" :disabled="!logs.length">导出当前页</el-button>
+            <el-button size="small" plain class="export-btn" @click="exportLogs" :disabled="!logs.length">导出当前页</el-button>
           </div>
         </div>
       </template>
@@ -278,6 +278,21 @@ onBeforeUnmount(() => {
   justify-content: space-between;
 }
 
+.export-btn {
+  background: rgba(74, 158, 255, 0.12) !important;
+  border-color: rgba(74, 158, 255, 0.35) !important;
+  color: #dbeaff !important;
+}
+.export-btn:hover {
+  background: rgba(74, 158, 255, 0.2) !important;
+  border-color: rgba(74, 158, 255, 0.5) !important;
+}
+.export-btn:disabled {
+  background: rgba(233, 238, 245, 0.06) !important;
+  border-color: rgba(111, 134, 166, 0.2) !important;
+  color: rgba(220, 231, 247, 0.5) !important;
+}
+
 .page-title {
   font-size: 16px;
   font-weight: 600;
@@ -482,6 +497,10 @@ onBeforeUnmount(() => {
 
 :deep(.el-table__body tr:hover > td.el-table__cell) {
   background: rgba(111, 134, 166, 0.12) !important;
+}
+
+:deep(.el-empty__description) {
+  color: rgba(220, 231, 247, 0.75) !important;
 }
 
 :deep(.el-tag),

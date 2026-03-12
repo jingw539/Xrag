@@ -1,12 +1,16 @@
-﻿:root {
+:root {
   --el-color-primary: var(--xrag-primary);
-  --el-color-success: #2da44e;
-  --el-color-warning: #d29922;
-  --el-color-danger: #cf222e;
+  --el-color-success: #45e2a3;
+  --el-color-warning: #ffbe46;
+  --el-color-danger: #ff6b73;
   --el-border-radius-base: var(--xrag-radius-sm);
   --el-font-size-base: 14px;
   --el-text-color-primary: var(--xrag-text);
   --el-text-color-regular: var(--xrag-text-soft);
-  --el-bg-color: var(--xrag-panel);
+  --el-text-color-placeholder: var(--xrag-text-faint);
+  --el-bg-color: var(--xrag-glass);
   --el-bg-color-page: var(--xrag-bg);
+  --el-border-color: var(--xrag-border);
+  --el-fill-color-light: rgba(12, 28, 40, 0.6);
+  --el-fill-color-blank: rgba(12, 28, 40, 0.3);
 }

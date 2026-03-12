@@ -192,11 +192,23 @@ onMounted(fetchList)
   color: var(--xrag-text) !important;
 }
 
+:deep(.admin-table .el-button--default) {
+  background: rgba(233, 238, 245, 0.08) !important;
+  border-color: rgba(111, 134, 166, 0.36) !important;
+  color: #dbe7f7 !important;
+}
+
 :deep(.el-button--default:hover),
 :deep(.el-button.is-link:hover),
 :deep(.el-button.is-plain:hover) {
   background: rgba(74, 158, 255, 0.10) !important;
   border-color: rgba(74, 158, 255, 0.28) !important;
+  color: #f4f8ff !important;
+}
+
+:deep(.admin-table .el-button--default:hover) {
+  background: rgba(74, 158, 255, 0.14) !important;
+  border-color: rgba(74, 158, 255, 0.4) !important;
   color: #f4f8ff !important;
 }
 

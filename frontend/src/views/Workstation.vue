@@ -283,8 +283,8 @@
 
     <!-- 未选择病例时的占位 -->
     <div class="workspace workspace-empty" v-else v-show="!isMobile || mobileTab === 'workspace'">
-      <el-icon :size="64" style="color:rgba(0,0,0,0.18)"><Monitor /></el-icon>
-      <p style="color:var(--xrag-text-faint);font-size:14px;margin:0">请从左侧选择病例开始阅片与报告书写</p>
+      <el-icon :size="64" style="color:rgba(255,255,255,0.28)"><Monitor /></el-icon>
+      <p style="color:rgba(220,231,247,0.7);font-size:14px;margin:0">请从左侧选择病例开始阅片与报告书写</p>
     </div>
 
     <!-- 新建病例弹框 -->
@@ -2102,7 +2102,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: var(--xrag-text-faint);
+  color: rgba(220, 231, 247, 0.7);
   font-size: 14px;
 }
 
@@ -2170,7 +2170,7 @@ onMounted(async () => {
 }
 .viewer-empty {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  color: rgba(255,255,255,0.3); font-size: 12px;
+  color: rgba(220,231,247,0.65); font-size: 12px;
 }
 
 .thumb-strip {

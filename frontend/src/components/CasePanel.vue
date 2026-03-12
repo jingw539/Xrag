@@ -3,7 +3,7 @@
     <div class="panel-header">
       <span class="panel-title">待处理病例</span>
       <div class="panel-actions">
-        <el-badge :value="caseTotal" :max="99" class="count-badge" type="danger" />
+        <el-badge v-if="caseTotal > 0" :value="caseTotal" :max="99" class="count-badge" type="danger" />
         <el-tooltip v-if="isAdmin" content="批量导入" placement="right">
           <el-upload :show-file-list="false" :before-upload="handleImport" accept=".xlsx,.xls,.csv">
             <button class="add-btn"><el-icon><Upload /></el-icon></button>
@@ -96,12 +96,26 @@
         :image-size="50"
         class="case-empty"
       />
+      <div v-if="!listLoading && caseList.length === 0" class="case-empty-actions">
+        <button class="ghost-btn" @click="handleCreate">新建病例</button>
+        <button class="ghost-btn" @click="goTypical">去典型病例</button>
+        <el-upload
+          v-if="isAdmin"
+          :show-file-list="false"
+          :before-upload="handleImport"
+          accept=".xlsx,.xls,.csv"
+        >
+          <button class="ghost-btn">导入病例</button>
+        </el-upload>
+      </div>
       <div v-if="hasMore" class="load-more" @click="handleLoadMore">加载更多</div>
     </div>
   </aside>
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
 const emit = defineEmits([
   'search-input',
   'set-filter',
@@ -132,6 +146,8 @@ defineProps({
   formatTime: { type: Function, required: true }
 })
 
+const router = useRouter()
+
 const handleSearchInput = (value) => emit('search-input', value)
 const handleSetFilter = (value) => emit('set-filter', value)
 const handleSelectCase = (value) => emit('select-case', value)
@@ -143,6 +159,7 @@ const handleImport = (file) => {
   emit('import', file)
   return false
 }
+const goTypical = () => router.push('/typical-cases')
 </script>
 
 <style scoped>
@@ -273,7 +290,31 @@ const handleImport = (file) => {
 .grade-D { background: #ff7875; }
 .grade-F { background: #f5222d; }
 
-.case-empty { padding: 30px 0; color: var(--xrag-text-faint); }
+.case-empty { padding: 22px 0 8px; color: var(--xrag-text-faint); }
+.case-empty :deep(.el-empty__description) { color: rgba(220, 231, 247, 0.7); }
+.case-empty :deep(.el-empty__image) { opacity: 0.7; }
+.case-empty-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 4px 8px 12px;
+  flex-wrap: wrap;
+}
+.ghost-btn {
+  border-radius: 6px;
+  border: 1px solid rgba(111, 134, 166, 0.35);
+  background: rgba(233, 238, 245, 0.06);
+  color: rgba(220, 231, 247, 0.9);
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.ghost-btn:hover {
+  border-color: rgba(74, 158, 255, 0.45);
+  background: rgba(74, 158, 255, 0.12);
+  color: #eaf2ff;
+}
 
 @media (max-width: 1200px) {
   .case-panel {

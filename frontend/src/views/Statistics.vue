@@ -45,11 +45,12 @@
           <div class="section-title"><el-icon><TrendCharts /></el-icon>报告生成趋势</div>
           <div class="card-meta">总量 {{ reportTotal }}</div>
         </div>
-        <svg class="trend-chart" viewBox="0 0 420 220" preserveAspectRatio="none">
+        <svg :class="['trend-chart', !reportTrend.length && 'trend-chart-empty']" viewBox="0 0 420 220" preserveAspectRatio="none">
           <line v-for="line in yGrid" :key="line" x1="36" :x2="400" :y1="line" :y2="line" class="grid-line" />
           <polyline :points="reportPolyline" class="report-line" />
           <circle v-for="point in reportPoints" :key="point.key" :cx="point.x" :cy="point.y" r="4" class="report-dot" />
         </svg>
+        <div v-if="!reportTrend.length" class="chart-empty">暂无趋势数据</div>
         <div class="axis-labels">
           <span v-for="point in reportPoints" :key="point.key">{{ shortDate(point.label) }}</span>
         </div>
@@ -246,7 +247,7 @@ onMounted(loadData)
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
-.chart-card { border-radius: 14px; padding: 16px; }
+.chart-card { border-radius: 14px; padding: 16px; position: relative; }
 .card-head {
   display: flex;
   justify-content: space-between;
@@ -262,9 +263,19 @@ onMounted(loadData)
   border-radius: 12px;
   border: 1px solid rgba(111, 134, 166, 0.12);
 }
+.trend-chart-empty .grid-line { stroke: rgba(111, 134, 166, 0.14); }
 .grid-line { stroke: rgba(111, 134, 166, 0.18); stroke-width: 1; }
 .report-line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke: #4a9eff; }
 .report-dot { fill: #4a9eff; }
+.chart-empty {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  transform: translate(-50%, -50%);
+  color: rgba(220, 231, 247, 0.7);
+  font-size: 12px;
+  pointer-events: none;
+}
 .axis-labels {
   display: flex;
   justify-content: space-between;
@@ -287,6 +298,10 @@ onMounted(loadData)
   background: rgba(111, 134, 166, 0.16);
   border-radius: 999px;
   overflow: hidden;
+}
+
+:deep(.el-empty__description) {
+  color: rgba(220, 231, 247, 0.75) !important;
 }
 .bar-fill { display: block; height: 100%; border-radius: 999px; }
 

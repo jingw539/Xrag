@@ -12,9 +12,9 @@
           @select="handleMenuSelect"
           router
           class="sidebar-menu"
-          background-color="#0d1420"
-          text-color="rgba(255,255,255,0.68)"
-          active-text-color="#ffffff"
+          background-color="transparent"
+          text-color="rgba(237,246,250,0.7)"
+          active-text-color="#edf6fa"
         >
           <template v-if="userStore.isDoctor">
             <el-menu-item index="/cases">
@@ -199,7 +199,9 @@ onBeforeUnmount(() => {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: var(--xrag-bg);
+  background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar {
@@ -214,6 +216,7 @@ onBeforeUnmount(() => {
   background: var(--xrag-panel);
   border-right: 1px solid var(--xrag-border);
   box-shadow: var(--xrag-shadow);
+  backdrop-filter: blur(18px);
 }
 
 .sidebar::before {
@@ -221,8 +224,8 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at top left, rgba(64, 158, 255, 0.08), transparent 22%),
-    linear-gradient(180deg, rgba(111, 134, 166, 0.08) 0%, transparent 18%);
+    radial-gradient(circle at top left, rgba(28, 168, 200, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(255, 190, 70, 0.08) 0%, transparent 24%);
   pointer-events: none;
 }
 
@@ -253,7 +256,7 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 700;
   color: var(--xrag-text);
-  letter-spacing: .08em;
+  letter-spacing: .12em;
   white-space: nowrap;
 }
 
@@ -284,7 +287,7 @@ onBeforeUnmount(() => {
 .menu-group-divider {
   height: 1px;
   margin: 12px 16px;
-  background: rgba(111, 134, 166, 0.2);
+  background: rgba(237, 246, 250, 0.16);
 }
 
 :deep(.sidebar-menu .el-menu-item),
@@ -301,15 +304,15 @@ onBeforeUnmount(() => {
 
 :deep(.sidebar-menu .el-menu-item:hover),
 :deep(.sidebar-menu .el-sub-menu__title:hover) {
-  background: rgba(74, 158, 255, 0.10) !important;
-  border-color: rgba(74, 158, 255, 0.22) !important;
-  color: #f4f8ff !important;
+  background: rgba(28, 168, 200, 0.12) !important;
+  border-color: rgba(28, 168, 200, 0.24) !important;
+  color: #f7fbff !important;
 }
 
 :deep(.sidebar-menu .el-menu-item.is-active) {
-  background: rgba(74, 158, 255, 0.12) !important;
-  color: #f4f8ff !important;
-  border-color: rgba(74, 158, 255, 0.14) !important;
+  background: rgba(28, 168, 200, 0.16) !important;
+  color: #f7fbff !important;
+  border-color: rgba(28, 168, 200, 0.24) !important;
   box-shadow: inset 3px 0 0 var(--xrag-primary) !important;
 }
 
@@ -338,8 +341,8 @@ onBeforeUnmount(() => {
   margin: 12px;
   height: 44px;
   border: 1px solid var(--xrag-border);
-  border-radius: 12px;
-  background: rgba(111, 134, 166, 0.1);
+  border-radius: var(--xrag-radius-pill);
+  background: rgba(10, 26, 38, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -355,8 +358,8 @@ onBeforeUnmount(() => {
 }
 
 .collapse-btn:hover {
-  background: rgba(74, 158, 255, 0.12);
-  color: #f4f8ff;
+  background: rgba(28, 168, 200, 0.14);
+  color: #f7fbff;
 }
 
 .collapse-text {
@@ -378,9 +381,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   border: 1px solid var(--xrag-border);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--xrag-panel);
   box-shadow: var(--xrag-shadow);
+  backdrop-filter: blur(16px);
 }
 
 .header-left {
@@ -405,17 +409,17 @@ onBeforeUnmount(() => {
   align-items: center;
   cursor: pointer;
   padding: 6px 10px 6px 6px;
-  border-radius: 12px;
+  border-radius: var(--xrag-radius-pill);
   transition: all .2s ease;
 }
 
 .user-trigger:hover {
-  background: rgba(74, 158, 255, 0.12);
+  background: rgba(28, 168, 200, 0.14);
 }
 
 .user-avatar {
-  background: rgba(74, 158, 255, 0.22);
-  color: #e9f1ff;
+  background: rgba(28, 168, 200, 0.2);
+  color: #eaf7ff;
 }
 
 .user-meta {
@@ -444,9 +448,9 @@ onBeforeUnmount(() => {
 .mobile-menu-btn {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
-  border: 1px solid rgba(111, 134, 166, 0.28);
-  background: rgba(111, 134, 166, 0.12);
+  border-radius: var(--xrag-radius-pill);
+  border: 1px solid var(--xrag-border);
+  background: rgba(10, 26, 38, 0.72);
   color: var(--xrag-text);
   display: inline-flex;
   align-items: center;
@@ -456,8 +460,8 @@ onBeforeUnmount(() => {
 }
 
 .mobile-menu-btn:hover {
-  background: rgba(74, 158, 255, 0.12);
-  border-color: rgba(74, 158, 255, 0.22);
+  background: rgba(28, 168, 200, 0.14);
+  border-color: rgba(28, 168, 200, 0.24);
 }
 
 .mobile-backdrop {

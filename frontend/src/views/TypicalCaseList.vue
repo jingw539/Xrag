@@ -176,9 +176,14 @@ onMounted(fetchList)
 :deep(.el-input__wrapper),
 :deep(.el-textarea__inner),
 :deep(.el-select__wrapper) {
-  background: rgba(233, 238, 245, 0.05);
-  border-color: rgba(111, 134, 166, 0.28);
-  box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.18) inset;
+  background: rgba(233, 238, 245, 0.08);
+  border-color: rgba(111, 134, 166, 0.45);
+  box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.28) inset;
+}
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focus) {
+  border-color: rgba(74, 158, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(74, 158, 255, 0.4) inset;
 }
 
 :deep(.el-input__inner),
@@ -215,6 +220,11 @@ onMounted(fetchList)
 
 :deep(.el-table__body tr:hover > td.el-table__cell) {
   background: rgba(111, 134, 166, 0.12) !important;
+}
+
+:deep(.el-table__empty-text),
+:deep(.el-empty__description) {
+  color: rgba(220, 231, 247, 0.75) !important;
 }
 
 :deep(.el-button),

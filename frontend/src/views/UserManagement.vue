@@ -326,8 +326,9 @@ onBeforeUnmount(() => {
 
 .pwd-tip {
   font-size: 11px;
-  color: #9fb3cc;
-  margin-top: 4px;
+  color: rgba(220, 231, 247, 0.7);
+  margin-top: 8px;
+  line-height: 1.4;
 }
 
 :deep(.admin-table) {
@@ -456,6 +457,10 @@ onBeforeUnmount(() => {
   color: var(--xrag-text) !important;
 }
 
+:deep(.el-input__inner::placeholder) {
+  color: rgba(220, 231, 247, 0.55) !important;
+}
+
 :deep(.el-button--default),
 :deep(.el-button.is-link),
 :deep(.el-button.is-plain) {
@@ -520,6 +525,28 @@ onBeforeUnmount(() => {
   background: var(--xrag-panel) !important;
   color: var(--xrag-text) !important;
   border-color: var(--xrag-border) !important;
+}
+
+:deep(.el-dialog) {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(111, 134, 166, 0.25) !important;
+}
+
+:deep(.el-dialog__title) {
+  color: #eaf2ff !important;
+  font-weight: 600;
+}
+
+:deep(.el-dialog__footer .el-button--default) {
+  background: rgba(233, 238, 245, 0.08) !important;
+  border-color: rgba(111, 134, 166, 0.35) !important;
+  color: #dbe7f7 !important;
+}
+
+:deep(.el-dialog__footer .el-button--default:hover) {
+  background: rgba(74, 158, 255, 0.14) !important;
+  border-color: rgba(74, 158, 255, 0.4) !important;
+  color: #f4f8ff !important;
 }
 
 :deep(.el-pagination .btn-prev),
