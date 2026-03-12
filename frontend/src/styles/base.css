@@ -14,10 +14,10 @@ html, body {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(1000px 700px at 22% 12%, rgba(28, 168, 200, 0.16), transparent 60%),
-    radial-gradient(850px 650px at 82% 18%, rgba(255, 190, 70, 0.12), transparent 58%),
+    radial-gradient(1000px 700px at 20% 10%, rgba(28, 168, 200, 0.18), transparent 62%),
+    radial-gradient(850px 650px at 82% 12%, rgba(40, 120, 200, 0.12), transparent 60%),
     radial-gradient(900px 900px at 30% 85%, rgba(90, 200, 235, 0.1), transparent 60%),
-    linear-gradient(180deg, #07131c 0%, #051019 100%);
+    linear-gradient(180deg, #06131c 0%, #040c12 100%);
 }
 
 #app::before,
@@ -33,11 +33,11 @@ html, body {
 }
 
 #app::before {
-  background: radial-gradient(760px 520px at 18% 28%, rgba(28, 168, 200, 0.18), transparent 62%);
+  background: radial-gradient(760px 520px at 18% 28%, rgba(28, 168, 200, 0.16), transparent 62%);
 }
 
 #app::after {
-  background: radial-gradient(700px 520px at 78% 24%, rgba(255, 190, 70, 0.18), transparent 65%);
+  background: radial-gradient(700px 520px at 78% 24%, rgba(40, 120, 200, 0.12), transparent 65%);
   animation-delay: -8s;
 }
 
@@ -62,10 +62,11 @@ html, body {
 .el-select__dropdown,
 .el-picker-panel,
 .el-popover {
-  background: var(--xrag-panel-solid) !important;
-  border: 1px solid var(--xrag-border) !important;
+  background: var(--xrag-panel) !important;
+  border: 1px solid rgba(237, 246, 250, 0.1) !important;
   box-shadow: var(--xrag-shadow-soft) !important;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  border-radius: var(--xrag-radius-lg);
 }
 
 .el-card__header,
@@ -74,7 +75,7 @@ html, body {
 .el-dialog__body,
 .el-dialog__footer {
   background: transparent !important;
-  border-color: var(--xrag-border) !important;
+  border-color: rgba(237, 246, 250, 0.08) !important;
   color: var(--xrag-text) !important;
 }
 
@@ -89,15 +90,15 @@ html, body {
 
 .el-button {
   border-radius: var(--xrag-radius-pill) !important;
-  border: 1px solid var(--xrag-border) !important;
-  background: rgba(10, 24, 36, 0.82) !important;
+  border: 1px solid rgba(237, 246, 250, 0.12) !important;
+  background: rgba(9, 22, 34, 0.8) !important;
   color: var(--xrag-text) !important;
   transition: all .2s ease;
 }
 
 .el-button:hover {
-  border-color: var(--xrag-border-strong) !important;
-  background: rgba(14, 32, 46, 0.9) !important;
+  border-color: rgba(28, 168, 200, 0.3) !important;
+  background: rgba(12, 30, 44, 0.9) !important;
   color: #ffffff !important;
 }
 
@@ -109,7 +110,7 @@ html, body {
   background: var(--xrag-gradient-primary) !important;
   border: none !important;
   color: #061019 !important;
-  box-shadow: 0 10px 22px rgba(28, 168, 200, 0.28) !important;
+  box-shadow: 0 10px 22px rgba(28, 168, 200, 0.26) !important;
 }
 
 .el-button--primary:hover {
@@ -139,8 +140,8 @@ html, body {
 .el-textarea__inner,
 .el-select__wrapper,
 .el-date-editor {
-  background: rgba(9, 22, 34, 0.78) !important;
-  border: 1px solid var(--xrag-border) !important;
+  background: rgba(10, 24, 36, 0.75) !important;
+  border: 1px solid rgba(237, 246, 250, 0.12) !important;
   box-shadow: none !important;
   color: var(--xrag-text) !important;
 }
@@ -178,8 +179,8 @@ html, body {
 
 .el-table th.el-table__cell,
 .el-table td.el-table__cell {
-  background: rgba(8, 20, 30, 0.5) !important;
-  border-bottom: 1px solid rgba(237, 246, 250, 0.06) !important;
+  background: rgba(10, 24, 36, 0.6) !important;
+  border-bottom: 1px solid rgba(237, 246, 250, 0.05) !important;
 }
 
 .el-table tr {
@@ -187,7 +188,7 @@ html, body {
 }
 
 .el-table__body tr:hover > td {
-  background: rgba(28, 168, 200, 0.08) !important;
+  background: rgba(28, 168, 200, 0.06) !important;
 }
 
 .el-table__empty-text {
