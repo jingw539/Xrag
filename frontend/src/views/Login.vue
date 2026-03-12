@@ -6,6 +6,7 @@
 
     <div class="login-card">
       <div class="logo-section">
+        <div class="logo-icon">XR</div>
         <h1 class="system-name">胸部 X 光智能辅助诊断系统</h1>
         <p class="system-slogan">AI-Powered Chest X-Ray Diagnostic Platform</p>
       </div>
@@ -171,15 +172,36 @@ const handleLogin = async () => {
   position: relative;
   z-index: 1;
   border-radius: 24px;
-  border: 1px solid var(--xrag-border);
-  background: rgba(15, 25, 40, 0.88);
-  box-shadow: var(--xrag-shadow);
+  border: 1px solid rgba(74, 158, 255, 0.22);
+  background: rgba(15, 25, 40, 0.92);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(74, 158, 255, 0.08) inset;
   backdrop-filter: blur(18px) saturate(120%);
 }
 
 .logo-section {
   text-align: center;
   margin-bottom: 26px;
+}
+
+.logo-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #e9f1ff;
+  background:
+    linear-gradient(140deg, rgba(74, 158, 255, 0.3), rgba(74, 158, 255, 0.06));
+  border: 1px solid rgba(74, 158, 255, 0.35);
+  box-shadow:
+    0 10px 20px rgba(12, 24, 40, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .system-name {
@@ -211,8 +233,8 @@ const handleLogin = async () => {
   min-height: 52px;
   padding: 0 16px;
   border-radius: 14px;
-  background: rgba(233, 238, 245, 0.08) !important;
-  box-shadow: inset 0 0 0 1px rgba(111, 134, 166, 0.42) !important;
+  background: rgba(233, 238, 245, 0.1) !important;
+  box-shadow: inset 0 0 0 1px rgba(111, 134, 166, 0.48) !important;
 }
 
 :deep(.login-form .el-input__wrapper:hover) {
@@ -222,17 +244,17 @@ const handleLogin = async () => {
 
 :deep(.login-form .el-input__wrapper.is-focus) {
   background: rgba(233, 238, 245, 0.12) !important;
-  box-shadow: inset 0 0 0 1px #4a9eff, 0 0 0 2px rgba(74, 158, 255, 0.14) !important;
+  box-shadow: inset 0 0 0 1px #4a9eff, 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
 }
 
 :deep(.login-form .el-input__prefix-inner),
 :deep(.login-form .el-input__inner::placeholder) {
-  color: rgba(208, 220, 240, 0.52) !important;
+  color: rgba(208, 220, 240, 0.72) !important;
 }
 
 :deep(.login-form .el-input__inner) {
   color: #e9eef5 !important;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 :deep(.login-form .el-form-item__error) {
