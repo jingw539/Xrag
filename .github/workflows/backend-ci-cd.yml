@@ -561,7 +561,7 @@ jobs:
   frontend-tests:
     name: Frontend Tests (optional)
     runs-on: ubuntu-latest
-    if: ${{ vars.FRONTEND_TESTS_ENABLED == 'true' }}
+    if: ${{ vars.FRONTEND_TESTS_ENABLED != 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -574,13 +574,13 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Run frontend unit tests
         working-directory: frontend
-        run: npm test -- --coverage --watchAll=false
+        run: npm run test:unit
       - name: Install Playwright browsers
         working-directory: frontend
         run: npx playwright install --with-deps
       - name: Run Playwright tests
         working-directory: frontend
-        run: npx playwright test
+        run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         with:
           name: playwright-report
