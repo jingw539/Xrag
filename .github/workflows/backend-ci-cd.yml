@@ -636,10 +636,13 @@ jobs:
           java-version: "17"
           distribution: temurin
       - name: SonarCloud scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          if [ -z "${SONAR_TOKEN:-}" ]; then
+            echo "SONAR_TOKEN is empty. Skipping SonarCloud scan."
+            exit 0
+          fi
           mvn verify sonar:sonar \
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
             -Dsonar.organization=${{ vars.SONAR_ORG }} \
