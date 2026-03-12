@@ -626,7 +626,7 @@ jobs:
     name: SonarCloud (optional)
     runs-on: ubuntu-latest
     needs: code-checks
-    if: ${{ secrets.SONAR_TOKEN != '' && vars.SONAR_PROJECT_KEY != '' && vars.SONAR_ORG != '' }}
+    if: ${{ vars.SONAR_PROJECT_KEY != '' && vars.SONAR_ORG != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -636,6 +636,7 @@ jobs:
           java-version: "17"
           distribution: temurin
       - name: SonarCloud scan
+        if: ${{ secrets.SONAR_TOKEN != '' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
