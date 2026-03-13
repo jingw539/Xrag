@@ -88,10 +88,10 @@ public class ImageServiceImpl implements ImageService {
         log.info("Start upload image, caseId={}, filename={}", caseId, file.getOriginalFilename());
 
         if (file == null || file.isEmpty()) {
-            throw new BusinessException("Please select an image file to upload");
+            throw new BusinessException("请选择要上传的影像文件");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new BusinessException("File too large, please compress and retry");
+            throw new BusinessException("文件过大，请压缩后重试");
         }
         if (caseInfoMapper.selectById(caseId) == null) {
             throw new BusinessException(404, "Case not found: " + caseId);
@@ -99,7 +99,7 @@ public class ImageServiceImpl implements ImageService {
 
         String contentType = file.getContentType();
         if (contentType == null || !isValidImageType(contentType, file.getOriginalFilename())) {
-            throw new BusinessException("Unsupported file type, only JPG/PNG/DICOM allowed");
+            throw new BusinessException("不支持的文件格式");
         }
 
         String fileExtension = getFileExtension(file.getOriginalFilename());
