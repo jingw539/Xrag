@@ -83,15 +83,24 @@ public class ReportServiceImpl implements ReportService {
         }
         int elapsedMs = (int) (System.currentTimeMillis() - startMs);
 
+        String aiFindings = getStr(genResult, "findings");
+        String aiImpression = getStr(genResult, "impression");
+        if (!StringUtils.hasText(aiFindings)) {
+            aiFindings = "AI service returned empty findings - please write manually.";
+        }
+        if (aiImpression == null) {
+            aiImpression = "";
+        }
+
         ReportInfo report = new ReportInfo();
         report.setCaseId(dto.getCaseId());
         report.setReportStatus("AI_DRAFT");
         report.setRetrievalLogId(retrieval.getRetrievalId());
-        report.setAiFindings(getStr(genResult, "findings"));
-        report.setAiImpression(getStr(genResult, "impression"));
+        report.setAiFindings(aiFindings);
+        report.setAiImpression(aiImpression);
         report.setAiPrompt(getStr(genResult, "prompt"));
-        report.setFinalFindings(report.getAiFindings());
-        report.setFinalImpression(report.getAiImpression());
+        report.setFinalFindings(aiFindings);
+        report.setFinalImpression(aiImpression);
 
         Object confObj = genResult.get("confidence");
         if (confObj != null) {

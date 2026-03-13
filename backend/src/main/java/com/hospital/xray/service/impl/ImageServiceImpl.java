@@ -1,4 +1,4 @@
-package com.hospital.xray.service.impl;
+﻿package com.hospital.xray.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -37,6 +38,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -53,6 +58,7 @@ public class ImageServiceImpl implements ImageService {
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
             "image/jpeg", "image/jpg", "image/png", "application/dicom", "application/octet-stream"
     );
+    private static final String LOCAL_PREFIX = "local:";
 
     @Autowired
     private MinioClient minioClient;
@@ -69,25 +75,31 @@ public class ImageServiceImpl implements ImageService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
+    @Value("${storage.type:minio}")
+    private String storageType;
+
+    @Value("${storage.local.root:}")
+    private String localRoot;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ImageUploadResult uploadImage(MultipartFile file, Long caseId, String viewPosition, Long uploadUserId,
                                          Double pixelSpacingXmm, Double pixelSpacingYmm) {
-        log.info("开始上传影像，病例ID: {}, 文件名: {}", caseId, file.getOriginalFilename());
+        log.info("Start upload image, caseId={}, filename={}", caseId, file.getOriginalFilename());
 
         if (file == null || file.isEmpty()) {
-            throw new BusinessException("请选择需要上传的影像文件");
+            throw new BusinessException("Please select an image file to upload");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new BusinessException("文件过大，请压缩后重新上传");
+            throw new BusinessException("File too large, please compress and retry");
         }
         if (caseInfoMapper.selectById(caseId) == null) {
-            throw new BusinessException(404, "病例不存在: " + caseId);
+            throw new BusinessException(404, "Case not found: " + caseId);
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !isValidImageType(contentType, file.getOriginalFilename())) {
-            throw new BusinessException("不支持的文件格式，仅支持 JPG、PNG、DICOM");
+            throw new BusinessException("Unsupported file type, only JPG/PNG/DICOM allowed");
         }
 
         String fileExtension = getFileExtension(file.getOriginalFilename());
@@ -95,26 +107,40 @@ public class ImageServiceImpl implements ImageService {
         String thumbnailObjectName = generateThumbnailObjectName(objectName);
 
         try {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectName)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .contentType(contentType)
-                            .build()
-            );
-
             ImageMetadata metadata = extractImageMetadata(file);
-
-            try {
-                generateThumbnail(objectName, thumbnailObjectName);
-            } catch (Exception e) {
-                log.warn("生成缩略图失败，继续保留原图: {}", e.getMessage());
+            String storedPath;
+            if (isLocalStorageEnabled()) {
+                storedPath = LOCAL_PREFIX + objectName;
+                Path target = resolveLocalPath(storedPath);
+                Files.createDirectories(target.getParent());
+                try (InputStream in = file.getInputStream()) {
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                try {
+                    generateThumbnail(objectName, thumbnailObjectName);
+                } catch (Exception e) {
+                    log.warn("Thumbnail generation failed, keep original: {}", e.getMessage());
+                }
+            } else {
+                minioClient.putObject(
+                        PutObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(objectName)
+                                .stream(file.getInputStream(), file.getSize(), -1)
+                                .contentType(contentType)
+                                .build()
+                );
+                storedPath = objectName;
+                try {
+                    generateThumbnail(objectName, thumbnailObjectName);
+                } catch (Exception e) {
+                    log.warn("Thumbnail generation failed, keep original: {}", e.getMessage());
+                }
             }
 
             ImageInfo imageInfo = new ImageInfo();
             imageInfo.setCaseId(caseId);
-            imageInfo.setFilePath(objectName);
+            imageInfo.setFilePath(storedPath);
             imageInfo.setFileName(file.getOriginalFilename());
             imageInfo.setFileType(fileExtension.toUpperCase());
             imageInfo.setFileSize(file.getSize());
@@ -128,19 +154,18 @@ public class ImageServiceImpl implements ImageService {
 
             return ImageUploadResult.builder()
                     .imageId(imageInfo.getImageId())
-                    .filePath(objectName)
+                    .filePath(storedPath)
                     .fullUrl("/api/images/" + imageInfo.getImageId() + "/content")
                     .thumbnailUrl("/api/images/" + imageInfo.getImageId() + "/thumbnail")
                     .build();
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("上传影像失败", e);
-            throw new BusinessException("上传影像失败: " + e.getMessage());
+            log.error("Upload image failed", e);
+            throw new BusinessException("Upload image failed: " + e.getMessage());
         }
     }
-
-    @Override
+@Override
     public List<ImageVO> listImagesByCaseId(Long caseId) {
         assertCaseAccessible(caseId);
         return imageInfoMapper.selectList(new LambdaQueryWrapper<ImageInfo>()
@@ -249,11 +274,17 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public void generateThumbnail(String originalPath, String thumbnailPath) {
+        if (isLocalStorageEnabled() || isLocalPath(originalPath) || isLocalPath(thumbnailPath)) {
+            Path original = resolveLocalPath(prefixLocalIfNeeded(originalPath));
+            Path thumb = resolveLocalPath(prefixLocalIfNeeded(thumbnailPath));
+            generateLocalThumbnail(original, thumb);
+            return;
+        }
         try (InputStream inputStream = minioClient.getObject(
                 GetObjectArgs.builder().bucket(bucketName).object(originalPath).build())) {
             BufferedImage original = ImageIO.read(inputStream);
             if (original == null) {
-                log.warn("无法读取图像，可能是 DICOM 格式: {}", originalPath);
+                log.warn("Unable to read image, maybe DICOM: {}", originalPath);
                 return;
             }
             ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -270,62 +301,68 @@ public class ImageServiceImpl implements ImageService {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            throw new BusinessException("生成缩略图失败: " + e.getMessage());
+            throw new BusinessException("Generate thumbnail failed: " + e.getMessage());
         }
     }
-
     @Override
     public String getImageAsDataUrl(Long imageId) {
         ImageInfo imageInfo = imageInfoMapper.selectById(imageId);
         if (imageInfo == null) {
-            throw new BusinessException("影像不存在: " + imageId);
+            throw new BusinessException("Image not found: " + imageId);
         }
-        try (InputStream is = minioClient.getObject(
-                GetObjectArgs.builder().bucket(bucketName).object(imageInfo.getFilePath()).build())) {
-            byte[] bytes = is.readAllBytes();
-            String ext = imageInfo.getFileType() != null ? imageInfo.getFileType().toLowerCase() : "jpeg";
+        try {
+            byte[] bytes;
+            if (isLocalPath(imageInfo.getFilePath())) {
+                bytes = readLocalBytes(imageInfo.getFilePath(), false);
+            } else {
+                try (InputStream is = minioClient.getObject(
+                        GetObjectArgs.builder().bucket(bucketName).object(imageInfo.getFilePath()).build())) {
+                    bytes = is.readAllBytes();
+                }
+            }
+            String ext = imageInfo.getFileType() != null ? imageInfo.getFileType().toLowerCase() : guessExtension(imageInfo.getFilePath());
             String mime = ext.equals("png") ? "image/png" : "image/jpeg";
             return "data:" + mime + ";base64," + Base64.getEncoder().encodeToString(bytes);
         } catch (Exception e) {
-            throw new BusinessException("读取影像数据 URL 失败: " + e.getMessage());
+            throw new BusinessException("Read image data URL failed: " + e.getMessage());
         }
     }
-
     @Override
     public byte[] getImageContent(Long imageId, boolean thumbnail) {
         ImageInfo imageInfo = imageInfoMapper.selectById(imageId);
         if (imageInfo == null) {
-            throw new BusinessException("影像不存在: " + imageId);
+            throw new BusinessException("Image not found: " + imageId);
         }
         assertImageAccessible(imageInfo);
+        if (isLocalPath(imageInfo.getFilePath())) {
+            return readLocalBytes(imageInfo.getFilePath(), thumbnail);
+        }
         String objectName = thumbnail ? generateThumbnailObjectName(imageInfo.getFilePath()) : imageInfo.getFilePath();
         try (InputStream inputStream = minioClient.getObject(
                 GetObjectArgs.builder().bucket(bucketName).object(objectName).build())) {
             return inputStream.readAllBytes();
         } catch (Exception e) {
-            throw new BusinessException("读取影像失败: " + e.getMessage());
+            throw new BusinessException("Read image failed: " + e.getMessage());
         }
     }
-
     @Override
     public String getImageContentType(Long imageId, boolean thumbnail) {
         ImageInfo imageInfo = imageInfoMapper.selectById(imageId);
         if (imageInfo == null) {
-            throw new BusinessException("影像不存在: " + imageId);
+            throw new BusinessException("Image not found: " + imageId);
         }
         assertImageAccessible(imageInfo);
         if (thumbnail) {
             return "image/jpeg";
         }
-        String fileType = imageInfo.getFileType() == null ? "jpg" : imageInfo.getFileType().toLowerCase();
+        String fileType = imageInfo.getFileType() == null ? guessExtension(imageInfo.getFilePath()) : imageInfo.getFileType().toLowerCase();
         return switch (fileType) {
             case "png" -> "image/png";
             case "dcm", "dicom" -> "application/dicom";
             default -> "image/jpeg";
         };
     }
-
-    private boolean isValidImageType(String contentType, String filename) {
+private boolean isValidImageType(String contentType, String filename) {
         if (ALLOWED_CONTENT_TYPES.stream().anyMatch(type -> type.equalsIgnoreCase(contentType))) {
             return true;
         }
@@ -350,6 +387,109 @@ public class ImageServiceImpl implements ImageService {
     private String generateThumbnailObjectName(String originalPath) {
         int dot = originalPath.lastIndexOf('.');
         return dot > 0 ? originalPath.substring(0, dot) + "_thumb.jpg" : originalPath + "_thumb.jpg";
+    }
+    private boolean isLocalStorageEnabled() {
+        return "local".equalsIgnoreCase(storageType);
+    }
+
+    private boolean isLocalPath(String filePath) {
+        if (filePath == null) return false;
+        if (filePath.startsWith(LOCAL_PREFIX)) return true;
+        try {
+            if ("local".equalsIgnoreCase(storageType) && !Paths.get(filePath).isAbsolute()) {
+                return true;
+            }
+            return Paths.get(filePath).isAbsolute();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String prefixLocalIfNeeded(String path) {
+        if (path == null) return null;
+        if (path.startsWith(LOCAL_PREFIX)) return path;
+        try {
+            if (Paths.get(path).isAbsolute()) return path;
+        } catch (Exception e) {
+            return path;
+        }
+        return LOCAL_PREFIX + path;
+    }
+
+    private Path resolveLocalPath(String filePath) {
+        String path = filePath;
+        if (path.startsWith(LOCAL_PREFIX)) {
+            path = path.substring(LOCAL_PREFIX.length());
+        }
+        Path p = Paths.get(path);
+        if (p.isAbsolute()) return p;
+        if (!StringUtils.hasText(localRoot)) {
+            throw new BusinessException("Local storage root not configured: storage.local.root");
+        }
+        return Paths.get(localRoot).resolve(path).normalize();
+    }
+
+    private String buildThumbnailPath(String filePath) {
+        boolean prefixed = filePath != null && filePath.startsWith(LOCAL_PREFIX);
+        String raw = prefixed ? filePath.substring(LOCAL_PREFIX.length()) : filePath;
+        String thumb = generateThumbnailObjectName(raw);
+        return prefixed ? LOCAL_PREFIX + thumb : thumb;
+    }
+
+    private byte[] readLocalBytes(String filePath, boolean thumbnail) {
+        try {
+            Path original = resolveLocalPath(filePath);
+            if (!thumbnail) {
+                return Files.readAllBytes(original);
+            }
+            String thumbPath = buildThumbnailPath(filePath);
+            Path thumb = resolveLocalPath(thumbPath);
+            if (Files.exists(thumb)) {
+                return Files.readAllBytes(thumb);
+            }
+            byte[] bytes = generateThumbnailBytes(original);
+            try {
+                Files.createDirectories(thumb.getParent());
+                Files.write(thumb, bytes);
+            } catch (Exception e) {
+                log.warn("Local thumbnail cache failed: {}", e.getMessage());
+            }
+            return bytes;
+        } catch (Exception e) {
+            throw new BusinessException("Read local image failed: " + e.getMessage());
+        }
+    }
+
+    private void generateLocalThumbnail(Path original, Path thumbnail) {
+        try {
+            Files.createDirectories(thumbnail.getParent());
+            BufferedImage originalImage = ImageIO.read(original.toFile());
+            if (originalImage == null) {
+                log.warn("Unable to read image, maybe DICOM: {}", original);
+                return;
+            }
+            Thumbnails.of(originalImage).size(THUMBNAIL_SIZE, THUMBNAIL_SIZE).outputFormat("jpg").toFile(thumbnail.toFile());
+        } catch (Exception e) {
+            throw new BusinessException("Generate local thumbnail failed: " + e.getMessage());
+        }
+    }
+
+    private byte[] generateThumbnailBytes(Path original) throws IOException {
+        BufferedImage originalImage = ImageIO.read(original.toFile());
+        if (originalImage == null) {
+            return Files.readAllBytes(original);
+        }
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        Thumbnails.of(originalImage).size(THUMBNAIL_SIZE, THUMBNAIL_SIZE).outputFormat("jpg").toOutputStream(os);
+        return os.toByteArray();
+    }
+
+    private String guessExtension(String filePath) {
+        if (filePath == null) return "jpg";
+        String path = filePath.startsWith(LOCAL_PREFIX) ? filePath.substring(LOCAL_PREFIX.length()) : filePath;
+        int dot = path.lastIndexOf('.');
+        if (dot < 0 || dot == path.length() - 1) return "jpg";
+        return path.substring(dot + 1).toLowerCase();
     }
 
     private void assertCaseAccessible(Long caseId) {
@@ -428,8 +568,12 @@ public class ImageServiceImpl implements ImageService {
                     .build();
         }
     }
-
-    private void deleteMinioObject(String objectName) throws Exception {
+    private void deleteMinioObject(String objectName) throws Exception {
+        if (isLocalPath(objectName)) {
+            Path path = resolveLocalPath(objectName);
+            Files.deleteIfExists(path);
+            return;
+        }
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectName).build());
     }
 
@@ -441,3 +585,12 @@ public class ImageServiceImpl implements ImageService {
         return vo;
     }
 }
+
+
+
+
+
+
+
+
+

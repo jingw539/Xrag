@@ -25,6 +25,11 @@ minio:
   secret-key: ${MINIO_PASSWORD:xrag-dev-minio-password-change-me}
   bucket-name: cxr-images
 
+storage:
+  type: ${STORAGE_TYPE:minio}
+  local:
+    root: ${LOCAL_IMAGE_ROOT:D:/data}
+
 jwt:
   secret: ${JWT_SECRET:xrag-dev-jwt-secret-key-change-me-please-32chars}
   expiration: 7200

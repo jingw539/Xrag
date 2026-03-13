@@ -25,6 +25,11 @@ minio:
   secret-key: ${MINIO_PASSWORD}
   bucket-name: chest-xray-images
 
+storage:
+  type: ${STORAGE_TYPE:minio}
+  local:
+    root: ${LOCAL_IMAGE_ROOT:/data}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: 7200

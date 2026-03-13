@@ -38,6 +38,7 @@ import io.minio.RemoveObjectArgs;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -46,6 +47,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -89,6 +93,14 @@ public class CaseServiceImpl implements CaseService {
     
     @Autowired
     private String minioBucketName;
+
+    private static final String LOCAL_PREFIX = "local:";
+
+    @Value("${storage.type:minio}")
+    private String storageType;
+
+    @Value("${storage.local.root:}")
+    private String localRoot;
     
     @Override
     public PageResult<CaseVO> listCases(CaseQueryDTO query) {
@@ -295,15 +307,15 @@ public class CaseServiceImpl implements CaseService {
         
         for (ImageInfo image : images) {
             try {
-                minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                        .bucket(minioBucketName)
-                        .object(image.getFilePath())
-                        .build()
-                );
-                log.info("MinIO 删除影像成功: {}", image.getFilePath());
+                deleteStorageObject(image.getFilePath());
+                log.info("删除影像成功: {}", image.getFilePath());
             } catch (Exception e) {
-                log.error("MinIO 删除影像失败: {}", image.getFilePath(), e);
+                log.error("删除影像失败: {}", image.getFilePath(), e);
+            }
+            try {
+                deleteStorageObject(buildThumbnailPath(image.getFilePath()));
+            } catch (Exception e) {
+                log.warn("删除缩略图失败: {}", e.getMessage());
             }
         }
         
@@ -332,6 +344,54 @@ public class CaseServiceImpl implements CaseService {
         caseInfoMapper.updateById(caseInfo);
         
         log.info("标记典型病例: caseId={}, isTypical={}, tags={}", caseId, dto.getIsTypical(), dto.getTypicalTags());
+    }
+
+    private boolean isLocalPath(String filePath) {
+        if (filePath == null) return false;
+        if (filePath.startsWith(LOCAL_PREFIX)) return true;
+        try {
+            if ("local".equalsIgnoreCase(storageType) && !Paths.get(filePath).isAbsolute()) {
+                return true;
+            }
+            return Paths.get(filePath).isAbsolute();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private Path resolveLocalPath(String filePath) {
+        String path = filePath;
+        if (path.startsWith(LOCAL_PREFIX)) {
+            path = path.substring(LOCAL_PREFIX.length());
+        }
+        Path p = Paths.get(path);
+        if (p.isAbsolute()) return p;
+        if (!StringUtils.hasText(localRoot)) {
+            throw new BusinessException("Local storage root not configured: storage.local.root");
+        }
+        return Paths.get(localRoot).resolve(path).normalize();
+    }
+
+    private String buildThumbnailPath(String filePath) {
+        boolean prefixed = filePath != null && filePath.startsWith(LOCAL_PREFIX);
+        String raw = prefixed ? filePath.substring(LOCAL_PREFIX.length()) : filePath;
+        int dot = raw.lastIndexOf('.');
+        String thumb = dot > 0 ? raw.substring(0, dot) + "_thumb.jpg" : raw + "_thumb.jpg";
+        return prefixed ? LOCAL_PREFIX + thumb : thumb;
+    }
+
+    private void deleteStorageObject(String filePath) throws Exception {
+        if (isLocalPath(filePath)) {
+            Path path = resolveLocalPath(filePath);
+            Files.deleteIfExists(path);
+            return;
+        }
+        minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(minioBucketName)
+                        .object(filePath)
+                        .build()
+        );
     }
     
     /**

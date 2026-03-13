@@ -214,8 +214,8 @@ const resetQuery = () => {
 }
 
 const onDateChange = (val) => {
-  query.startTime = val ? val[0] : ''
-  query.endTime = val ? val[1] : ''
+  query.startTime = val ? `${val[0]}T00:00:00` : ''
+  query.endTime = val ? `${val[1]}T23:59:59` : ''
 }
 
 const goDetail = (row) => router.push(`/cases/${row.caseId}`)
