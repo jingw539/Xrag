@@ -40,6 +40,12 @@ public class SecurityConfig {
     @Value("${app.security.expose-actuator:false}")
     private boolean exposeActuator;
 
+    @Value("${app.security.permit-all:false}")
+    private boolean permitAll;
+
+    @Value("${app.security.public-endpoints:}")
+    private String extraPublicEndpoints;
+
     @Value("${app.security.allowed-origins:}")
     private List<String> allowedOrigins;
 
