@@ -1,6 +1,10 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
+// Env vars used by k6 in CI:
+// BASE_URL, USERNAME, PASSWORD, CASE_ID, IMAGE_ID, TOP_K
+// Set them via GitHub Secrets (K6_* in workflow) to enable auth + RAG search.
+
 export const options = {
   stages: [
     { duration: '30s', target: 20 },

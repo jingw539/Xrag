@@ -1,6 +1,7 @@
 package com.hospital.xray.config;
 
 import com.hospital.xray.security.JwtAuthenticationFilter;
+import com.hospital.xray.security.PermitAllMockAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -61,20 +62,36 @@ public class SecurityConfig {
                     "/webjars/**"
             ));
         }
+        if (extraPublicEndpoints != null && !extraPublicEndpoints.isBlank()) {
+            for (String token : extraPublicEndpoints.split(",")) {
+                String trimmed = token.trim();
+                if (!trimmed.isEmpty()) {
+                    publicEndpoints.add(trimmed);
+                }
+            }
+        }
 
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(publicEndpoints.toArray(String[]::new)).permitAll()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers(publicEndpoints.toArray(String[]::new)).permitAll();
+                if (permitAll) {
+                    auth.anyRequest().permitAll();
+                } else {
+                    auth.anyRequest().authenticated();
+                }
+            })
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint())
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        if (permitAll) {
+            http.addFilterAfter(new PermitAllMockAuthFilter(), JwtAuthenticationFilter.class);
+        }
 
         return http.build();
     }
