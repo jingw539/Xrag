@@ -240,12 +240,13 @@ jobs:
   k6-performance:
     runs-on: ubuntu-latest
     needs: code-checks
-    if: ${{ secrets.K6_BASE_URL != '' }}
     steps:
       - name: Checkout code
+        if: ${{ secrets.K6_BASE_URL != '' }}
         uses: actions/checkout@v4
 
       - name: Run k6 performance test
+        if: ${{ secrets.K6_BASE_URL != '' }}
         uses: grafana/k6-action@v0.3.1
         with:
           filename: ${{ env.K6_SCRIPT }}
@@ -260,9 +261,9 @@ jobs:
   zap-scan:
     runs-on: ubuntu-latest
     needs: code-checks
-    if: ${{ secrets.ZAP_TARGET_URL != '' }}
     steps:
       - name: OWASP ZAP baseline scan
+        if: ${{ secrets.ZAP_TARGET_URL != '' }}
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: ${{ secrets.ZAP_TARGET_URL }}
@@ -272,12 +273,13 @@ jobs:
   sonarcloud:
     runs-on: ubuntu-latest
     needs: code-checks
-    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_ORG != '' && secrets.SONAR_PROJECT_KEY != '' }}
     steps:
       - name: Checkout code
+        if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_ORG != '' && secrets.SONAR_PROJECT_KEY != '' }}
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
+        if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_ORG != '' && secrets.SONAR_PROJECT_KEY != '' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -285,11 +287,13 @@ jobs:
           cache: maven
 
       - name: Build backend for SonarCloud
+        if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_ORG != '' && secrets.SONAR_PROJECT_KEY != '' }}
         shell: bash
         run: |
           mvn -f "$BACKEND_DIR/pom.xml" -DskipTests=true package
 
       - name: SonarCloud Scan
+        if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_ORG != '' && secrets.SONAR_PROJECT_KEY != '' }}
         uses: sonarsource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
