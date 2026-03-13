@@ -327,7 +327,7 @@ import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, getCaseById, markTypical, createCase, deleteCase, importCases } from '@/api/case'
 import { listImages, listPriorImages, uploadImage, deleteImage, fetchImageBlob } from '@/api/image'
-import { generateReport, regenerateReport, saveDraft, signReport, listReports, getEditHistory, polishReport, getAiAdvice } from '@/api/report'
+import { generateReport, regenerateReport, saveDraft, signReport, listReports, getReport, getEditHistory, polishReport, getAiAdvice } from '@/api/report'
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { analyzeTerms, acceptCorrection } from '@/api/term'
 import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
@@ -853,8 +853,16 @@ const handleSign = async () => {
     }
 
     await signReport(reportId)
+    try {
+      const detailRes = await getReport(reportId)
+      currentReport.value = detailRes.data
+      draftFindings.value = detailRes.data?.finalFindings || detailRes.data?.aiFindings || ''
+      draftImpression.value = detailRes.data?.finalImpression || detailRes.data?.aiImpression || ''
+      if (caseInfo.value) caseInfo.value.reportStatus = 'SIGNED'
+    } catch {
+      await loadReport()
+    }
     ElMessage.success('报告已成功签发')
-    await loadReport()
     fetchCases()
 
   } catch (err) {
