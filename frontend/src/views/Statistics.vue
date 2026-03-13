@@ -71,7 +71,71 @@
         <el-empty v-else description="暂无状态统计" :image-size="60" />
       </div>
     </div>
-  </div>
+  
+
+    <div class="chart-grid" style="margin-top:16px">
+      <div class="chart-card">
+        <div class="card-head">
+          <div class="section-title"><el-icon><DataAnalysis /></el-icon>评测标签指标</div>
+          <div class="card-meta">{{ evalRunMeta }}</div>
+        </div>
+        <div class="eval-controls">
+          <el-select v-model="selectedRunId" size="small" style="width: 220px" @change="loadEvalMetrics">
+            <el-option v-for="run in evalRuns" :key="run.runId" :label="`${run.runName || run.runId} · ${run.modelName || '-'} · ${run.datasetName || '-'}`" :value="run.runId" />
+          </el-select>
+          <el-select v-model="evalCompareMetric" size="small" style="width: 120px" @change="loadEvalCompare">
+            <el-option label="F1" value="f1" />
+            <el-option label="Recall" value="recall" />
+            <el-option label="Precision" value="precision" />
+            <el-option label="AUC" value="auc" />
+          </el-select>
+          <el-select v-model="evalCompareTag" size="small" style="width: 140px" @change="loadEvalCompare">
+            <el-option label="全部标签" value="ALL" />
+            <el-option v-for="tag in tagOptions" :key="tag" :label="tag" :value="tag" />
+          </el-select>
+        </div>
+
+        <div v-if="evalTagMetrics.length" class="eval-table">
+          <div class="eval-row eval-head">
+            <span>标签</span>
+            <span>指标</span>
+            <span>数值</span>
+            <span>样本数</span>
+          </div>
+          <div v-for="row in evalTagMetrics" :key="`${row.tagName}-${row.metricName}`" class="eval-row">
+            <span>{{ row.tagName || 'ALL' }}</span>
+            <span>{{ row.metricName }}</span>
+            <span>{{ formatMetric(row.metricValue) }}</span>
+            <span>{{ row.support || '-' }}</span>
+          </div>
+        </div>
+        <el-empty v-else description="暂无标签级评测" :image-size="60" />
+      </div>
+
+      <div class="chart-card">
+        <div class="card-head">
+          <div class="section-title"><el-icon><TrendCharts /></el-icon>模型对比</div>
+          <div class="card-meta">{{ evalCompareMetric.toUpperCase() }} / {{ evalCompareTagLabel }}</div>
+        </div>
+        <div v-if="evalCompareRows.length" class="eval-table">
+          <div class="eval-row eval-head">
+            <span>模型</span>
+            <span>数据集</span>
+            <span>指标</span>
+            <span>数值</span>
+          </div>
+          <div v-for="row in evalCompareRows" :key="`${row.modelName}-${row.tagName}`" class="eval-row">
+            <span>{{ row.modelName || '-' }}</span>
+            <span>{{ row.datasetName || '-' }}</span>
+            <span>{{ row.metricName }}</span>
+            <span>{{ formatMetric(row.metricValue) }}</span>
+          </div>
+        </div>
+        <el-empty v-else description="暂无对比数据" :image-size="60" />
+      </div>
+    </div>
+
+</div>
 </template>
 
 <script setup>
@@ -85,9 +149,16 @@ import {
   TrendCharts
 } from '@element-plus/icons-vue'
 import { getOverview, getReportTrend } from '@/api/statistics'
+import { listEvaluationRuns, getEvaluationMetrics, compareEvaluationModels } from '@/api/evaluation'
 
 const overview = ref({})
 const reportTrend = ref([])
+const evalRuns = ref([])
+const selectedRunId = ref(null)
+const evalTagMetrics = ref([])
+const evalCompareRows = ref([])
+const evalCompareMetric = ref('f1')
+const evalCompareTag = ref('ALL')
 const dateRange = ref([])
 const filters = reactive({ groupBy: 'month' })
 
@@ -104,6 +175,22 @@ const statCards = computed(() => {
     { label: '已签发报告', value: ov.signedReports || 0, icon: TrendCharts, color: '#34A86F', sub: `签发率 ${signedRate}` }
   ]
 })
+
+const tagOptions = computed(() => {
+  const tags = new Set()
+  evalTagMetrics.value.forEach(row => {
+    if (row?.tagName) tags.add(row.tagName)
+  })
+  return Array.from(tags)
+})
+
+const evalCompareTagLabel = computed(() => (
+  evalCompareTag.value === 'ALL' ? '全部标签' : (evalCompareTag.value || '全部标签')
+))
+
+const evalRunMeta = computed(() => (
+  evalRuns.value.length ? `评测批次 ${evalRuns.value.length}` : '暂无评测'
+))
 
 const statusRows = computed(() => {
   const stats = overview.value?.reportStatusStats || {}
@@ -153,6 +240,52 @@ function buildChartPoints(rows, key) {
   }))
 }
 
+const loadEvalRuns = async () => {
+  try {
+    const res = await listEvaluationRuns()
+    evalRuns.value = res.data || []
+    if (!selectedRunId.value && evalRuns.value.length) {
+      selectedRunId.value = evalRuns.value[0].runId
+    }
+    await loadEvalMetrics()
+  } catch {
+    evalRuns.value = []
+  }
+}
+
+const loadEvalMetrics = async () => {
+  if (!selectedRunId.value) {
+    evalTagMetrics.value = []
+    return
+  }
+  try {
+    const res = await getEvaluationMetrics(selectedRunId.value, { scope: 'TAG' })
+    evalTagMetrics.value = res.data || []
+  } catch {
+    evalTagMetrics.value = []
+  }
+  const tags = evalTagMetrics.value.map(row => row?.tagName).filter(Boolean)
+  if (evalCompareTag.value !== 'ALL' && !tags.includes(evalCompareTag.value)) {
+    evalCompareTag.value = 'ALL'
+  }
+  await loadEvalCompare()
+}
+
+const loadEvalCompare = async () => {
+  const run = evalRuns.value.find(r => r.runId === selectedRunId.value)
+  if (!run) { evalCompareRows.value = []; return }
+  try {
+    const res = await compareEvaluationModels({
+      datasetName: run.datasetName,
+      metricName: evalCompareMetric.value,
+      tagName: evalCompareTag.value === 'ALL' ? null : evalCompareTag.value
+    })
+    evalCompareRows.value = res.data || []
+  } catch {
+    evalCompareRows.value = []
+  }
+}
+
 const loadData = async () => {
   try {
     const params = {
@@ -172,8 +305,12 @@ const loadData = async () => {
 }
 
 const shortDate = (value) => value ? String(value).slice(5, 10) : '-'
+const formatMetric = (value) => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num.toFixed(4) : '-'
+}
 
-onMounted(loadData)
+onMounted(async () => { await loadData(); await loadEvalRuns(); })
 </script>
 
 <style scoped>
