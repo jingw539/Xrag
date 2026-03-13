@@ -1,6 +1,7 @@
 package com.hospital.xray.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.hospital.xray.client.AiServiceClient;
 import com.hospital.xray.client.RagServiceClient;
 import com.hospital.xray.dto.RetrievalResultVO;
 import com.hospital.xray.dto.SimilarCaseVO;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,6 +43,7 @@ public class RetrievalServiceImpl implements RetrievalService {
     private final ReportInfoMapper reportInfoMapper;
     private final ImageAnnotationMapper imageAnnotationMapper;
     private final RagServiceClient ragServiceClient;
+    private final AiServiceClient aiServiceClient;
 
     @Override
     @Transactional
@@ -51,7 +54,9 @@ public class RetrievalServiceImpl implements RetrievalService {
         }
 
         long startMs = System.currentTimeMillis();
-        List<SimilarCaseVO> similarCases = retrieveByRag(caseId, imageId, topK);
+        List<SimilarCaseVO> imageCases = retrieveByImage(caseId, image, topK);
+        List<SimilarCaseVO> textCases = retrieveByRag(caseId, imageId, topK);
+        List<SimilarCaseVO> similarCases = mergeSimilarCases(imageCases, textCases, topK);
         if (similarCases.isEmpty()) {
             similarCases = retrieveTypicalCases(caseId, topK);
         }
@@ -162,6 +167,72 @@ public class RetrievalServiceImpl implements RetrievalService {
             if (c != null) vo.setExamNo(c.getExamNo());
         }
         return results;
+    }
+
+    private List<SimilarCaseVO> retrieveByImage(Long caseId, ImageInfo image, int topK) {
+        if (image == null || !aiServiceClient.isLocalEnabled()) return List.of();
+        if (isDicomImage(image)) return List.of();
+        List<SimilarCaseVO> results = aiServiceClient.searchSimilarCasesByImage(image.getFilePath(), caseId, topK);
+        return results.stream()
+                .filter(v -> v.getCaseId() != null && !v.getCaseId().equals(caseId))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isDicomImage(ImageInfo image) {
+        String type = image.getFileType() != null ? image.getFileType().toLowerCase() : "";
+        if (type.equals("dcm") || type.equals("dicom")) return true;
+        String name = image.getFileName() != null ? image.getFileName().toLowerCase() : "";
+        return name.endsWith(".dcm");
+    }
+
+    private List<SimilarCaseVO> mergeSimilarCases(List<SimilarCaseVO> primary,
+                                                  List<SimilarCaseVO> secondary,
+                                                  int topK) {
+        if ((primary == null || primary.isEmpty()) && (secondary == null || secondary.isEmpty())) {
+            return new ArrayList<>();
+        }
+        List<SimilarCaseVO> merged = new ArrayList<>();
+        if (primary != null) merged.addAll(primary);
+        if (secondary != null) {
+            for (SimilarCaseVO vo : secondary) {
+                if (vo == null || vo.getCaseId() == null) continue;
+                SimilarCaseVO existing = merged.stream()
+                        .filter(m -> vo.getCaseId().equals(m.getCaseId()))
+                        .findFirst().orElse(null);
+                if (existing == null) {
+                    merged.add(vo);
+                } else {
+                    if (existing.getSimilarityScore() == null && vo.getSimilarityScore() != null) {
+                        existing.setSimilarityScore(vo.getSimilarityScore());
+                    } else if (existing.getSimilarityScore() != null && vo.getSimilarityScore() != null) {
+                        BigDecimal avg = existing.getSimilarityScore().add(vo.getSimilarityScore())
+                                .divide(new BigDecimal("2"), 6, RoundingMode.HALF_UP);
+                        existing.setSimilarityScore(avg);
+                    }
+                    if (existing.getFindings() == null || existing.getFindings().isBlank()) {
+                        existing.setFindings(vo.getFindings());
+                    }
+                    if (existing.getImpression() == null || existing.getImpression().isBlank()) {
+                        existing.setImpression(vo.getImpression());
+                    }
+                    if (existing.getExamNo() == null || existing.getExamNo().isBlank()) {
+                        existing.setExamNo(vo.getExamNo());
+                    }
+                }
+            }
+        }
+        merged.sort((a, b) -> {
+            BigDecimal sa = a != null ? a.getSimilarityScore() : null;
+            BigDecimal sb = b != null ? b.getSimilarityScore() : null;
+            if (sa == null && sb == null) return 0;
+            if (sa == null) return 1;
+            if (sb == null) return -1;
+            return sb.compareTo(sa);
+        });
+        if (merged.size() > topK) {
+            return merged.subList(0, topK);
+        }
+        return merged;
     }
 
     private String buildQueryText(Long caseId, Long imageId) {

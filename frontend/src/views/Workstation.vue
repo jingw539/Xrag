@@ -86,7 +86,8 @@
               <div class="image-wrapper main-image-wrapper"
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
-                <img :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像"
+                <div v-if="isCurrentDicom" ref="dicomViewportRef" class="dicom-viewport"></div>
+                <img v-else :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像"
                   @load="onImgLoad" @error="onImgError" draggable="false" />
                 <!-- 标注画布覆盖层 -->
                 <canvas ref="annoCanvas" class="anno-overlay"
@@ -134,7 +135,8 @@
                 @mousemove="onCompareImageMouseMove"
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
-                <img :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="对比影像"
+                <div v-if="isCompareDicom" ref="compareDicomViewportRef" class="dicom-viewport compare-dicom-viewport"></div>
+                <img v-else :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="对比影像"
                   @load="onCompareImgLoad"
                   @error="onCompareImgError" draggable="false" />
                 <div class="compare-image-tag">对比影像 · {{ compareImage.fileName || '历史影像' }}</div>
@@ -331,6 +333,7 @@ import { generateReport, regenerateReport, saveDraft, signReport, listReports, g
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { analyzeTerms, acceptCorrection } from '@/api/term'
 import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
+import { cornerstone, initDicomLoader } from '@/utils/dicom'
 import CasePanel from '@/components/CasePanel.vue'
 import ViewerToolbar from '@/components/ViewerToolbar.vue'
 import AnnotationList from '@/components/AnnotationList.vue'
@@ -903,10 +906,20 @@ const applyAdviceImpression = () => {
 
 /* ─────────────── 影像操作 ─────────────── */
 const viewerRef = ref(null)
+const dicomViewportRef = ref(null)
+const compareDicomViewportRef = ref(null)
 const viewerScale = ref(1)
 const viewerRotate = ref(0)
 const clampViewerScale = (value) => Math.max(0.3, Math.min(4, value))
 const normalizeViewerRotate = (value) => ((value % 360) + 360) % 360
+const isDicomImage = (image) => {
+  const type = (image?.fileType || '').toString().toLowerCase()
+  if (type === 'dcm' || type === 'dicom') return true
+  const name = (image?.fileName || '').toString().toLowerCase()
+  return name.endsWith('.dcm')
+}
+const isCurrentDicom = computed(() => isDicomImage(currentImage.value))
+const isCompareDicom = computed(() => isDicomImage(compareImage.value))
 const currentPixelSpacingX = computed(() => Number(currentImage.value?.pixelSpacingXmm) || null)
 const currentPixelSpacingY = computed(() => Number(currentImage.value?.pixelSpacingYmm) || null)
 const hasPixelSpacing = computed(() => !!(currentPixelSpacingX.value && currentPixelSpacingY.value))
@@ -1115,14 +1128,51 @@ const onImgError = (e) => {
   }
   if (e?.target) e.target.src = ''
 }
+const ensureCornerstoneEnabled = (el) => {
+  if (!el) return false
+  try {
+    cornerstone.getEnabledElement(el)
+    return true
+  } catch {
+    cornerstone.enable(el)
+    return true
+  }
+}
+const renderDicomImage = async (img, targetRef, { isMain } = { isMain: false }) => {
+  if (!img?.fullUrl || !targetRef?.value) return
+  try {
+    initDicomLoader()
+    const el = targetRef.value
+    ensureCornerstoneEnabled(el)
+    const imageId = `wadouri:${img.fullUrl}`
+    const image = await cornerstone.loadAndCacheImage(imageId)
+    cornerstone.displayImage(el, image)
+    cornerstone.resize(el, true)
+    if (isMain) {
+      imgNW = image.width
+      imgNH = image.height
+      const canvas = annoCanvas.value
+      if (canvas) { canvas.width = imgNW; canvas.height = imgNH }
+      updateCanvasCursor()
+      syncRenderedImageSize()
+      nextTick(redrawAnnotations)
+    } else {
+      syncRenderedImageSize()
+    }
+  } catch (err) {
+    console.error('DICOM render failed', err)
+  }
+}
 const syncRenderedImageSize = () => {
+  const mainEl = isCurrentDicom.value ? dicomViewportRef.value : diagImgRef.value
+  const compareEl = isCompareDicom.value ? compareDicomViewportRef.value : compareImgRef.value
   mainRenderSize.value = {
-    width: diagImgRef.value?.clientWidth || 0,
-    height: diagImgRef.value?.clientHeight || 0,
+    width: mainEl?.clientWidth || 0,
+    height: mainEl?.clientHeight || 0,
   }
   compareRenderSize.value = {
-    width: compareImgRef.value?.clientWidth || 0,
-    height: compareImgRef.value?.clientHeight || 0,
+    width: compareEl?.clientWidth || 0,
+    height: compareEl?.clientHeight || 0,
   }
 }
 const onCompareImgLoad = () => {
@@ -1827,11 +1877,20 @@ watch(currentImage, async (img) => {
     await ensureFullUrl(img)
     loadAnnotations(img.imageId)
     loadPriorImageSummary(img.imageId)
+    await nextTick()
+    if (isDicomImage(img)) {
+      await renderDicomImage(img, dicomViewportRef, { isMain: true })
+    }
   }
 })
 
-watch(compareImage, (img) => {
-  if (img) ensureFullUrl(img)
+watch(compareImage, async (img) => {
+  if (!img) return
+  await ensureFullUrl(img)
+  await nextTick()
+  if (isDicomImage(img)) {
+    await renderDicomImage(img, compareDicomViewportRef, { isMain: false })
+  }
 })
 
 const beforeUpload = (file) => {
@@ -2171,6 +2230,18 @@ onMounted(async () => {
   max-height: 280px;
   display: block;
   object-fit: contain;
+}
+.dicom-viewport {
+  width: 100%;
+  max-width: 100%;
+  height: 280px;
+  background: #000;
+  display: block;
+}
+.dicom-viewport canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 .ai-marker {
   position: absolute;

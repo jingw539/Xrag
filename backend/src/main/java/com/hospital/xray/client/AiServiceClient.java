@@ -1,6 +1,7 @@
 package com.hospital.xray.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hospital.xray.dto.SimilarCaseVO;
 import com.hospital.xray.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,6 +61,10 @@ public class AiServiceClient {
 
     @Value("${minio.bucket-name:cxr-images}")
     private String minioBucket;
+
+    public boolean isLocalEnabled() {
+        return StringUtils.hasText(localBaseUrl);
+    }
 
     /**
      * Generate chest X-ray report. Prefer local self-trained model if configured.
@@ -199,7 +205,7 @@ public class AiServiceClient {
     }
 
     private Map<String, Object> callLocalReportService(String imageUrl, List<Map<String, Object>> similarCases) {
-        String base = localBaseUrl != null ? localBaseUrl.trim() : "";
+        String base = normalizeLocalBaseUrl();
         if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
 
         Map<String, Object> body = new HashMap<>();
@@ -222,9 +228,68 @@ public class AiServiceClient {
         }
     }
 
+    public List<SimilarCaseVO> searchSimilarCasesByImage(String imagePath, Long caseId, int topK) {
+        if (!isLocalEnabled() || imagePath == null || imagePath.isBlank()) {
+            return List.of();
+        }
+        String imageUrl = buildImageUrl(imagePath);
+        String base = normalizeLocalBaseUrl();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("image_url", imageUrl);
+        body.put("top_k", topK);
+        if (caseId != null) body.put("case_id", caseId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(base + "/retrieval/search", entity, Map.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                return List.of();
+            }
+            Object resultsObj = response.getBody().get("similar_cases");
+            if (!(resultsObj instanceof List<?> results)) {
+                return List.of();
+            }
+            List<SimilarCaseVO> out = new ArrayList<>();
+            for (Object r : results) {
+                if (!(r instanceof Map<?, ?> row)) continue;
+                SimilarCaseVO vo = new SimilarCaseVO();
+                Object cid = row.get("case_id");
+                if (cid != null) vo.setCaseId(Long.parseLong(cid.toString()));
+                Object examNo = row.get("exam_no");
+                if (examNo != null) vo.setExamNo(examNo.toString());
+                Object findings = row.get("findings");
+                if (findings != null) vo.setFindings(findings.toString());
+                Object impression = row.get("impression");
+                if (impression != null) vo.setImpression(impression.toString());
+                Object score = row.get("similarity_score");
+                if (score != null) {
+                    try {
+                        vo.setSimilarityScore(new BigDecimal(score.toString()));
+                    } catch (NumberFormatException ignored) {}
+                }
+                out.add(vo);
+            }
+            return out;
+        } catch (Exception e) {
+            log.warn("Local image retrieval failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
     private String buildImageUrl(String imagePath) {
         if (imagePath == null || imagePath.startsWith("http") || imagePath.startsWith("data:")) return imagePath;
+        if (imagePath.startsWith("LOCAL:")) return imagePath.substring("LOCAL:".length());
         return minioEndpoint + "/" + minioBucket + "/" + imagePath;
+    }
+
+    private String normalizeLocalBaseUrl() {
+        String base = localBaseUrl != null ? localBaseUrl.trim() : "";
+        if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
+        return base;
     }
 
     @SuppressWarnings("unchecked")
