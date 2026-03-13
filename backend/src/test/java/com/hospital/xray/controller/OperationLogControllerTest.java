@@ -81,13 +81,13 @@ class OperationLogControllerTest {
     
     @Test
     @WithMockUser(authorities = "QC")
-    void testListLogs_WithQCRole() throws Exception {
-        // 质控人员也应该能访问日志
+    void testListLogs_WithQCRole_Forbidden() throws Exception {
+        // 质控角色已移除，应被拒绝
         mockMvc.perform(get("/api/logs")
                 .param("page", "1")
                 .param("pageSize", "20"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value(403));
     }
     
     @Test
