@@ -54,9 +54,12 @@ public class StatisticsServiceImpl implements StatisticsService {
                 new LambdaQueryWrapper<ReportInfo>()
                         .ge(ReportInfo::getCreatedAt, start.atStartOfDay())
                         .le(ReportInfo::getCreatedAt, end.atTime(23, 59, 59))
+                        .isNotNull(ReportInfo::getCreatedAt)
                         .orderByAsc(ReportInfo::getCreatedAt));
 
-        Map<String, Long> grouped = reports.stream().collect(Collectors.groupingBy(
+        Map<String, Long> grouped = reports.stream()
+            .filter(r -> r.getCreatedAt() != null)
+            .collect(Collectors.groupingBy(
                 r -> {
                     LocalDate d = r.getCreatedAt().toLocalDate();
                     if ("month".equals(groupBy)) return d.withDayOfMonth(1).toString();
