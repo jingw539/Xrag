@@ -87,7 +87,7 @@
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
                 <div v-if="isCurrentDicom" ref="dicomViewportRef" class="dicom-viewport"></div>
-                <img v-else :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像"
+                <img v-else :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像" decoding="async"
                   @load="onImgLoad" @error="onImgError" draggable="false" />
                 <!-- 标注画布覆盖层 -->
                 <canvas ref="annoCanvas" class="anno-overlay"
@@ -136,7 +136,7 @@
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
                 <div v-if="isCompareDicom" ref="compareDicomViewportRef" class="dicom-viewport compare-dicom-viewport"></div>
-                <img v-else :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="对比影像"
+                <img v-else :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="对比影像" decoding="async"
                   @load="onCompareImgLoad"
                   @error="onCompareImgError" draggable="false" />
                 <div class="compare-image-tag">对比影像 · {{ compareImage.fileName || '历史影像' }}</div>
@@ -168,7 +168,7 @@
             <div v-for="img in images" :key="img.imageId"
               :class="['thumb-item', currentImage?.imageId === img.imageId && 'thumb-active', compareImage?.imageId === img.imageId && 'thumb-compare']"
               @click="handleThumbSelect(img)">
-              <img :src="img.thumbnailUrl || img.fullUrl" :alt="img.viewPosition" />
+              <img :src="img.thumbnailUrl || img.fullUrl" :alt="img.viewPosition" loading="lazy" decoding="async" fetchpriority="low" />
               <span>{{ img.viewPosition || 'PA' }}</span>
               <div class="thumb-del" @click.stop="handleDeleteImage(img)"><el-icon><Close /></el-icon></div>
             </div>
@@ -334,18 +334,18 @@ import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { analyzeTerms, acceptCorrection } from '@/api/term'
 import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
 import { loadDicom } from '@/utils/dicom'
-import CasePanel from '@/components/CasePanel.vue'
-import ViewerToolbar from '@/components/ViewerToolbar.vue'
-import AnnotationList from '@/components/AnnotationList.vue'
-import ReportPanel from '@/components/ReportPanel.vue'
-import SimilaritySection from '@/components/SimilaritySection.vue'
-import WorkflowProgress from '@/components/WorkflowProgress.vue'
-import WorkstationFooter from '@/components/WorkstationFooter.vue'
+const CasePanel = defineAsyncComponent(() => import('@/components/CasePanel.vue'))
+const ViewerToolbar = defineAsyncComponent(() => import('@/components/ViewerToolbar.vue'))
+const AnnotationList = defineAsyncComponent(() => import('@/components/AnnotationList.vue'))
+const ReportPanel = defineAsyncComponent(() => import('@/components/ReportPanel.vue'))
+const SimilaritySection = defineAsyncComponent(() => import('@/components/SimilaritySection.vue'))
+const WorkflowProgress = defineAsyncComponent(() => import('@/components/WorkflowProgress.vue'))
+const WorkstationFooter = defineAsyncComponent(() => import('@/components/WorkstationFooter.vue'))
+const WorkstationHeader = defineAsyncComponent(() => import('@/components/WorkstationHeader.vue'))
 const PolishDialog = defineAsyncComponent(() => import('@/components/PolishDialog.vue'))
 const CreateCaseDialog = defineAsyncComponent(() => import('@/components/CreateCaseDialog.vue'))
 const TypicalCaseDialog = defineAsyncComponent(() => import('@/components/TypicalCaseDialog.vue'))
 const TermDialog = defineAsyncComponent(() => import('@/components/TermDialog.vue'))
-import WorkstationHeader from '@/components/WorkstationHeader.vue'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -2085,23 +2085,30 @@ const formatTime = (d) => {
 }
 
 /* ─────────────── 初始化 ─────────────── */
-onMounted(async () => {
+onMounted(() => {
   window.addEventListener('keydown', handleViewerShortcut)
   window.addEventListener('resize', syncRenderedImageSize)
   updateIsMobile()
   window.addEventListener('resize', updateIsMobile)
-  await fetchCases()
-  const targetId = route.query.caseId ? String(route.query.caseId) : null
-  if (targetId) {
-    const found = caseList.value.find(c => String(c.caseId) === targetId)
-    if (found) {
-      await selectCase(found)
-    } else {
-      try {
-        const res = await getCaseById(targetId)
-        if (res.data) await selectCase(res.data)
-      } catch { /* ignore */ }
+  const runInitialLoad = async () => {
+    await fetchCases()
+    const targetId = route.query.caseId ? String(route.query.caseId) : null
+    if (targetId) {
+      const found = caseList.value.find(c => String(c.caseId) === targetId)
+      if (found) {
+        await selectCase(found)
+      } else {
+        try {
+          const res = await getCaseById(targetId)
+          if (res.data) await selectCase(res.data)
+        } catch { /* ignore */ }
+      }
     }
+  }
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => runInitialLoad(), { timeout: 1500 })
+  } else {
+    setTimeout(runInitialLoad, 0)
   }
 })
 </script>
