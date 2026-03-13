@@ -17,21 +17,15 @@ public class PermitAllMockAuthFilter extends OncePerRequestFilter {
     private final XrayUserDetails mockUser;
 
     public PermitAllMockAuthFilter() {
-        long userId = getLongEnv("APP_SECURITY_MOCK_USER_ID", 1L);
-        String roleCode = getEnv("APP_SECURITY_MOCK_ROLE", "ADMIN");
-        String username = getEnv("APP_SECURITY_MOCK_USERNAME", "eval-admin");
-        String realName = getEnv("APP_SECURITY_MOCK_REALNAME", "Eval Admin");
-        String department = getEnv("APP_SECURITY_MOCK_DEPARTMENT", "EVAL");
-
         SysUser user = new SysUser();
-        user.setUserId(userId);
-        user.setUsername(username);
+        user.setUserId(1L);
+        user.setUsername("eval-admin");
         user.setPasswordHash("N/A");
-        user.setRealName(realName);
-        user.setDepartment(department);
+        user.setRealName("Eval Admin");
+        user.setDepartment("EVAL");
         user.setStatus(1);
-        user.setRoleCode(roleCode);
-        this.mockUser = new XrayUserDetails(user, roleCode);
+        user.setRoleCode("ADMIN");
+        this.mockUser = new XrayUserDetails(user, "ADMIN");
     }
 
     @Override
@@ -44,22 +38,5 @@ public class PermitAllMockAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(token);
         }
         filterChain.doFilter(request, response);
-    }
-
-    private static String getEnv(String key, String fallback) {
-        String value = System.getenv(key);
-        if (value == null) return fallback;
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? fallback : trimmed;
-    }
-
-    private static long getLongEnv(String key, long fallback) {
-        String value = System.getenv(key);
-        if (value == null) return fallback;
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException e) {
-            return fallback;
-        }
     }
 }
