@@ -10,3 +10,10 @@ spring:
 
 server:
   port: 8080
+
+app:
+  security:
+    preview-token: ${APP_SECURITY_PREVIEW_TOKEN:}
+    preview-user-id: ${APP_SECURITY_PREVIEW_USER_ID:1}
+    preview-role: ${APP_SECURITY_PREVIEW_ROLE:ADMIN}
+    preview-header: ${APP_SECURITY_PREVIEW_HEADER:X-Preview-Token}

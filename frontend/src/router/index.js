@@ -1,5 +1,6 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { loadPreviewToken } from '@/utils/preview'
 
 const resolveHomePath = (userStore) => {
   if (userStore.isAdmin) return '/users'
@@ -36,6 +37,22 @@ const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
+  const previewToken = loadPreviewToken()
+  if (previewToken) {
+    if (!userStore.userInfo?.roleCode) {
+      userStore.setUserInfo({
+        username: 'preview',
+        realName: 'Preview User',
+        roleCode: 'ADMIN'
+      })
+    }
+    if (to.path === '/login') {
+      next(resolveHomePath(userStore))
+    } else {
+      next()
+    }
+    return
+  }
   if (to.meta.requiresAuth !== false && !userStore.token) {
     next('/login')
   } else if (to.path === '/login' && userStore.token) {
@@ -52,4 +69,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-

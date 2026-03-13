@@ -121,6 +121,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getMe } from '@/api/auth'
+import { isPreviewMode } from '@/utils/preview'
 
 const route = useRoute()
 const router = useRouter()
@@ -175,6 +176,7 @@ const handleCommand = async (command) => {
 }
 
 const refreshUserInfo = async () => {
+  if (isPreviewMode()) return
   try {
     const res = await getMe()
     if (res.data) userStore.setUserInfo(res.data)

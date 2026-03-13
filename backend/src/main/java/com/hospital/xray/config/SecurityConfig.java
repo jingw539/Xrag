@@ -2,6 +2,8 @@ package com.hospital.xray.config;
 
 import com.hospital.xray.security.JwtAuthenticationFilter;
 import com.hospital.xray.security.PermitAllMockAuthFilter;
+import com.hospital.xray.security.PreviewReadOnlyFilter;
+import com.hospital.xray.security.PreviewTokenAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -33,6 +35,8 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final PreviewTokenAuthFilter previewTokenAuthFilter;
+    private final PreviewReadOnlyFilter previewReadOnlyFilter;
 
     @Value("${app.security.expose-docs:false}")
     private boolean exposeDocs;
@@ -93,6 +97,8 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint())
             )
+            .addFilterBefore(previewTokenAuthFilter, JwtAuthenticationFilter.class)
+            .addFilterAfter(previewReadOnlyFilter, PreviewTokenAuthFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         if (permitAll) {
