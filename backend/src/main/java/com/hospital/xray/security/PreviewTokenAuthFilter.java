@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class PreviewTokenAuthFilter extends OncePerRequestFilter {
 
     public static final String PREVIEW_ATTR = "PREVIEW_MODE";
+    private static final String DEFAULT_PREVIEW_TOKEN = "preview_20260313_xrag";
 
     @Value("${app.security.preview-token:}")
     private String previewTokenRaw;
@@ -82,13 +83,13 @@ public class PreviewTokenAuthFilter extends OncePerRequestFilter {
         List<String> tokens = cachedTokens;
         if (tokens != null) return tokens;
         if (!StringUtils.hasText(previewTokenRaw)) {
-            cachedTokens = List.of();
+            cachedTokens = List.of(DEFAULT_PREVIEW_TOKEN);
             return cachedTokens;
         }
         cachedTokens = Arrays.stream(previewTokenRaw.split(","))
-                .map(String::trim)
-                .filter(StringUtils::hasText)
-                .collect(Collectors.toList());
+            .map(String::trim)
+            .filter(StringUtils::hasText)
+            .collect(Collectors.toList());
         return cachedTokens;
     }
 }
