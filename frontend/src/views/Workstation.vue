@@ -1,8 +1,8 @@
 <template>
   <div class="workstation">
     <div v-if="isMobile" class="mobile-tabs">
-      <button :class="['mobile-tab', mobileTab === 'cases' && 'active']" @click="mobileTab = 'cases'">??</button>
-      <button :class="['mobile-tab', mobileTab === 'workspace' && 'active']" @click="mobileTab = 'workspace'">???</button>
+      <button :class="['mobile-tab', mobileTab === 'cases' && 'active']" @click="mobileTab = 'cases'">病例</button>
+      <button :class="['mobile-tab', mobileTab === 'workspace' && 'active']" @click="mobileTab = 'workspace'">工作区</button>
     </div>
     <CasePanel
       v-show="!isMobile || mobileTab === 'cases'"
@@ -32,7 +32,7 @@
       @cancel-batch="cancelBatchGeneration"
     />
 
-    <!-- ══ 右侧工作??══ -->
+    <!-- ══ 右侧工作区 ══ -->
     <div class="workspace" v-if="selectedCaseId" v-show="!isMobile || mobileTab === 'workspace'">
       <!-- 工作区顶部信息栏 -->
       <WorkstationHeader
@@ -53,7 +53,7 @@
       <!-- 主内容区 -->
       <div class="ws-scroll">
       <div class="ws-body">
-        <!-- 左：DICOM 影像查看??-->
+        <!-- 左：DICOM 影像查看器 -->
         <div class="viewer-panel">
           <ViewerToolbar
             :viewer-header-text="viewerHeaderText"
@@ -86,9 +86,9 @@
               <div class="image-wrapper main-image-wrapper"
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
-                <img :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X???"
+                <img :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像"
                   @load="onImgLoad" @error="onImgError" draggable="false" />
-                <!-- 标注画布覆盖??-->
+                <!-- 标注画布覆盖层 -->
                 <canvas ref="annoCanvas" class="anno-overlay"
                   :class="{ 'anno-draw-mode': annoTool === 'rect' || annoTool === 'line' }"
                   @mousedown="onAnnoMouseDown" @mousemove="onAnnoMouseMove"
@@ -100,17 +100,17 @@
                 </div>
                 <div v-if="currentImage" class="viewer-meta-overlay">
                   <span class="viewer-meta-chip">{{ currentImage.viewPosition || 'PA' }}</span>
-                  <span class="viewer-meta-chip">{{ currentImage.imgWidth || imgNW || "?" }} ? {{ currentImage.imgHeight || imgNH || "?" }} px</span>
+                  <span class="viewer-meta-chip">{{ currentImage.imgWidth || imgNW || '—' }} × {{ currentImage.imgHeight || imgNH || '—' }} px</span>
                   <span :class="['viewer-meta-chip', hasPixelSpacing ? 'chip-ok' : 'chip-warn']">
-                    {{ hasPixelSpacing ? `???? ${pixelSpacingText}` : '????????????? px ??' }}
+                    {{ hasPixelSpacing ? `像素间距 ${pixelSpacingText}` : '未读取像素间距，当前仅支持 px 尺寸' }}
                   </span>
                   <span class="viewer-meta-chip chip-info">缩放 {{ viewerScaleText }}</span>
-                  <span v-if="mainScaleBarLabel" class="viewer-meta-chip chip-info">??? {{ mainScaleBarLabel }}</span>
+                  <span v-if="mainScaleBarLabel" class="viewer-meta-chip chip-info">比例尺 {{ mainScaleBarLabel }}</span>
                   <span v-if="compareMode && compareCrosshair.active && mainCrosshairText" class="viewer-meta-chip chip-info">
                     主片 {{ mainCrosshairText }}
                   </span>
                   <span v-if="selectedAnnotation" class="viewer-meta-chip chip-info">
-                    ???? {{ formatAnnoMeasurement(selectedAnnotation) }}
+                    已选标注 {{ formatAnnoMeasurement(selectedAnnotation) }}
                   </span>
                   <span v-if="compareMode && selectedAnnotation && compareSelectedMeasurementText" class="viewer-meta-chip chip-info">
                     对照测量 {{ compareSelectedMeasurementText }}
@@ -140,7 +140,7 @@
                 <div class="compare-image-tag">对比影像 · {{ compareImage.fileName || '历史影像' }}</div>
                 <div v-if="compareScaleBadgeText" class="compare-image-badge">{{ compareScaleBadgeText }}</div>
                 <div v-if="compareSelectedMeasurementText" class="compare-image-badge compare-image-badge-second">同步测量 · {{ compareSelectedMeasurementText }}</div>
-                <div v-if="compareMeasurementDeltaText" class="compare-image-badge compare-image-badge-third">变化??· {{ compareMeasurementDeltaText }}</div>
+                <div v-if="compareMeasurementDeltaText" class="compare-image-badge compare-image-badge-third">变化值 · {{ compareMeasurementDeltaText }}</div>
                 <div v-if="compareScaleBarWidthStyle" class="scale-bar scale-bar-compare" :style="compareScaleBarWidthStyle">
                   <span class="scale-bar-tick scale-bar-tick-start"></span>
                   <span class="scale-bar-tick scale-bar-tick-quarter"></span>
@@ -158,7 +158,7 @@
             </div>
             <div v-else class="viewer-empty">
               <el-icon :size="48" style="color:rgba(255,255,255,0.2)"><Picture /></el-icon>
-              <p>?????????????</p>
+              <p>请选择检查图像或上传新影像</p>
             </div>
           </div>
           <!-- 影像缩略图条 -->
@@ -182,7 +182,7 @@
               :http-request="handleUpload" accept=".jpg,.jpeg,.png,.dcm">
               <el-icon :size="28" style="color:#40a9ff"><UploadFilled /></el-icon>
               <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:6px">
-                拖拽或点击上传检查图??
+                拖拽或点击上传检查图像
               </div>
               <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px">
                 支持 JPG / PNG / DICOM，≤50MB
@@ -207,7 +207,7 @@
             :style="{ left: labelPopupPos.x + 'px', top: labelPopupPos.y + 'px' }">
             <div class="anno-popup-title">输入标注名称</div>
             <input ref="labelInputRef" v-model="pendingAnnoLabel" class="anno-popup-input"
-              placeholder="??????????????"
+              placeholder="如：右下肺实变、右侧胸腔积液"
               @keyup.enter="confirmAnnoLabel" @keyup.esc="cancelAnnoLabel" />
             <div class="anno-popup-hint">{{ drawMeasurementHint }}</div>
             <div class="anno-popup-subhint">{{ pixelSpacingGuideText }}</div>
@@ -247,7 +247,7 @@
         />
       </div>
 
-      <!-- 相似病例检??-->
+      <!-- 相似病例检索 -->
       <SimilaritySection
         :similar-cases="similarCases"
         @select="selectCaseById"
@@ -265,7 +265,7 @@
 
       </div><!-- /ws-scroll -->
 
-      <!-- 底部操作??-->
+      <!-- 底部操作栏 -->
       <WorkstationFooter
         :current-report="currentReport"
         :current-image="currentImage"
@@ -283,8 +283,8 @@
 
     <!-- 未选择病例时的占位 -->
     <div class="workspace workspace-empty" v-else v-show="!isMobile || mobileTab === 'workspace'">
-      <el-icon :size="64" style="color:rgba(255,255,255,0.28)"><Monitor /></el-icon>
-      <p style="color:rgba(220,231,247,0.7);font-size:14px;margin:0">请从左侧选择病例开始阅片与报告书写</p>
+      <el-icon :size="64" style="color:rgba(0,0,0,0.18)"><Monitor /></el-icon>
+      <p style="color:var(--xrag-text-faint);font-size:14px;margin:0">请从左侧选择病例开始阅片与报告书写</p>
     </div>
 
     <!-- 新建病例弹框 -->
@@ -301,7 +301,7 @@
       @confirm="confirmMarkTypical"
     />
 
-    <!-- 术语标准化弹??-->
+    <!-- 术语标准化弹窗 -->
     <TermDialog
       v-model="termDialogVisible"
       :items="termDialogList"
@@ -327,7 +327,7 @@ import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, getCaseById, markTypical, createCase, deleteCase, importCases } from '@/api/case'
 import { listImages, listPriorImages, uploadImage, deleteImage, fetchImageBlob } from '@/api/image'
-import { generateReport, regenerateReport, saveDraft, signReport, listReports, getReport, getEditHistory, polishReport, getAiAdvice } from '@/api/report'
+import { generateReport, regenerateReport, saveDraft, signReport, listReports, getEditHistory, polishReport, getAiAdvice } from '@/api/report'
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { analyzeTerms, acceptCorrection } from '@/api/term'
 import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
@@ -350,12 +350,11 @@ const isMobile = ref(false)
 const mobileTab = ref('cases')
 
 /* ─────────────── 常量 ─────────────── */
-// Status filters
 const STATUS_FILTERS = [
-  { label: '???', value: 'NONE', color: 'orange' },
-  { label: 'AI??', value: 'AI_DRAFT', color: 'blue' },
-  { label: '???', value: 'EDITING', color: 'blue' },
-  { label: '???', value: 'SIGNED', color: 'green' },
+  { label: '待生成', value: 'NONE', color: 'orange' },
+  { label: 'AI草稿', value: 'AI_DRAFT', color: 'blue' },
+  { label: '编辑中', value: 'EDITING', color: 'blue' },
+  { label: '已签发', value: 'SIGNED', color: 'green' },
 ]
 
 /* ─────────────── 病例列表 ─────────────── */
@@ -396,7 +395,7 @@ const fetchCases = async (append = false) => {
     const params = { page: currentPage.value, pageSize, sortOrder: 'desc' }
     if (searchKeyword.value) params.examNo = searchKeyword.value
     if (activeFilter.value) params.reportStatus = activeFilter.value
-    // 已签发只看当前医生自己签发的病例（追责隔离），编辑中为共享工作队??
+    // 已签发只看当前医生自己签发的病例（追责隔离），编辑中为共享工作队列
     if (activeFilter.value === 'SIGNED') {
       const uid = userStore.userInfo?.userId
       if (uid) params.doctorId = uid
@@ -415,7 +414,7 @@ const fetchCases = async (append = false) => {
     }
     caseList.value = sorted
     hasMore.value = caseList.value.length < caseTotal.value
-    // 同步当前选中病例的状态到工作区顶??
+    // 同步当前选中病例的状态到工作区顶部
     if (selectedCaseId.value) {
       const updated = caseList.value.find(c => c.caseId === selectedCaseId.value)
       if (updated) caseInfo.value = { ...caseInfo.value, ...updated }
@@ -475,7 +474,14 @@ const ensureThumbnailUrl = async (img) => {
     const url = await buildImageUrl(img.imageId, true)
     img._thumbUrl = url
     img.thumbnailUrl = url
-  } catch { /* ignore */ }
+  } catch (err) {
+    const status = err?.response?.status
+    if (status === 413) {
+      ElMessage.error('????????????????????????')
+      return
+    }
+    ElMessage.error(err?.response?.data?.message || '??????????')
+  }
 }
 
 const ensureFullUrl = async (img) => {
@@ -574,7 +580,7 @@ const loadReport = async () => {
       draftImpression.value = ''
       similarCases.value = []
       editHistory.value = []
-      // 数据自愈：case_info.report_status ??NONE ??report_info 无记录，本地纠正??NONE
+      // 数据自愈：case_info.report_status 非 NONE 但 report_info 无记录，本地纠正为 NONE
       if (caseInfo.value && caseInfo.value.reportStatus && caseInfo.value.reportStatus !== 'NONE') {
         caseInfo.value = { ...caseInfo.value, reportStatus: 'NONE' }
       }
@@ -599,7 +605,7 @@ const loadSimilarCases = async () => {
   } catch { similarCases.value = [] }
 }
 
-// Constants
+/* ─────────────── 术语标准化 ─────────────── */
 const termDialogVisible = ref(false)
 const termDialogList = ref([])
 const termLastCount = ref(0)
@@ -611,7 +617,7 @@ const handleTermNormalize = async () => {
     const payload = { findings: draftFindings.value || '', impression: draftImpression.value || '' }
     const res = await analyzeTerms(currentReport.value.reportId, payload)
     const list = res.data || []
-    // 筛选出待处理的纠正项（isAccepted === 0 ??null??
+    // 筛选出待处理的纠正项（isAccepted === 0 或 null）
     termDialogList.value = list.filter(t => !t.isAccepted || t.isAccepted === 0)
     if (termDialogList.value.length === 0) {
       ElMessage.success('未发现需要纠正的术语')
@@ -639,13 +645,13 @@ const confirmTermReplace = async (items) => {
   }
   termLastCount.value = count
   termDialogVisible.value = false
-  ElMessage.success(`已替??${count} 处术语`)
+  ElMessage.success(`已替换 ${count} 处术语`)
 }
 
 const handleRestoreHistory = async (h) => {
   try {
     await ElMessageBox.confirm(
-      `将报告内容恢复到??{formatDate(h.editTime)}」的版本？当前未保存的修改将丢失。`,
+      `将报告内容恢复到「${formatDate(h.editTime)}」的版本？当前未保存的修改将丢失。`,
       '恢复历史版本', { confirmButtonText: '确认恢复', cancelButtonText: '取消', type: 'warning' }
     )
     if (h.findingsAfter != null) draftFindings.value = h.findingsAfter
@@ -657,9 +663,9 @@ const handleRestoreHistory = async (h) => {
 
 const handleDeleteCase = async () => {
   try {
-    await ElMessageBox.confirm(`确认删除病例??{caseInfo.value.examNo}」？删除后不可恢复`, '删除病例', { type: 'warning' })
+    await ElMessageBox.confirm(`确认删除病例「${caseInfo.value.examNo}」？删除后不可恢复`, '删除病例', { type: 'warning' })
     await deleteCase(selectedCaseId.value)
-    ElMessage.success('?????')
+    ElMessage.success('病例已删除')
     selectedCaseId.value = null
     caseInfo.value = {}
     images.value = []
@@ -672,10 +678,10 @@ const handleDeleteCase = async () => {
 const handleImport = async (file) => {
   try {
     const res = await importCases(file)
-    ElMessage.success(`??????? ${res.data?.successCount ?? 0} ?`)
+    ElMessage.success(`导入完成：成功 ${res.data?.successCount ?? 0} 条`)
     await fetchCases()
   } catch (e) {
-    ElMessage.error('?????' + (e?.message || '???????'))
+    ElMessage.error('导入失败：' + (e?.message || '请检查文件格式'))
   }
   return false
 }
@@ -691,7 +697,7 @@ const handleDeleteImage = async (img) => {
     if (currentImage.value?.imageId === img.imageId) {
       currentImage.value = images.value[0] || null
     }
-    ElMessage.success('?????')
+    ElMessage.success('影像已删除')
   } catch { /* ignore */ }
 }
 
@@ -717,7 +723,7 @@ const handleBatchGenerate = async () => {
   try {
     await ElMessageBox.confirm(
       `将为 ${noneCount.value} 个待生成病例按时间顺序逐个生成AI报告，过程可能较长，是否继续？`,
-      '????AI??', { confirmButtonText: '????', cancelButtonText: '??', type: 'info' }
+      '批量生成AI报告', { confirmButtonText: '开始生成', cancelButtonText: '取消', type: 'info' }
     )
   } catch { return }
 
@@ -730,6 +736,7 @@ const handleBatchGenerate = async () => {
     batchProgress.value = { current: 0, total: cases.length }
 
     for (let i = 0; i < cases.length; i++) {
+      if (batchCancel) { ElMessage.info('已取消批量生成'); break }
 
       const c = cases[i]
       try {
@@ -740,8 +747,8 @@ const handleBatchGenerate = async () => {
           continue
         }
         await generateReport({ caseId: c.caseId, imageId: imgs[0].imageId })
-  } catch (_err) {
-        console.warn(`[batch] case ${c.examNo} failed:`, _err)
+      } catch (err) {
+        console.warn(`[batch] case ${c.examNo} failed:`, err)
       }
       batchProgress.value = { current: i + 1, total: cases.length }
     }
@@ -759,26 +766,15 @@ const handleGenerate = async () => {
   generating.value = true
   try {
     const res = await generateReport({ caseId: selectedCaseId.value, imageId: currentImage.value.imageId })
-    const reportId = res?.data?.reportId || res?.data
-    if (reportId) {
-      try {
-        const detailRes = await getReport(reportId)
-        currentReport.value = detailRes.data
-        draftFindings.value = detailRes.data?.finalFindings || detailRes.data?.aiFindings || ''
-        draftImpression.value = detailRes.data?.finalImpression || detailRes.data?.aiImpression || ''
-      } catch (_) {
-        // fallback to response data if detail fetch fails
-        if (res?.data && typeof res.data === 'object') {
-          currentReport.value = res.data
-          draftFindings.value = res.data.finalFindings || res.data.aiFindings || ''
-          draftImpression.value = res.data.finalImpression || res.data.aiImpression || ''
-        }
-      }
-    }
+    currentReport.value = res.data
+    draftFindings.value = res.data.finalFindings || res.data.aiFindings || ''
+    draftImpression.value = res.data.finalImpression || res.data.aiImpression || ''
+    
     ElMessage.success('AI报告生成完成')
     fetchCases()
   } finally { generating.value = false }
 }
+
 const handleRegenerate = async () => {
   if (!currentReport.value?.reportId) {
     ElMessage.warning('当前无报告，请先生成')
@@ -787,27 +783,17 @@ const handleRegenerate = async () => {
   generating.value = true
   try {
     const res = await regenerateReport(currentReport.value.reportId)
-    const reportId = res?.data?.reportId || res?.data || currentReport.value.reportId
-    if (reportId) {
-      try {
-        const detailRes = await getReport(reportId)
-        currentReport.value = detailRes.data
-        draftFindings.value = detailRes.data?.finalFindings || detailRes.data?.aiFindings || ''
-        draftImpression.value = detailRes.data?.finalImpression || detailRes.data?.aiImpression || ''
-      } catch (_) {
-        if (res?.data && typeof res.data === 'object') {
-          currentReport.value = res.data
-          draftFindings.value = res.data.finalFindings || res.data.aiFindings || ''
-          draftImpression.value = res.data.finalImpression || res.data.aiImpression || ''
-        }
-      }
-    }
-    ElMessage.success('报告已重新生??')
+    currentReport.value = res.data
+    draftFindings.value = res.data.finalFindings || res.data.aiFindings || ''
+    draftImpression.value = res.data.finalImpression || res.data.aiImpression || ''
+    
+    ElMessage.success('报告已重新生成')
     fetchCases()
   } catch {
     // 请求拦截器已展示错误
   } finally { generating.value = false }
 }
+
 const ensureCurrentReportId = async () => {
   const reportId = currentReport.value?.reportId
   if (reportId) return reportId
@@ -835,7 +821,7 @@ const handleSaveDraft = async () => {
   saving.value = true
   try {
     await doSave()
-    ElMessage.success('?????')
+    ElMessage.success('草稿已保存')
     fetchCases()
   } catch {
     // 请求拦截器已展示错误
@@ -844,6 +830,7 @@ const handleSaveDraft = async () => {
 
 const handleSign = async () => {
   if (!currentReport.value?.reportId) {
+    ElMessage.error('当前病例尚未生成有效报告，无法签发')
     return
   }
   try {
@@ -858,7 +845,7 @@ const handleSign = async () => {
     const reportId = currentReport.value.reportId
 
     if (currentReport.value.reportStatus === 'EDITING' || currentReport.value.reportStatus === 'AI_DRAFT') {
-      // 签发前自动保存最新编辑内??
+      // 签发前自动保存最新编辑内容
       await saveDraft(reportId, {
         finalFindings: draftFindings.value,
         finalImpression: draftImpression.value
@@ -866,10 +853,12 @@ const handleSign = async () => {
     }
 
     await signReport(reportId)
+    ElMessage.success('报告已成功签发')
     await loadReport()
     fetchCases()
 
-  } catch (_err) {
+  } catch (err) {
+    ElMessage.error('签发失败：' + (err?.message || '请检查网络或重新登录'))
     await loadReport()
   } finally { signing.value = false }
 }
@@ -883,6 +872,7 @@ const handleGetAiAdvice = async () => {
     const data = res.data
     // 若返回空对象（AI服务未配置或解析失败），视为错误
     if (!data || !data.overall_assessment) {
+      ElMessage.warning('AI建议服务暂不可用，请确认DeepSeek API已配置')
       return
     }
     aiAdvice.value = data
@@ -894,11 +884,13 @@ const handleGetAiAdvice = async () => {
 const applyAdviceFindings = () => {
   if (!aiAdvice.value?.suggested_findings) return
   draftFindings.value = aiAdvice.value.suggested_findings
+  ElMessage.success('参考内容已应用，请返回修改后签发')
 }
 
 const applyAdviceImpression = () => {
   if (!aiAdvice.value?.suggested_impression) return
   draftImpression.value = aiAdvice.value.suggested_impression
+  ElMessage.success('参考内容已应用，请返回修改后签发')
 }
 
 /* ─────────────── 影像操作 ─────────────── */
@@ -914,8 +906,8 @@ const pixelSpacingText = computed(() => hasPixelSpacing.value
   ? `${currentPixelSpacingX.value.toFixed(3)} × ${currentPixelSpacingY.value.toFixed(3)} mm/px`
   : '未读取到')
 const pixelSpacingGuideText = computed(() => hasPixelSpacing.value
-  ? `????????${pixelSpacingText.value}`
-  : '?????????????????????? DICOM??????????')
+  ? `已启用毫米实测：${pixelSpacingText.value}`
+  : '未读取到像素间距，本次将仅保存像素尺寸；如为 DICOM，请优先使用原始文件。')
 const viewerScaleText = computed(() => `${Math.round(viewerScale.value * 100)}%`)
 const viewerRotationText = computed(() => `${normalizeViewerRotate(viewerRotate.value)}°`)
 const compareCrosshair = ref({ active: false, xRatio: 0.5, yRatio: 0.5, source: 'main' })
@@ -1055,7 +1047,7 @@ const compareScaleBarWidthStyle = computed(() => compareScaleBar.value.style)
 const compareScaleBadgeText = computed(() => {
   if (!compareMode.value || !compareImage.value) return ''
   const scaleText = `缩放 ${viewerScaleText.value}`
-  return compareScaleBarLabel.value ? `${scaleText} · 比例??${compareScaleBarLabel.value}` : scaleText
+  return compareScaleBarLabel.value ? `${scaleText} · 比例尺 ${compareScaleBarLabel.value}` : scaleText
 })
 
 const crosshairLineStyle = (axis) => {
@@ -1093,15 +1085,16 @@ const onCompareImageMouseMove = (event) => {
   syncCompareCrosshair(event, 'compare')
 }
 const activeAnnoToolLabel = computed(() => ({ select: '选择标注', rect: '矩形标注', line: '双点测距' }[annoTool.value] || '选择标注'))
+const viewerShortcutHint = computed(() => '快捷键：+ 放大，- 缩小，0 重置，R 顺时针旋转，Shift+R 逆时针旋转，V 选择标注，M 矩形标注；支持滚轮缩放、双击重置')
 const viewerHeaderText = computed(() => {
-  if (!currentImage.value) return '??????'
-  return `${currentImage.value.fileName || currentImage.value.viewPosition || 'Image'} · 缩放 ${viewerScaleText.value} · 旋转 ${viewerRotationText.value} · ${activeAnnoToolLabel.value}`
+  if (!currentImage.value) return '—'
+  return `${currentImage.value.fileName} · 缩放 ${viewerScaleText.value} · 旋转 ${viewerRotationText.value} · ${activeAnnoToolLabel.value}`
 })
 const zoom = (d) => { viewerScale.value = clampViewerScale(viewerScale.value + d) }
 const rotate = (d) => { viewerRotate.value = normalizeViewerRotate(viewerRotate.value + d) }
 const resetViewer = () => { viewerScale.value = 1; viewerRotate.value = 0 }
 const onViewerWheel = (e) => {
-  if (!currentImage.value) return '??????'
+  if (!currentImage.value) return
   const delta = e.deltaY < 0 ? 0.1 : -0.1
   zoom(delta)
 }
@@ -1130,9 +1123,9 @@ const onCompareImgLoad = () => {
 
 /* ─────────────── 病灶标注 ─────────────── */
 const diagImgRef = ref(null)      // 影像 <img> 元素
-const annoCanvas = ref(null)      // 画布覆盖??
+const annoCanvas = ref(null)      // 画布覆盖层
 const labelInputRef = ref(null)   // 标注名输入框
-const annotations = ref([])       // 当前影像的所有标??
+const annotations = ref([])       // 当前影像的所有标注
 const annoTool = ref('select')    // 'select' | 'rect' | 'line'
 const showAiAnnos = ref(true)
 const showDoctorAnnos = ref(true)
@@ -1144,9 +1137,9 @@ const showLabelInput = ref(false)
 const pendingAnnoLabel = ref('')
 const labelPopupPos = ref({ x: 0, y: 0 })
 const hoveredHandle = ref(null)
-let drawState = null  // { x, y, w, h } 正在绘制的临时矩??
-let imgNW = 0         // 影像自然像素??
-let imgNH = 0         // 影像自然像素??
+let drawState = null  // { x, y, w, h } 正在绘制的临时矩形
+let imgNW = 0         // 影像自然像素宽
+let imgNH = 0         // 影像自然像素高
 let lineDragState = null
 let suppressAnnoClick = false
 
@@ -1175,7 +1168,7 @@ const calcAnnoMeasurement = (anno) => {
 }
 
 const formatAnnoMeasurement = (anno) => {
-  if (!anno) return '--'
+  if (!anno) return '—'
   const metric = calcAnnoMeasurement(anno)
   if (anno.annoType === 'LINE') {
     return metric.lengthMm != null ? `${metric.lengthMm.toFixed(1)} mm` : `${Math.round(metric.lengthPx)} px`
@@ -1263,27 +1256,30 @@ const updateCanvasCursor = () => {
 
 const activateSelectTool = () => {
   annoTool.value = 'select'
+  ElMessage.info('已切换到选择模式：点击标注可选中，再点垃圾桶可删除医生标注')
 }
 
 const activateRectTool = () => {
   annoTool.value = 'rect'
+  ElMessage.info('已进入矩形标注模式：请在影像上按住左键拖拽框选病灶区域')
 }
 
 const activateLineTool = () => {
   annoTool.value = 'line'
+  ElMessage.info('已进入双点测距模式：请在影像上按住左键拖拽，记录两点间距离')
 }
 
 const toggleAiLayer = () => {
   showAiAnnos.value = !showAiAnnos.value
   ElMessage.info(showAiAnnos.value
     ? `已显示AI标注层（${aiAnnotationCount.value}处）`
-    : '???AI??')
+    : '已隐藏AI标注层')
 }
 
 const toggleDoctorLayer = () => {
   showDoctorAnnos.value = !showDoctorAnnos.value
   ElMessage.info(showDoctorAnnos.value
-    ? `已显示医生标注层??{doctorAnnotationCount.value}处）`
+    ? `已显示医生标注层（${doctorAnnotationCount.value}处）`
     : '已隐藏医生标注层')
 }
 
@@ -1347,6 +1343,7 @@ const toggleCompareMode = () => {
   }
   if (!syncCompareImage()) { ElMessage.info('当前暂无可用于对比的其他影像'); return }
   compareMode.value = true
+  ElMessage.success('已开启双屏对比：缩放与旋转保持同步')
 }
 const handleThumbSelect = (img) => {
   if (compareMode.value && currentImage.value && img.imageId !== currentImage.value.imageId) {
@@ -1421,7 +1418,7 @@ const redoAnnoAction = async () => {
 
 const schedulePersistSelectedAnno = () => {
   const anno = selectedDoctorAnnotation.value
-  if (!anno) return '--'
+  if (!anno) return
   clearTimeout(annoPersistTimer)
   annoPersistTimer = setTimeout(async () => {
     try {
@@ -1638,7 +1635,7 @@ const drawTempRect = (ctx, r) => {
   ctx.restore()
 }
 
-// Constants
+/* 鼠标坐标 → 画布像素坐标 */
 const toCanvasCoords = (e) => {
   const canvas = annoCanvas.value
   const rect = canvas.getBoundingClientRect()
@@ -1713,7 +1710,7 @@ const onAnnoMouseUp = (e) => {
   if (tooSmall) {
     drawState = null; redrawAnnotations(); return
   }
-  // 显示标注名输入弹框（位置跟随屏幕鼠标??
+  // 显示标注名输入弹框（位置跟随屏幕鼠标）
   labelPopupPos.value = { x: e.clientX, y: e.clientY + 12 }
   showLabelInput.value = true
   pendingAnnoLabel.value = ''
@@ -1785,7 +1782,7 @@ const cancelAnnoLabel = () => {
 }
 
 const handleAnnoSelect = (anno) => {
-  if (!anno) return '--'
+  if (!anno) return
   selectedAnnoId.value = anno.annotationId
   redrawAnnotations()
 }
@@ -1808,7 +1805,7 @@ const deleteSelectedAnno = () => {
   if (selectedAnnoId.value) handleDeleteAnno(selectedAnnoId.value)
 }
 
-// Constants
+/* currentImage 切换时加载标注 */
 watch(currentImage, async (img) => {
   annotations.value = []
   selectedAnnoId.value = null
@@ -1844,16 +1841,10 @@ const handleUpload = async ({ file }) => {
     ElMessage.success('影像上传成功')
     searchRetrieval(selectedCaseId.value, res.data.imageId).catch(() => {})
     if (!currentReport.value) {
+      ElMessage.info('检测到新影像，正在自动生成AI报告…')
       await handleGenerate()
     }
-  } catch (_err) {
-    const status = _err?.response?.status
-    if (status === 413) {
-      ElMessage.error('\u4e0a\u4f20\u5931\u8d25\uff1a\u6587\u4ef6\u5927\u5c0f\u8d85\u51fa\u9650\u5236\uff0c\u8bf7\u589e\u5927\u540e\u7aef\u6216\u7f51\u5173\u9650\u5236')
-      return
-    }
-    ElMessage.error(_err?.response?.data?.message || '??????????')
-  }
+  } catch { /* ignore */ }
 }
 
 /* ─────────────── 典型病例标记 ─────────────── */
@@ -1865,6 +1856,7 @@ const handleMarkTypical = async () => {
     try {
       await markTypical(selectedCaseId.value, { isTypical: 0, typicalTags: '', typicalRemark: '' })
       caseInfo.value.isTypical = 0
+      ElMessage.success('已取消典型标记')
       fetchCases()
     } catch { /* ignore */ }
   } else {
@@ -1886,7 +1878,7 @@ const confirmMarkTypical = async (payload) => {
 /* ─────────────── 打印 ─────────────── */
 const handlePrint = () => { window.print() }
 
-// Constants
+/* ─────────────── 工作流步骤 ─────────────── */
 const workflowSteps = computed(() => {
   const r = currentReport.value
   const status = r?.reportStatus
@@ -1894,28 +1886,28 @@ const workflowSteps = computed(() => {
   const isSigned = status === 'SIGNED'
   
   return [
-    { name: '????', status: images.value.length > 0 ? 'done' : 'pending',
-      time: formatTime(examTime), hint: images.value.length > 0 ? '???' : '???' },
-    { name: 'AI??', status: r ? 'done' : (images.value.length > 0 ? 'active' : 'pending'),
-      time: formatTime(r?.aiGenerateTime), hint: r ? '???' : '???' },
-    { name: '????', status: isSigned ? 'done' : (r ? 'active' : 'pending'),
-      time: isSigned ? formatTime(r?.signTime) : '', hint: isSigned ? '???' : (r ? '???' : '???') },
-    { name: '????', status: isSigned ? 'done' : 'pending',
-      time: isSigned ? formatTime(r?.signTime) : '', hint: isSigned ? '???' : (r ? '???' : '???') },
-    { name: '????', status: isSigned ? 'done' : 'pending',
-      time: isSigned ? formatTime(r?.signTime) : '', hint: isSigned ? '???' : (r ? '???' : '???') },
+    { name: '影像上传', status: images.value.length > 0 ? 'done' : 'pending',
+      time: formatTime(examTime), hint: '待操作' },
+    { name: 'AI分析', status: r ? 'done' : (images.value.length > 0 ? 'active' : 'pending'),
+      time: formatTime(r?.aiGenerateTime), hint: r ? '已完成' : '待生成' },
+    { name: '医生审阅', status: isSigned ? 'done' : (r ? 'active' : 'pending'),
+      time: isSigned ? formatTime(r?.signTime) : '', hint: isSigned ? '已完成' : (r ? '进行中' : '待操作') },
+    { name: '签发报告', status: isSigned ? 'done' : 'pending',
+      time: formatTime(r?.signTime), hint: isSigned ? '已完成' : '待操作' },
+    { name: '评测存档', status: isSigned ? 'done' : 'pending',
+      time: '', hint: isSigned ? '已完成' : '待操作' },
   ]
 })
 
 const followupSummary = computed(() => {
-  if (!currentImage.value) return '??????'
+  if (!currentImage.value) return ''
   if (!priorImages.value.length) {
-    return hasPixelSpacing.value ? '?????????????????????' : '????????????????????'
+    return hasPixelSpacing.value ? '当前图像已具备实测条件，可直接记录病灶尺寸。' : '暂无历史影像；当前可先完成本次阅片与标注。'
   }
   const latest = priorImages.value[0]
   const latestTime = latest?.shootTime || latest?.createdAt
-  const latestText = latestTime ? formatDate(latestTime) : '????????'
-  return `????? ${priorImages.value.length} ??????????? ${latestText}?????????`
+  const latestText = latestTime ? formatDate(latestTime) : '最近一次历史检查'
+  return `本病例存在 ${priorImages.value.length} 次历史影像，最近一次为 ${latestText}，可用于随访对照。`
 })
 
 /* ─────────────── 病例导航 ─────────────── */
@@ -1980,7 +1972,7 @@ const handlePolish = async () => {
     polishResult.value = res.data
     polishDialogVisible.value = true
   } catch (e) {
-    ElMessage.error('?????' + (e?.message || '???AI????'))
+    ElMessage.error('润色失败：' + (e?.message || '请确认AI服务可用'))
   } finally { polishing.value = false }
 }
 
@@ -1989,32 +1981,33 @@ const applyPolish = () => {
     draftFindings.value = polishResult.value.polished_findings || draftFindings.value
     draftImpression.value = polishResult.value.polished_impression || draftImpression.value
     polishDialogVisible.value = false
+    ElMessage.success('AI润色内容已应用')
   }
 }
 
-// Constants
+/* ─────────────── 置信度颜色 ─────────────── */
 const confColor = (v) => {
   if (v >= 0.8) return '#52c41a'
   if (v >= 0.6) return '#faad14'
   return '#ff4d4f'
 }
 
-// Status label
-const statusLabel = (s) => ({ NONE: '???', AI_DRAFT: 'AI??', EDITING: '???', SIGNED: '???' }[s] || s || '??')
+/* ─────────────── 工具方法 ─────────────── */
+const statusLabel = (s) => ({ NONE: '待生成', AI_DRAFT: 'AI草稿', EDITING: '编辑中', SIGNED: '已签发' }[s] || s || '—')
 const statusColor = (s) => ({ NONE: 'orange', AI_DRAFT: 'blue', EDITING: 'blue', SIGNED: 'green' }[s] || 'gray')
-const genderLabel = (g) => ({ M: '?', F: '?' }[g] || g || '??')
+const genderLabel = (g) => ({ M: '男', F: '女' }[g] || g || '—')
 
 const formatDate = (d) => {
-  if (!d) return '-' 
+  if (!d) return '—'
   return new Date(d).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 const formatTime = (d) => {
-  if (!d) return '-' 
+  if (!d) return ''
   const dt = new Date(d)
   return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
 }
 
-// Constants
+/* ─────────────── 初始化 ─────────────── */
 onMounted(async () => {
   window.addEventListener('keydown', handleViewerShortcut)
   window.addEventListener('resize', syncRenderedImageSize)
@@ -2037,9 +2030,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-// Constants
-   整体布局
-══════════════════════════════════════════??*/
+/* Workstation */
 .workstation {
   display: flex;
   height: 100%;
@@ -2102,9 +2093,9 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-// Constants
-   右侧工作??
-══════════════════════════════════════════??*/
+/* ═══════════════════════════════════════════
+   右侧工作区
+═══════════════════════════════════════════ */
 .workspace {
   flex: 1;
   display: flex;
@@ -2116,11 +2107,11 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: rgba(220, 231, 247, 0.7);
+  color: var(--xrag-text-faint);
   font-size: 14px;
 }
 
-// Constants
+/* 滚动内容区 */
 .ws-scroll {
   flex: 1;
   overflow-y: auto;
@@ -2134,7 +2125,7 @@ onMounted(async () => {
 .ws-scroll::-webkit-scrollbar-track { background: transparent; }
 .ws-scroll::-webkit-scrollbar-thumb { background: rgba(111,134,166,0.36); border-radius: 3px; }
 
-// Constants
+/* 主内容分栏 */
 .ws-body {
   display: flex;
   flex: 0 0 440px;
@@ -2142,7 +2133,7 @@ onMounted(async () => {
   gap: 12px;
 }
 
-// Constants
+/* ─── 影像查看器 ─── */
 .viewer-panel {
   width: 420px;
   flex-shrink: 0;
@@ -2184,7 +2175,7 @@ onMounted(async () => {
 }
 .viewer-empty {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  color: rgba(220,231,247,0.65); font-size: 12px;
+  color: rgba(255,255,255,0.3); font-size: 12px;
 }
 
 .thumb-strip {
@@ -2343,7 +2334,7 @@ onMounted(async () => {
   top: 86px;
 }
 
-// Constants
+/* ─── 标注名输入弹框（fixed定位） ─── */
 .anno-label-popup {
   position: fixed;
   z-index: 9999;
@@ -2424,9 +2415,9 @@ onMounted(async () => {
   border-color: rgba(64,169,255,0.25);
 }
 
-// Constants
-   缩略图删除按??
-══════════════════════════════════════════??*/
+/* ═══════════════════════════════════════════
+   缩略图删除按钮
+═══════════════════════════════════════════ */
 .thumb-del {
   position: absolute;
   top: 2px;
@@ -2445,22 +2436,5 @@ onMounted(async () => {
 .thumb-item:hover .thumb-del { display: flex; }
 
 </style>
-
-
-<style scoped>
-.viewer-stage { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
-.viewer-stage-compare { justify-content: space-between; }
-.compare-image-wrapper { position: relative; display: inline-block; }
-.compare-image-wrapper .dicom-img { max-height: 280px; }
-.compare-image-tag { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,0.55); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 3px; }
-.thumb-compare img { border-color: #faad14 !important; box-shadow: 0 0 0 1px rgba(250,173,20,0.35); }
-</style>
-
-
-
-
-
-
-
 
 
