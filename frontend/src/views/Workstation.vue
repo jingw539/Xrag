@@ -323,7 +323,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -333,7 +333,7 @@ import { generateReport, regenerateReport, saveDraft, signReport, listReports, g
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { analyzeTerms, acceptCorrection } from '@/api/term'
 import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
-import { cornerstone, initDicomLoader } from '@/utils/dicom'
+import { loadDicom } from '@/utils/dicom'
 import CasePanel from '@/components/CasePanel.vue'
 import ViewerToolbar from '@/components/ViewerToolbar.vue'
 import AnnotationList from '@/components/AnnotationList.vue'
@@ -341,10 +341,10 @@ import ReportPanel from '@/components/ReportPanel.vue'
 import SimilaritySection from '@/components/SimilaritySection.vue'
 import WorkflowProgress from '@/components/WorkflowProgress.vue'
 import WorkstationFooter from '@/components/WorkstationFooter.vue'
-import PolishDialog from '@/components/PolishDialog.vue'
-import CreateCaseDialog from '@/components/CreateCaseDialog.vue'
-import TypicalCaseDialog from '@/components/TypicalCaseDialog.vue'
-import TermDialog from '@/components/TermDialog.vue'
+const PolishDialog = defineAsyncComponent(() => import('@/components/PolishDialog.vue'))
+const CreateCaseDialog = defineAsyncComponent(() => import('@/components/CreateCaseDialog.vue'))
+const TypicalCaseDialog = defineAsyncComponent(() => import('@/components/TypicalCaseDialog.vue'))
+const TermDialog = defineAsyncComponent(() => import('@/components/TermDialog.vue'))
 import WorkstationHeader from '@/components/WorkstationHeader.vue'
 
 const route = useRoute()
@@ -1128,8 +1128,17 @@ const onImgError = (e) => {
   }
   if (e?.target) e.target.src = ''
 }
-const ensureCornerstoneEnabled = (el) => {
+let cornerstoneRef = null
+const ensureCornerstoneReady = async () => {
+  if (cornerstoneRef) return cornerstoneRef
+  const { cornerstone } = await loadDicom()
+  cornerstoneRef = cornerstone
+  return cornerstoneRef
+}
+const ensureCornerstoneEnabled = async (el) => {
   if (!el) return false
+  const cornerstone = await ensureCornerstoneReady()
+  if (!cornerstone) return false
   try {
     cornerstone.getEnabledElement(el)
     return true
@@ -1141,9 +1150,10 @@ const ensureCornerstoneEnabled = (el) => {
 const renderDicomImage = async (img, targetRef, { isMain } = { isMain: false }) => {
   if (!img?.fullUrl || !targetRef?.value) return
   try {
-    initDicomLoader()
+    const cornerstone = await ensureCornerstoneReady()
+    if (!cornerstone) return
     const el = targetRef.value
-    ensureCornerstoneEnabled(el)
+    await ensureCornerstoneEnabled(el)
     const imageId = `wadouri:${img.fullUrl}`
     const image = await cornerstone.loadAndCacheImage(imageId)
     cornerstone.displayImage(el, image)

@@ -1,15 +1,24 @@
-﻿import cornerstone from 'cornerstone-core'
-import dicomParser from 'dicom-parser'
-import cornerstoneWADOImageLoader from 'cornerstone-wado-image-loader'
+let dicomPromise = null
+let cornerstoneRef = null
 
-let initialized = false
-
-export const initDicomLoader = () => {
-  if (initialized) return
-  cornerstoneWADOImageLoader.external.cornerstone = cornerstone
-  cornerstoneWADOImageLoader.external.dicomParser = dicomParser
-  cornerstoneWADOImageLoader.configure({ useWebWorkers: false })
-  initialized = true
+export const loadDicom = async () => {
+  if (dicomPromise) return dicomPromise
+  dicomPromise = (async () => {
+    const [cornerstoneMod, dicomParserMod, wadoMod] = await Promise.all([
+      import('cornerstone-core'),
+      import('dicom-parser'),
+      import('cornerstone-wado-image-loader')
+    ])
+    const cornerstone = cornerstoneMod.default ?? cornerstoneMod
+    const dicomParser = dicomParserMod.default ?? dicomParserMod
+    const cornerstoneWADOImageLoader = wadoMod.default ?? wadoMod
+    cornerstoneWADOImageLoader.external.cornerstone = cornerstone
+    cornerstoneWADOImageLoader.external.dicomParser = dicomParser
+    cornerstoneWADOImageLoader.configure({ useWebWorkers: false })
+    cornerstoneRef = cornerstone
+    return { cornerstone }
+  })()
+  return dicomPromise
 }
 
-export { cornerstone }
+export const getCornerstone = () => cornerstoneRef
