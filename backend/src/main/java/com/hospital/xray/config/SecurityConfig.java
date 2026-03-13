@@ -97,12 +97,12 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint())
             )
-            .addFilterBefore(previewTokenAuthFilter, JwtAuthenticationFilter.class)
-            .addFilterAfter(previewReadOnlyFilter, PreviewTokenAuthFilter.class)
+            .addFilterBefore(previewTokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(previewReadOnlyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         if (permitAll) {
-            http.addFilterAfter(new PermitAllMockAuthFilter(), JwtAuthenticationFilter.class);
+            http.addFilterAfter(new PermitAllMockAuthFilter(), UsernamePasswordAuthenticationFilter.class);
         }
 
         return http.build();

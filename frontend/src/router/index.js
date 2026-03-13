@@ -36,6 +36,22 @@ const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
+  const publicAccess = import.meta.env.VITE_PUBLIC_ACCESS === 'true'
+  if (publicAccess) {
+    if (!userStore.userInfo?.roleCode) {
+      userStore.setUserInfo({
+        username: 'public',
+        realName: '公共访问',
+        roleCode: 'ADMIN'
+      })
+    }
+    if (to.path === '/login') {
+      next(resolveHomePath(userStore))
+    } else {
+      next()
+    }
+    return
+  }
   const previewToken = loadPreviewToken()
   if (previewToken) {
     if (!userStore.userInfo?.roleCode) {

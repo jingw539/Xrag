@@ -118,6 +118,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const collapsed = ref(false)
+const publicAccess = import.meta.env.VITE_PUBLIC_ACCESS === 'true'
 const isMobile = ref(false)
 const mobileMenuOpen = ref(false)
 const PAGE_NAME_MAP = {
@@ -167,7 +168,7 @@ const handleCommand = async (command) => {
 }
 
 const refreshUserInfo = async () => {
-  if (isPreviewMode()) return
+  if (isPreviewMode() || publicAccess) return
   try {
     const res = await getMe()
     if (res.data) userStore.setUserInfo(res.data)
