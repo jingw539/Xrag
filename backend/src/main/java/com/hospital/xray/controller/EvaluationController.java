@@ -2,7 +2,7 @@ package com.hospital.xray.controller;
 
 import com.hospital.xray.dto.EvaluationMetricVO;
 import com.hospital.xray.dto.EvaluationRunVO;
-import com.hospital.xray.dto.Result;
+import com.hospital.xray.common.Result;
 import com.hospital.xray.service.EvaluationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
