@@ -1,8 +1,8 @@
 <template>
   <div class="workstation">
     <div v-if="isMobile" class="mobile-tabs">
-      <button :class="['mobile-tab', mobileTab === 'cases' && 'active']" @click="mobileTab = 'cases'">ç—…ä¾‹</button>
-      <button :class="['mobile-tab', mobileTab === 'workspace' && 'active']" @click="mobileTab = 'workspace'">å·¥ä½œåŒ?/button>
+      <button :class="['mobile-tab', mobileTab === 'cases' && 'active']" @click="mobileTab = 'cases'">²¡Àý</button>
+      <button :class="['mobile-tab', mobileTab === 'workspace' && 'active']" @click="mobileTab = 'workspace'">¹¤×÷??/button>
     </div>
     <CasePanel
       v-show="!isMobile || mobileTab === 'cases'"
@@ -32,9 +32,9 @@
       @cancel-batch="cancelBatchGeneration"
     />
 
-    <!-- â•â• å³ä¾§å·¥ä½œåŒ?â•â• -->
+    <!-- ¨T¨T ÓÒ²à¹¤×÷??¨T¨T -->
     <div class="workspace" v-if="selectedCaseId" v-show="!isMobile || mobileTab === 'workspace'">
-      <!-- å·¥ä½œåŒºé¡¶éƒ¨ä¿¡æ¯æ  -->
+      <!-- ¹¤×÷Çø¶¥²¿ÐÅÏ¢À¸ -->
       <WorkstationHeader
         :case-info="caseInfo"
         :has-report="!!currentReport"
@@ -50,10 +50,10 @@
         @delete-case="handleDeleteCase"
       />
 
-      <!-- ä¸»å†…å®¹åŒº -->
+      <!-- Ö÷ÄÚÈÝÇø -->
       <div class="ws-scroll">
       <div class="ws-body">
-        <!-- å·¦ï¼šDICOM å½±åƒæŸ¥çœ‹å™?-->
+        <!-- ×ó£ºDICOM Ó°Ïñ²é¿´??-->
         <div class="viewer-panel">
           <ViewerToolbar
             :viewer-header-text="viewerHeaderText"
@@ -86,9 +86,9 @@
               <div class="image-wrapper main-image-wrapper"
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
-                <img :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="Xå…‰å½±åƒ?
+                <img :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X¹âÓ°??
                   @load="onImgLoad" @error="onImgError" draggable="false" />
-                <!-- æ ‡æ³¨ç”»å¸ƒè¦†ç›–å±?-->
+                <!-- ±ê×¢»­²¼¸²¸Ç??-->
                 <canvas ref="annoCanvas" class="anno-overlay"
                   :class="{ 'anno-draw-mode': annoTool === 'rect' || annoTool === 'line' }"
                   @mousedown="onAnnoMouseDown" @mousemove="onAnnoMouseMove"
@@ -96,24 +96,24 @@
                   @click="onAnnoClick" />
                 <div v-if="currentReport && currentReport.modelConfidence"
                   class="ai-marker">
-                  AI Â· {{ Math.round(currentReport.modelConfidence * 100) }}%
+                  AI ¡¤ {{ Math.round(currentReport.modelConfidence * 100) }}%
                 </div>
                 <div v-if="currentImage" class="viewer-meta-overlay">
                   <span class="viewer-meta-chip">{{ currentImage.viewPosition || 'PA' }}</span>
-                  <span class="viewer-meta-chip">{{ currentImage.imgWidth || imgNW || 'â€? }} Ã— {{ currentImage.imgHeight || imgNH || 'â€? }} px</span>
+                  <span class="viewer-meta-chip">{{ currentImage.imgWidth || imgNW || '?? }} ¡Á {{ currentImage.imgHeight || imgNH || '?? }} px</span>
                   <span :class="['viewer-meta-chip', hasPixelSpacing ? 'chip-ok' : 'chip-warn']">
-                    {{ hasPixelSpacing ? `åƒç´ é—´è· ${pixelSpacingText}` : 'æœªè¯»å–åƒç´ é—´è·ï¼Œå½“å‰ä»…æ”¯æŒ?px å°ºå¯¸' }}
+                    {{ hasPixelSpacing ? `ÏñËØ¼ä¾à ${pixelSpacingText}` : 'Î´¶ÁÈ¡ÏñËØ¼ä¾à£¬µ±Ç°½öÖ§??px ³ß´ç' }}
                   </span>
-                  <span class="viewer-meta-chip chip-info">ç¼©æ”¾ {{ viewerScaleText }}</span>
-                  <span v-if="mainScaleBarLabel" class="viewer-meta-chip chip-info">æ¯”ä¾‹å°?{{ mainScaleBarLabel }}</span>
+                  <span class="viewer-meta-chip chip-info">Ëõ·Å {{ viewerScaleText }}</span>
+                  <span v-if="mainScaleBarLabel" class="viewer-meta-chip chip-info">±ÈÀý??{{ mainScaleBarLabel }}</span>
                   <span v-if="compareMode && compareCrosshair.active && mainCrosshairText" class="viewer-meta-chip chip-info">
-                    ä¸»ç‰‡ {{ mainCrosshairText }}
+                    Ö÷Æ¬ {{ mainCrosshairText }}
                   </span>
                   <span v-if="selectedAnnotation" class="viewer-meta-chip chip-info">
-                    å·²é€‰æ ‡æ³?{{ formatAnnoMeasurement(selectedAnnotation) }}
+                    ÒÑÑ¡±ê??{{ formatAnnoMeasurement(selectedAnnotation) }}
                   </span>
                   <span v-if="compareMode && selectedAnnotation && compareSelectedMeasurementText" class="viewer-meta-chip chip-info">
-                    å¯¹ç…§æµ‹é‡ {{ compareSelectedMeasurementText }}
+                    ¶ÔÕÕ²âÁ¿ {{ compareSelectedMeasurementText }}
                   </span>
                 </div>
                 <div v-if="mainScaleBarWidthStyle" class="scale-bar" :style="mainScaleBarWidthStyle">
@@ -134,13 +134,13 @@
                 @mousemove="onCompareImageMouseMove"
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
-                <img :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="å¯¹æ¯”å½±åƒ"
+                <img :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="¶Ô±ÈÓ°Ïñ"
                   @load="onCompareImgLoad"
                   @error="onCompareImgError" draggable="false" />
-                <div class="compare-image-tag">å¯¹æ¯”å½±åƒ Â· {{ compareImage.fileName || 'åŽ†å²å½±åƒ' }}</div>
+                <div class="compare-image-tag">¶Ô±ÈÓ°Ïñ ¡¤ {{ compareImage.fileName || 'ÀúÊ·Ó°Ïñ' }}</div>
                 <div v-if="compareScaleBadgeText" class="compare-image-badge">{{ compareScaleBadgeText }}</div>
-                <div v-if="compareSelectedMeasurementText" class="compare-image-badge compare-image-badge-second">åŒæ­¥æµ‹é‡ Â· {{ compareSelectedMeasurementText }}</div>
-                <div v-if="compareMeasurementDeltaText" class="compare-image-badge compare-image-badge-third">å˜åŒ–å€?Â· {{ compareMeasurementDeltaText }}</div>
+                <div v-if="compareSelectedMeasurementText" class="compare-image-badge compare-image-badge-second">Í¬²½²âÁ¿ ¡¤ {{ compareSelectedMeasurementText }}</div>
+                <div v-if="compareMeasurementDeltaText" class="compare-image-badge compare-image-badge-third">±ä»¯??¡¤ {{ compareMeasurementDeltaText }}</div>
                 <div v-if="compareScaleBarWidthStyle" class="scale-bar scale-bar-compare" :style="compareScaleBarWidthStyle">
                   <span class="scale-bar-tick scale-bar-tick-start"></span>
                   <span class="scale-bar-tick scale-bar-tick-quarter"></span>
@@ -158,10 +158,10 @@
             </div>
             <div v-else class="viewer-empty">
               <el-icon :size="48" style="color:rgba(255,255,255,0.2)"><Picture /></el-icon>
-              <p>è¯·é€‰æ‹©æ£€æŸ¥å›¾åƒæˆ–ä¸Šä¼ æ–°å½±åƒ?/p>
+              <p>ÇëÑ¡Ôñ¼ì²éÍ¼Ïñ»òÉÏ´«ÐÂÓ°??/p>
             </div>
           </div>
-          <!-- å½±åƒç¼©ç•¥å›¾æ¡ -->
+          <!-- Ó°ÏñËõÂÔÍ¼Ìõ -->
           <div class="thumb-strip" v-if="images.length > 0">
             <div v-for="img in images" :key="img.imageId"
               :class="['thumb-item', currentImage?.imageId === img.imageId && 'thumb-active', compareImage?.imageId === img.imageId && 'thumb-compare']"
@@ -170,27 +170,27 @@
               <span>{{ img.viewPosition || 'PA' }}</span>
               <div class="thumb-del" @click.stop="handleDeleteImage(img)"><el-icon><Close /></el-icon></div>
             </div>
-            <!-- ä¸Šä¼ æŒ‰é’® -->
+            <!-- ÉÏ´«°´Å¥ -->
             <el-upload :show-file-list="false" :before-upload="beforeUpload"
               :http-request="handleUpload" accept=".jpg,.jpeg,.png,.dcm" class="thumb-upload">
               <div class="thumb-add"><el-icon><Plus /></el-icon></div>
             </el-upload>
           </div>
-          <!-- æ— å½±åƒæ—¶çš„ä¸Šä¼ åŒº -->
+          <!-- ÎÞÓ°ÏñÊ±µÄÉÏ´«Çø -->
           <div v-else class="upload-zone">
             <el-upload drag :show-file-list="false" :before-upload="beforeUpload"
               :http-request="handleUpload" accept=".jpg,.jpeg,.png,.dcm">
               <el-icon :size="28" style="color:#40a9ff"><UploadFilled /></el-icon>
               <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:6px">
-                æ‹–æ‹½æˆ–ç‚¹å‡»ä¸Šä¼ æ£€æŸ¥å›¾åƒ?
+                ÍÏ×§»òµã»÷ÉÏ´«¼ì²éÍ¼??
               </div>
               <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px">
-                æ”¯æŒ JPG / PNG / DICOMï¼Œâ‰¤50MB
+                Ö§³Ö JPG / PNG / DICOM£¬¡Ü50MB
               </div>
             </el-upload>
           </div>
 
-          <!-- ç—…ç¶æ ‡æ³¨åˆ—è¡¨ -->
+          <!-- ²¡Ôî±ê×¢ÁÐ±í -->
           <AnnotationList
             :visible-annotations="visibleAnnotations"
             :total-count="annotations.length"
@@ -201,24 +201,24 @@
           />
         </div>
 
-        <!-- å…¨å±€æ ‡æ³¨åè¾“å…¥å¼¹æ¡†ï¼ˆfixedå®šä½ï¼Œè·Ÿéšé¼ æ ‡ï¼‰ -->
+        <!-- È«¾Ö±ê×¢ÃûÊäÈëµ¯¿ò£¨fixed¶¨Î»£¬¸úËæÊó±ê£© -->
         <teleport to="body">
           <div v-if="showLabelInput" class="anno-label-popup"
             :style="{ left: labelPopupPos.x + 'px', top: labelPopupPos.y + 'px' }">
-            <div class="anno-popup-title">è¾“å…¥æ ‡æ³¨åç§°</div>
+            <div class="anno-popup-title">ÊäÈë±ê×¢Ãû³Æ</div>
             <input ref="labelInputRef" v-model="pendingAnnoLabel" class="anno-popup-input"
-              placeholder="å¦‚ï¼šå³ä¸‹è‚ºå®žå˜ã€å³ä¾§èƒ¸è…”ç§¯æ¶?
+              placeholder="Èç£ºÓÒÏÂ·ÎÊµ±ä¡¢ÓÒ²àÐØÇ»»ý??
               @keyup.enter="confirmAnnoLabel" @keyup.esc="cancelAnnoLabel" />
             <div class="anno-popup-hint">{{ drawMeasurementHint }}</div>
             <div class="anno-popup-subhint">{{ pixelSpacingGuideText }}</div>
             <div class="anno-popup-btns">
-              <button class="anno-popup-ok" @click="confirmAnnoLabel">ç¡®å®š</button>
-              <button class="anno-popup-cancel" @click="cancelAnnoLabel">å–æ¶ˆ</button>
+              <button class="anno-popup-ok" @click="confirmAnnoLabel">È·¶¨</button>
+              <button class="anno-popup-cancel" @click="cancelAnnoLabel">È¡Ïû</button>
             </div>
           </div>
         </teleport>
 
-        <!-- å³ï¼šæŠ¥å‘Šé¢æ¿ -->
+        <!-- ÓÒ£º±¨¸æÃæ°å -->
         <ReportPanel
           v-model:report-tab="reportTab"
           v-model:show-ai-compare="showAiCompare"
@@ -234,7 +234,7 @@
           :ai-advice="aiAdvice"
           :history-loading="historyLoading"
           :edit-history="editHistory"
-          :doctor-name="userStore.userInfo?.realName || 'å½“å‰åŒ»ç”Ÿ'"
+          :doctor-name="userStore.userInfo?.realName || 'µ±Ç°Ò½Éú'"
           :format-date="formatDate"
           :conf-color="confColor"
           @generate="handleGenerate"
@@ -247,13 +247,13 @@
         />
       </div>
 
-      <!-- ç›¸ä¼¼ç—…ä¾‹æ£€ç´?-->
+      <!-- ÏàËÆ²¡Àý¼ì??-->
       <SimilaritySection
         :similar-cases="similarCases"
         @select="selectCaseById"
       />
 
-      <!-- å¤„ç†è¿›åº¦ -->
+      <!-- ´¦Àí½ø¶È -->
       <WorkflowProgress
         :workflow-steps="workflowSteps"
         :followup-summary="followupSummary"
@@ -265,7 +265,7 @@
 
       </div><!-- /ws-scroll -->
 
-      <!-- åº•éƒ¨æ“ä½œæ ?-->
+      <!-- µ×²¿²Ù×÷??-->
       <WorkstationFooter
         :current-report="currentReport"
         :current-image="currentImage"
@@ -281,27 +281,27 @@
       />
     </div>
 
-    <!-- æœªé€‰æ‹©ç—…ä¾‹æ—¶çš„å ä½ -->
+    <!-- Î´Ñ¡Ôñ²¡ÀýÊ±µÄÕ¼Î» -->
     <div class="workspace workspace-empty" v-else v-show="!isMobile || mobileTab === 'workspace'">
       <el-icon :size="64" style="color:rgba(255,255,255,0.28)"><Monitor /></el-icon>
-      <p style="color:rgba(220,231,247,0.7);font-size:14px;margin:0">è¯·ä»Žå·¦ä¾§é€‰æ‹©ç—…ä¾‹å¼€å§‹é˜…ç‰‡ä¸ŽæŠ¥å‘Šä¹¦å†™</p>
+      <p style="color:rgba(220,231,247,0.7);font-size:14px;margin:0">Çë´Ó×ó²àÑ¡Ôñ²¡Àý¿ªÊ¼ÔÄÆ¬Óë±¨¸æÊéÐ´</p>
     </div>
 
-    <!-- æ–°å»ºç—…ä¾‹å¼¹æ¡† -->
+    <!-- ÐÂ½¨²¡Àýµ¯¿ò -->
     <CreateCaseDialog
       v-model="createDialogVisible"
       :loading="creating"
       @submit="handleCreateCase"
     />
 
-    <!-- å…¸åž‹ç—…ä¾‹æ ‡è®°å¼¹æ¡† -->
+    <!-- µäÐÍ²¡Àý±ê¼Çµ¯¿ò -->
     <TypicalCaseDialog
       v-model="typicalDialogVisible"
       :loading="typicalLoading"
       @confirm="confirmMarkTypical"
     />
 
-    <!-- æœ¯è¯­æ ‡å‡†åŒ–å¼¹çª?-->
+    <!-- ÊõÓï±ê×¼»¯µ¯??-->
     <TermDialog
       v-model="termDialogVisible"
       :items="termDialogList"
@@ -309,7 +309,7 @@
       @confirm="confirmTermReplace"
     />
 
-    <!-- AI æ¶¦è‰²å¼¹çª— -->
+    <!-- AI ÈóÉ«µ¯´° -->
     <PolishDialog
       v-model="polishDialogVisible"
       :polish-result="polishResult"
@@ -349,15 +349,15 @@ const userStore = useUserStore()
 const isMobile = ref(false)
 const mobileTab = ref('cases')
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ å¸¸é‡ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ³£Á¿ ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const STATUS_FILTERS = [
-  { label: 'å¾…ç”Ÿæˆ?, value: 'NONE', color: 'orange' },
-  { label: 'AIè‰ç¨¿', value: 'AI_DRAFT', color: 'blue' },
-  { label: 'ç¼–è¾‘ä¸?, value: 'EDITING', color: 'blue' },
-  { label: 'å·²ç­¾å?, value: 'SIGNED', color: 'green' },
+  { label: '´ýÉú??, value: 'NONE', color: 'orange' },
+  { label: 'AI²Ý¸å', value: 'AI_DRAFT', color: 'blue' },
+  { label: '±à¼­??, value: 'EDITING', color: 'blue' },
+  { label: 'ÒÑÇ©??, value: 'SIGNED', color: 'green' },
 ]
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ç—…ä¾‹åˆ—è¡¨ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ²¡ÀýÁÐ±í ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const searchKeyword = ref('')
 const activeFilter = ref('')
 const caseList = ref([])
@@ -395,7 +395,7 @@ const fetchCases = async (append = false) => {
     const params = { page: currentPage.value, pageSize, sortOrder: 'desc' }
     if (searchKeyword.value) params.examNo = searchKeyword.value
     if (activeFilter.value) params.reportStatus = activeFilter.value
-    // å·²ç­¾å‘åªçœ‹å½“å‰åŒ»ç”Ÿè‡ªå·±ç­¾å‘çš„ç—…ä¾‹ï¼ˆè¿½è´£éš”ç¦»ï¼‰ï¼Œç¼–è¾‘ä¸­ä¸ºå…±äº«å·¥ä½œé˜Ÿåˆ?
+    // ÒÑÇ©·¢Ö»¿´µ±Ç°Ò½Éú×Ô¼ºÇ©·¢µÄ²¡Àý£¨×·Ôð¸ôÀë£©£¬±à¼­ÖÐÎª¹²Ïí¹¤×÷¶Ó??
     if (activeFilter.value === 'SIGNED') {
       const uid = userStore.userInfo?.userId
       if (uid) params.doctorId = uid
@@ -414,7 +414,7 @@ const fetchCases = async (append = false) => {
     }
     caseList.value = sorted
     hasMore.value = caseList.value.length < caseTotal.value
-    // åŒæ­¥å½“å‰é€‰ä¸­ç—…ä¾‹çš„çŠ¶æ€åˆ°å·¥ä½œåŒºé¡¶éƒ?
+    // Í¬²½µ±Ç°Ñ¡ÖÐ²¡ÀýµÄ×´Ì¬µ½¹¤×÷Çø¶¥??
     if (selectedCaseId.value) {
       const updated = caseList.value.find(c => c.caseId === selectedCaseId.value)
       if (updated) caseInfo.value = { ...caseInfo.value, ...updated }
@@ -434,7 +434,7 @@ const cancelBatchGeneration = () => {
   batchCancel.value = true
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ é€‰ä¸­ç—…ä¾‹ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ Ñ¡ÖÐ²¡Àý ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const selectedCaseId = ref(null)
 const caseInfo = ref({})
 const images = ref([])
@@ -494,7 +494,7 @@ const selectCaseById = async (caseId) => {
     try {
       const res = await getCaseById(caseId)
       if (res.data) await selectCase(res.data)
-    } catch { ElMessage.warning('ç›¸ä¼¼ç—…ä¾‹æ•°æ®åŠ è½½å¤±è´¥') }
+    } catch { ElMessage.warning('ÏàËÆ²¡ÀýÊý¾Ý¼ÓÔØÊ§°Ü') }
   }
 }
 
@@ -573,7 +573,7 @@ const loadReport = async () => {
       draftImpression.value = ''
       similarCases.value = []
       editHistory.value = []
-      // æ•°æ®è‡ªæ„ˆï¼šcase_info.report_status é?NONE ä½?report_info æ— è®°å½•ï¼Œæœ¬åœ°çº æ­£ä¸?NONE
+      // Êý¾Ý×ÔÓú£ºcase_info.report_status ??NONE ??report_info ÎÞ¼ÇÂ¼£¬±¾µØ¾ÀÕý??NONE
       if (caseInfo.value && caseInfo.value.reportStatus && caseInfo.value.reportStatus !== 'NONE') {
         caseInfo.value = { ...caseInfo.value, reportStatus: 'NONE' }
       }
@@ -598,7 +598,7 @@ const loadSimilarCases = async () => {
   } catch { similarCases.value = [] }
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ æœ¯è¯­æ ‡å‡†åŒ?â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ÊõÓï±ê×¼??©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const termDialogVisible = ref(false)
 const termDialogList = ref([])
 const termLastCount = ref(0)
@@ -610,15 +610,15 @@ const handleTermNormalize = async () => {
     const payload = { findings: draftFindings.value || '', impression: draftImpression.value || '' }
     const res = await analyzeTerms(currentReport.value.reportId, payload)
     const list = res.data || []
-    // ç­›é€‰å‡ºå¾…å¤„ç†çš„çº æ­£é¡¹ï¼ˆisAccepted === 0 æˆ?nullï¼?
+    // É¸Ñ¡³ö´ý´¦ÀíµÄ¾ÀÕýÏî£¨isAccepted === 0 ??null??
     termDialogList.value = list.filter(t => !t.isAccepted || t.isAccepted === 0)
     if (termDialogList.value.length === 0) {
-      ElMessage.success('æœªå‘çŽ°éœ€è¦çº æ­£çš„æœ¯è¯­')
+      ElMessage.success('Î´·¢ÏÖÐèÒª¾ÀÕýµÄÊõÓï')
     } else {
       termDialogVisible.value = true
     }
   } catch {
-    // è¯·æ±‚æ‹¦æˆªå™¨å·²å±•ç¤ºé”™è¯¯
+    // ÇëÇóÀ¹½ØÆ÷ÒÑÕ¹Ê¾´íÎó
   } finally { termLoading.value = false }
 }
 
@@ -638,27 +638,27 @@ const confirmTermReplace = async (items) => {
   }
   termLastCount.value = count
   termDialogVisible.value = false
-  ElMessage.success(`å·²æ›¿æ?${count} å¤„æœ¯è¯­`)
+  ElMessage.success(`ÒÑÌæ??${count} ´¦ÊõÓï`)
 }
 
 const handleRestoreHistory = async (h) => {
   try {
     await ElMessageBox.confirm(
-      `å°†æŠ¥å‘Šå†…å®¹æ¢å¤åˆ°ã€?{formatDate(h.editTime)}ã€çš„ç‰ˆæœ¬ï¼Ÿå½“å‰æœªä¿å­˜çš„ä¿®æ”¹å°†ä¸¢å¤±ã€‚`,
-      'æ¢å¤åŽ†å²ç‰ˆæœ¬', { confirmButtonText: 'ç¡®è®¤æ¢å¤', cancelButtonText: 'å–æ¶ˆ', type: 'warning' }
+      `½«±¨¸æÄÚÈÝ»Ö¸´µ½??{formatDate(h.editTime)}¡¹µÄ°æ±¾£¿µ±Ç°Î´±£´æµÄÐÞ¸Ä½«¶ªÊ§¡£`,
+      '»Ö¸´ÀúÊ·°æ±¾', { confirmButtonText: 'È·ÈÏ»Ö¸´', cancelButtonText: 'È¡Ïû', type: 'warning' }
     )
     if (h.findingsAfter != null) draftFindings.value = h.findingsAfter
     if (h.impressionAfter != null) draftImpression.value = h.impressionAfter
-    ElMessage.success('å·²æ¢å¤åˆ°æ‰€é€‰ç‰ˆæœ¬ï¼Œè®°å¾—ä¿å­˜è‰ç¨¿')
+    ElMessage.success('ÒÑ»Ö¸´µ½ËùÑ¡°æ±¾£¬¼ÇµÃ±£´æ²Ý¸å')
     reportTab.value = 'edit'
   } catch { /* ignore */ }
 }
 
 const handleDeleteCase = async () => {
   try {
-    await ElMessageBox.confirm(`ç¡®è®¤åˆ é™¤ç—…ä¾‹ã€?{caseInfo.value.examNo}ã€ï¼Ÿåˆ é™¤åŽä¸å¯æ¢å¤`, 'åˆ é™¤ç—…ä¾‹', { type: 'warning' })
+    await ElMessageBox.confirm(`È·ÈÏÉ¾³ý²¡Àý??{caseInfo.value.examNo}¡¹£¿É¾³ýºó²»¿É»Ö¸´`, 'É¾³ý²¡Àý', { type: 'warning' })
     await deleteCase(selectedCaseId.value)
-    ElMessage.success('ç—…ä¾‹å·²åˆ é™?)
+    ElMessage.success('²¡ÀýÒÑÉ¾??)
     selectedCaseId.value = null
     caseInfo.value = {}
     images.value = []
@@ -671,17 +671,17 @@ const handleDeleteCase = async () => {
 const handleImport = async (file) => {
   try {
     const res = await importCases(file)
-    ElMessage.success(`å¯¼å…¥å®Œæˆï¼šæˆåŠ?${res.data?.successCount ?? 0} æ¡`)
+    ElMessage.success(`µ¼ÈëÍê³É£º³É??${res.data?.successCount ?? 0} Ìõ`)
     await fetchCases()
   } catch (e) {
-    ElMessage.error('å¯¼å…¥å¤±è´¥ï¼? + (e?.message || 'è¯·æ£€æŸ¥æ–‡ä»¶æ ¼å¼?))
+    ElMessage.error('µ¼ÈëÊ§°Ü?? + (e?.message || 'Çë¼ì²éÎÄ¼þ¸ñ??))
   }
   return false
 }
 
 const handleDeleteImage = async (img) => {
   try {
-    await ElMessageBox.confirm('ç¡®è®¤åˆ é™¤è¯¥å½±åƒï¼Ÿ', 'æç¤º', { type: 'warning' })
+    await ElMessageBox.confirm('È·ÈÏÉ¾³ý¸ÃÓ°Ïñ£¿', 'ÌáÊ¾', { type: 'warning' })
   } catch { return }
   try {
     await deleteImage(img.imageId)
@@ -690,11 +690,11 @@ const handleDeleteImage = async (img) => {
     if (currentImage.value?.imageId === img.imageId) {
       currentImage.value = images.value[0] || null
     }
-    ElMessage.success('å½±åƒå·²åˆ é™?)
+    ElMessage.success('Ó°ÏñÒÑÉ¾??)
   } catch { /* ignore */ }
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ æŠ¥å‘Šç¼–è¾‘ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ±¨¸æ±à¼­ ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const reportTab = ref('edit')
 const draftFindings = ref('')
 const draftImpression = ref('')
@@ -702,7 +702,7 @@ const generating = ref(false)
 const saving = ref(false)
 const signing = ref(false)
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ æ‰¹é‡ç”Ÿæˆ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ÅúÁ¿Éú³É ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const batchGenerating = ref(false)
 const batchProgress = ref({ current: 0, total: 0 })
 let batchCancel = false
@@ -715,8 +715,8 @@ const noneCount = computed(() => {
 const handleBatchGenerate = async () => {
   try {
     await ElMessageBox.confirm(
-      `å°†ä¸º ${noneCount.value} ä¸ªå¾…ç”Ÿæˆç—…ä¾‹æŒ‰æ—¶é—´é¡ºåºé€ä¸ªç”ŸæˆAIæŠ¥å‘Šï¼Œè¿‡ç¨‹å¯èƒ½è¾ƒé•¿ï¼Œæ˜¯å¦ç»§ç»­ï¼Ÿ`,
-      'æ‰¹é‡ç”ŸæˆAIæŠ¥å‘Š', { confirmButtonText: 'å¼€å§‹ç”Ÿæˆ?, cancelButtonText: 'å–æ¶ˆ', type: 'info' }
+      `½«Îª ${noneCount.value} ¸ö´ýÉú³É²¡Àý°´Ê±¼äË³ÐòÖð¸öÉú³ÉAI±¨¸æ£¬¹ý³Ì¿ÉÄÜ½Ï³¤£¬ÊÇ·ñ¼ÌÐø£¿`,
+      'ÅúÁ¿Éú³ÉAI±¨¸æ', { confirmButtonText: '¿ªÊ¼Éú??, cancelButtonText: 'È¡Ïû', type: 'info' }
     )
   } catch { return }
 
@@ -729,7 +729,7 @@ const handleBatchGenerate = async () => {
     batchProgress.value = { current: 0, total: cases.length }
 
     for (let i = 0; i < cases.length; i++) {
-      if (batchCancel) { ElMessage.info('å·²å–æ¶ˆæ‰¹é‡ç”Ÿæˆ?); break }
+      if (batchCancel) { ElMessage.info('ÒÑÈ¡ÏûÅúÁ¿Éú??); break }
 
       const c = cases[i]
       try {
@@ -746,7 +746,7 @@ const handleBatchGenerate = async () => {
       batchProgress.value = { current: i + 1, total: cases.length }
     }
 
-    if (!batchCancel) ElMessage.success(`æ‰¹é‡ç”Ÿæˆå®Œæˆï¼Œå…±å¤„ç† ${batchProgress.value.current} ä¾‹`)
+    if (!batchCancel) ElMessage.success(`ÅúÁ¿Éú³ÉÍê³É£¬¹²´¦Àí ${batchProgress.value.current} Àý`)
     await fetchCases()
     if (selectedCaseId.value) await loadReport()
   } finally {
@@ -755,7 +755,7 @@ const handleBatchGenerate = async () => {
 }
 
 const handleGenerate = async () => {
-  if (!currentImage.value) { ElMessage.warning('è¯·å…ˆé€‰æ‹©å½±åƒ'); return }
+  if (!currentImage.value) { ElMessage.warning('ÇëÏÈÑ¡ÔñÓ°Ïñ'); return }
   generating.value = true
   try {
     const res = await generateReport({ caseId: selectedCaseId.value, imageId: currentImage.value.imageId })
@@ -775,13 +775,13 @@ const handleGenerate = async () => {
         }
       }
     }
-    ElMessage.success('AIæŠ¥å‘Šç”Ÿæˆå®Œæˆ')
+    ElMessage.success('AI±¨¸æÉú³ÉÍê³É')
     fetchCases()
   } finally { generating.value = false }
 }
 const handleRegenerate = async () => {
   if (!currentReport.value?.reportId) {
-    ElMessage.warning('å½“å‰æ— æŠ¥å‘Šï¼Œè¯·å…ˆç”Ÿæˆ')
+    ElMessage.warning('µ±Ç°ÎÞ±¨¸æ£¬ÇëÏÈÉú³É')
     return
   }
   generating.value = true
@@ -802,10 +802,10 @@ const handleRegenerate = async () => {
         }
       }
     }
-    ElMessage.success('æŠ¥å‘Šå·²é‡æ–°ç”Ÿæˆ?')
+    ElMessage.success('±¨¸æÒÑÖØÐÂÉú??')
     fetchCases()
   } catch {
-    // è¯·æ±‚æ‹¦æˆªå™¨å·²å±•ç¤ºé”™è¯¯
+    // ÇëÇóÀ¹½ØÆ÷ÒÑÕ¹Ê¾´íÎó
   } finally { generating.value = false }
 }
 const ensureCurrentReportId = async () => {
@@ -813,7 +813,7 @@ const ensureCurrentReportId = async () => {
   if (reportId) return reportId
   await loadReport()
   if (!currentReport.value?.reportId) {
-    throw new Error('å½“å‰ç—…ä¾‹å°šæœªç”Ÿæˆæœ‰æ•ˆæŠ¥å‘Š')
+    throw new Error('µ±Ç°²¡ÀýÉÐÎ´Éú³ÉÓÐÐ§±¨¸æ')
   }
   return currentReport.value.reportId
 }
@@ -835,21 +835,21 @@ const handleSaveDraft = async () => {
   saving.value = true
   try {
     await doSave()
-    ElMessage.success('è‰ç¨¿å·²ä¿å­?)
+    ElMessage.success('²Ý¸åÒÑ±£??)
     fetchCases()
   } catch {
-    // è¯·æ±‚æ‹¦æˆªå™¨å·²å±•ç¤ºé”™è¯¯
+    // ÇëÇóÀ¹½ØÆ÷ÒÑÕ¹Ê¾´íÎó
   } finally { saving.value = false }
 }
 
 const handleSign = async () => {
   if (!currentReport.value?.reportId) {
-    ElMessage.error('å½“å‰ç—…ä¾‹å°šæœªç”Ÿæˆæœ‰æ•ˆæŠ¥å‘Šï¼Œæ— æ³•ç­¾å?)
+    ElMessage.error('µ±Ç°²¡ÀýÉÐÎ´Éú³ÉÓÐÐ§±¨¸æ£¬ÎÞ·¨Ç©??)
     return
   }
   try {
-    await ElMessageBox.confirm('ç¡®è®¤ç­¾å‘è¯¥æŠ¥å‘Šï¼Ÿç­¾å‘åŽä¸å¯æ’¤é”€', 'ç­¾å‘æŠ¥å‘Š', {
-      confirmButtonText: 'ç¡®è®¤ç­¾å‘', cancelButtonText: 'å–æ¶ˆ',
+    await ElMessageBox.confirm('È·ÈÏÇ©·¢¸Ã±¨¸æ£¿Ç©·¢ºó²»¿É³·Ïú', 'Ç©·¢±¨¸æ', {
+      confirmButtonText: 'È·ÈÏÇ©·¢', cancelButtonText: 'È¡Ïû',
       confirmButtonClass: 'el-button--success', type: 'warning'
     })
   } catch { return }
@@ -859,7 +859,7 @@ const handleSign = async () => {
     const reportId = currentReport.value.reportId
 
     if (currentReport.value.reportStatus === 'EDITING' || currentReport.value.reportStatus === 'AI_DRAFT') {
-      // ç­¾å‘å‰è‡ªåŠ¨ä¿å­˜æœ€æ–°ç¼–è¾‘å†…å®?
+      // Ç©·¢Ç°×Ô¶¯±£´æ×îÐÂ±à¼­ÄÚ??
       await saveDraft(reportId, {
         finalFindings: draftFindings.value,
         finalImpression: draftImpression.value
@@ -867,12 +867,12 @@ const handleSign = async () => {
     }
 
     await signReport(reportId)
-    ElMessage.success('æŠ¥å‘Šå·²æˆåŠŸç­¾å?)
+    ElMessage.success('±¨¸æÒÑ³É¹¦Ç©??)
     await loadReport()
     fetchCases()
 
   } catch (err) {
-    ElMessage.error('ç­¾å‘å¤±è´¥ï¼? + (err?.message || 'è¯·æ£€æŸ¥ç½‘ç»œæˆ–é‡æ–°ç™»å½•'))
+    ElMessage.error('Ç©·¢Ê§°Ü?? + (err?.message || 'Çë¼ì²éÍøÂç»òÖØÐÂµÇÂ¼'))
     await loadReport()
   } finally { signing.value = false }
 }
@@ -884,30 +884,30 @@ const handleGetAiAdvice = async () => {
   try {
     const res = await getAiAdvice(currentReport.value.reportId)
     const data = res.data
-    // è‹¥è¿”å›žç©ºå¯¹è±¡ï¼ˆAIæœåŠ¡æœªé…ç½®æˆ–è§£æžå¤±è´¥ï¼‰ï¼Œè§†ä¸ºé”™è¯¯
+    // Èô·µ»Ø¿Õ¶ÔÏó£¨AI·þÎñÎ´ÅäÖÃ»ò½âÎöÊ§°Ü£©£¬ÊÓÎª´íÎó
     if (!data || !data.overall_assessment) {
-      ElMessage.warning('AIå»ºè®®æœåŠ¡æš‚ä¸å¯ç”¨ï¼Œè¯·ç¡®è®¤DeepSeek APIå·²é…ç½?)
+      ElMessage.warning('AI½¨Òé·þÎñÔÝ²»¿ÉÓÃ£¬ÇëÈ·ÈÏDeepSeek APIÒÑÅä??)
       return
     }
     aiAdvice.value = data
   } catch {
-    ElMessage.error('èŽ·å–AIå»ºè®®å¤±è´¥ï¼Œè¯·ç¡®è®¤DeepSeek APIå¯†é’¥å·²é…ç½®å¹¶ç½‘ç»œå¯è¾¾')
+    ElMessage.error('»ñÈ¡AI½¨ÒéÊ§°Ü£¬ÇëÈ·ÈÏDeepSeek APIÃÜÔ¿ÒÑÅäÖÃ²¢ÍøÂç¿É´ï')
   } finally { aiAdviceLoading.value = false }
 }
 
 const applyAdviceFindings = () => {
   if (!aiAdvice.value?.suggested_findings) return
   draftFindings.value = aiAdvice.value.suggested_findings
-  ElMessage.success('å‚è€ƒå†…å®¹å·²åº”ç”¨ï¼Œè¯·è¿”å›žä¿®æ”¹åŽç­¾å?)
+  ElMessage.success('²Î¿¼ÄÚÈÝÒÑÓ¦ÓÃ£¬Çë·µ»ØÐÞ¸ÄºóÇ©??)
 }
 
 const applyAdviceImpression = () => {
   if (!aiAdvice.value?.suggested_impression) return
   draftImpression.value = aiAdvice.value.suggested_impression
-  ElMessage.success('å‚è€ƒå†…å®¹å·²åº”ç”¨ï¼Œè¯·è¿”å›žä¿®æ”¹åŽç­¾å?)
+  ElMessage.success('²Î¿¼ÄÚÈÝÒÑÓ¦ÓÃ£¬Çë·µ»ØÐÞ¸ÄºóÇ©??)
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ å½±åƒæ“ä½œ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ Ó°Ïñ²Ù×÷ ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const viewerRef = ref(null)
 const viewerScale = ref(1)
 const viewerRotate = ref(0)
@@ -917,13 +917,13 @@ const currentPixelSpacingX = computed(() => Number(currentImage.value?.pixelSpac
 const currentPixelSpacingY = computed(() => Number(currentImage.value?.pixelSpacingYmm) || null)
 const hasPixelSpacing = computed(() => !!(currentPixelSpacingX.value && currentPixelSpacingY.value))
 const pixelSpacingText = computed(() => hasPixelSpacing.value
-  ? `${currentPixelSpacingX.value.toFixed(3)} Ã— ${currentPixelSpacingY.value.toFixed(3)} mm/px`
-  : 'æœªè¯»å–åˆ°')
+  ? `${currentPixelSpacingX.value.toFixed(3)} ¡Á ${currentPixelSpacingY.value.toFixed(3)} mm/px`
+  : 'Î´¶ÁÈ¡µ½')
 const pixelSpacingGuideText = computed(() => hasPixelSpacing.value
-  ? `å·²å¯ç”¨æ¯«ç±³å®žæµ‹ï¼š${pixelSpacingText.value}`
-  : 'æœªè¯»å–åˆ°åƒç´ é—´è·ï¼Œæœ¬æ¬¡å°†ä»…ä¿å­˜åƒç´ å°ºå¯¸ï¼›å¦‚ä¸º DICOMï¼Œè¯·ä¼˜å…ˆä½¿ç”¨åŽŸå§‹æ–‡ä»¶ã€?)
+  ? `ÒÑÆôÓÃºÁÃ×Êµ²â£º${pixelSpacingText.value}`
+  : 'Î´¶ÁÈ¡µ½ÏñËØ¼ä¾à£¬±¾´Î½«½ö±£´æÏñËØ³ß´ç£»ÈçÎª DICOM£¬ÇëÓÅÏÈÊ¹ÓÃÔ­Ê¼ÎÄ¼þ??)
 const viewerScaleText = computed(() => `${Math.round(viewerScale.value * 100)}%`)
-const viewerRotationText = computed(() => `${normalizeViewerRotate(viewerRotate.value)}Â°`)
+const viewerRotationText = computed(() => `${normalizeViewerRotate(viewerRotate.value)}¡ã`)
 const compareCrosshair = ref({ active: false, xRatio: 0.5, yRatio: 0.5, source: 'main' })
 const compareImgRef = ref(null)
 const mainRenderSize = ref({ width: 0, height: 0 })
@@ -952,11 +952,11 @@ const formatCrosshairMetric = (image, prefix) => {
   if (!metric) return ''
   const xText = metric.xMm != null ? `${metric.xPx} px / ${metric.xMm.toFixed(1)} mm` : `${metric.xPx} px`
   const yText = metric.yMm != null ? `${metric.yPx} px / ${metric.yMm.toFixed(1)} mm` : `${metric.yPx} px`
-  return `${prefix} X ${xText} Â· Y ${yText}`
+  return `${prefix} X ${xText} ¡¤ Y ${yText}`
 }
 
-const mainCrosshairText = computed(() => formatCrosshairMetric(currentImage.value, 'åæ ‡'))
-const compareCrosshairText = computed(() => formatCrosshairMetric(compareImage.value, 'å¯¹ç…§'))
+const mainCrosshairText = computed(() => formatCrosshairMetric(currentImage.value, '×ø±ê'))
+const compareCrosshairText = computed(() => formatCrosshairMetric(compareImage.value, '¶ÔÕÕ'))
 
 const calcAnnoMeasurementByImage = (anno, image) => {
   const widthPx = Math.max(0, (anno?.width || 0) * (Number(image?.imgWidth) || 0))
@@ -978,9 +978,9 @@ const formatAnnoMeasurementByImage = (anno, image) => {
     return metric.lengthMm != null ? `${metric.lengthMm.toFixed(1)} mm` : `${Math.round(metric.lengthPx)} px`
   }
   if (metric.widthMm != null && metric.heightMm != null) {
-    return `${metric.widthMm.toFixed(1)}Ã—${metric.heightMm.toFixed(1)} mm`
+    return `${metric.widthMm.toFixed(1)}¡Á${metric.heightMm.toFixed(1)} mm`
   }
-  return `${Math.round(metric.widthPx)}Ã—${Math.round(metric.heightPx)} px`
+  return `${Math.round(metric.widthPx)}¡Á${Math.round(metric.heightPx)} px`
 }
 
 const compareSelectedMeasurementText = computed(() => {
@@ -995,7 +995,7 @@ const calcComparableSizeMetric = (anno, image) => {
     return {
       valuePx: metric.lengthPx,
       valueMm: metric.lengthMm,
-      label: 'å¾„çº¿'
+      label: '¾¶Ïß'
     }
   }
   const maxPx = Math.max(metric.widthPx, metric.heightPx)
@@ -1005,15 +1005,15 @@ const calcComparableSizeMetric = (anno, image) => {
   return {
     valuePx: maxPx,
     valueMm: maxMm,
-    label: 'é•¿å¾„'
+    label: '³¤¾¶'
   }
 }
 
 const classifyComparableDelta = (delta, ratio) => {
   const absDelta = Math.abs(delta || 0)
   const absRatio = Math.abs(ratio || 0)
-  if (absRatio < 5 && absDelta < 2) return 'ç¨³å®š'
-  return delta > 0 ? 'å¢žå¤§' : 'ç¼©å°'
+  if (absRatio < 5 && absDelta < 2) return 'ÎÈ¶¨'
+  return delta > 0 ? 'Ôö´ó' : 'ËõÐ¡'
 }
 
 const compareMeasurementDeltaText = computed(() => {
@@ -1060,8 +1060,8 @@ const mainScaleBarWidthStyle = computed(() => mainScaleBar.value.style)
 const compareScaleBarWidthStyle = computed(() => compareScaleBar.value.style)
 const compareScaleBadgeText = computed(() => {
   if (!compareMode.value || !compareImage.value) return ''
-  const scaleText = `ç¼©æ”¾ ${viewerScaleText.value}`
-  return compareScaleBarLabel.value ? `${scaleText} Â· æ¯”ä¾‹å°?${compareScaleBarLabel.value}` : scaleText
+  const scaleText = `Ëõ·Å ${viewerScaleText.value}`
+  return compareScaleBarLabel.value ? `${scaleText} ¡¤ ±ÈÀý??${compareScaleBarLabel.value}` : scaleText
 })
 
 const crosshairLineStyle = (axis) => {
@@ -1098,11 +1098,11 @@ const clearCompareCrosshair = () => {
 const onCompareImageMouseMove = (event) => {
   syncCompareCrosshair(event, 'compare')
 }
-const activeAnnoToolLabel = computed(() => ({ select: 'é€‰æ‹©æ ‡æ³¨', rect: 'çŸ©å½¢æ ‡æ³¨', line: 'åŒç‚¹æµ‹è·' }[annoTool.value] || 'é€‰æ‹©æ ‡æ³¨'))
-const viewerShortcutHint = computed(() => 'å¿«æ·é”®ï¼š+ æ”¾å¤§ï¼? ç¼©å°ï¼? é‡ç½®ï¼ŒR é¡ºæ—¶é’ˆæ—‹è½¬ï¼ŒShift+R é€†æ—¶é’ˆæ—‹è½¬ï¼ŒV é€‰æ‹©æ ‡æ³¨ï¼ŒM çŸ©å½¢æ ‡æ³¨ï¼›æ”¯æŒæ»šè½®ç¼©æ”¾ã€åŒå‡»é‡ç½?)
+const activeAnnoToolLabel = computed(() => ({ select: 'Ñ¡Ôñ±ê×¢', rect: '¾ØÐÎ±ê×¢', line: 'Ë«µã²â¾à' }[annoTool.value] || 'Ñ¡Ôñ±ê×¢'))
+const viewerShortcutHint = computed(() => '¿ì½Ý¼ü£º+ ·Å´ó?? ËõÐ¡?? ÖØÖÃ£¬R Ë³Ê±ÕëÐý×ª£¬Shift+R ÄæÊ±ÕëÐý×ª£¬V Ñ¡Ôñ±ê×¢£¬M ¾ØÐÎ±ê×¢£»Ö§³Ö¹öÂÖËõ·Å¡¢Ë«»÷ÖØ??)
 const viewerHeaderText = computed(() => {
-  if (!currentImage.value) return 'â€?
-  return `${currentImage.value.fileName} Â· ç¼©æ”¾ ${viewerScaleText.value} Â· æ—‹è½¬ ${viewerRotationText.value} Â· ${activeAnnoToolLabel.value}`
+  if (!currentImage.value) return '??
+  return `${currentImage.value.fileName || currentImage.value.viewPosition || 'Image'} ¡¤ Ëõ·Å ${viewerScaleText.value} ¡¤ Ðý×ª ${viewerRotationText.value} ¡¤ ${activeAnnoToolLabel.value}`
 })
 const zoom = (d) => { viewerScale.value = clampViewerScale(viewerScale.value + d) }
 const rotate = (d) => { viewerRotate.value = normalizeViewerRotate(viewerRotate.value + d) }
@@ -1135,11 +1135,11 @@ const onCompareImgLoad = () => {
   syncRenderedImageSize()
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ç—…ç¶æ ‡æ³¨ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const diagImgRef = ref(null)      // å½±åƒ <img> å…ƒç´ 
-const annoCanvas = ref(null)      // ç”»å¸ƒè¦†ç›–å±?
-const labelInputRef = ref(null)   // æ ‡æ³¨åè¾“å…¥æ¡†
-const annotations = ref([])       // å½“å‰å½±åƒçš„æ‰€æœ‰æ ‡æ³?
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ²¡Ôî±ê×¢ ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
+const diagImgRef = ref(null)      // Ó°Ïñ <img> ÔªËØ
+const annoCanvas = ref(null)      // »­²¼¸²¸Ç??
+const labelInputRef = ref(null)   // ±ê×¢ÃûÊäÈë¿ò
+const annotations = ref([])       // µ±Ç°Ó°ÏñµÄËùÓÐ±ê??
 const annoTool = ref('select')    // 'select' | 'rect' | 'line'
 const showAiAnnos = ref(true)
 const showDoctorAnnos = ref(true)
@@ -1151,9 +1151,9 @@ const showLabelInput = ref(false)
 const pendingAnnoLabel = ref('')
 const labelPopupPos = ref({ x: 0, y: 0 })
 const hoveredHandle = ref(null)
-let drawState = null  // { x, y, w, h } æ­£åœ¨ç»˜åˆ¶çš„ä¸´æ—¶çŸ©å½?
-let imgNW = 0         // å½±åƒè‡ªç„¶åƒç´ å®?
-let imgNH = 0         // å½±åƒè‡ªç„¶åƒç´ é«?
+let drawState = null  // { x, y, w, h } ÕýÔÚ»æÖÆµÄÁÙÊ±¾Ø??
+let imgNW = 0         // Ó°Ïñ×ÔÈ»ÏñËØ??
+let imgNH = 0         // Ó°Ïñ×ÔÈ»ÏñËØ??
 let lineDragState = null
 let suppressAnnoClick = false
 
@@ -1182,19 +1182,19 @@ const calcAnnoMeasurement = (anno) => {
 }
 
 const formatAnnoMeasurement = (anno) => {
-  if (!anno) return 'â€?
+  if (!anno) return '??
   const metric = calcAnnoMeasurement(anno)
   if (anno.annoType === 'LINE') {
     return metric.lengthMm != null ? `${metric.lengthMm.toFixed(1)} mm` : `${Math.round(metric.lengthPx)} px`
   }
   if (metric.widthMm != null && metric.heightMm != null) {
-    return `${metric.widthMm.toFixed(1)}Ã—${metric.heightMm.toFixed(1)} mm`
+    return `${metric.widthMm.toFixed(1)}¡Á${metric.heightMm.toFixed(1)} mm`
   }
-  return `${Math.round(metric.widthPx)}Ã—${Math.round(metric.heightPx)} px`
+  return `${Math.round(metric.widthPx)}¡Á${Math.round(metric.heightPx)} px`
 }
 
 const drawMeasurementHint = computed(() => {
-  if (!drawState || !imgNW || !imgNH) return 'è¯·ä¸ºå½“å‰æ ‡æ³¨è¾“å…¥åç§°'
+  if (!drawState || !imgNW || !imgNH) return 'ÇëÎªµ±Ç°±ê×¢ÊäÈëÃû³Æ'
   const draftAnno = {
     annoType: annoTool.value === 'line' ? 'LINE' : 'RECTANGLE',
     width: drawState.w / imgNW,
@@ -1202,7 +1202,7 @@ const drawMeasurementHint = computed(() => {
     measuredWidthMm: null,
     measuredHeightMm: null,
   }
-  return `å½“å‰æ¡†é€‰èŒƒå›´ï¼š${formatAnnoMeasurement(draftAnno)}`
+  return `µ±Ç°¿òÑ¡·¶Î§£º${formatAnnoMeasurement(draftAnno)}`
 })
 
 const applyMeasuredSize = (target) => {
@@ -1270,31 +1270,31 @@ const updateCanvasCursor = () => {
 
 const activateSelectTool = () => {
   annoTool.value = 'select'
-  ElMessage.info('å·²åˆ‡æ¢åˆ°é€‰æ‹©æ¨¡å¼ï¼šç‚¹å‡»æ ‡æ³¨å¯é€‰ä¸­ï¼Œå†ç‚¹åžƒåœ¾æ¡¶å¯åˆ é™¤åŒ»ç”Ÿæ ‡æ³?)
+  ElMessage.info('ÒÑÇÐ»»µ½Ñ¡ÔñÄ£Ê½£ºµã»÷±ê×¢¿ÉÑ¡ÖÐ£¬ÔÙµãÀ¬»øÍ°¿ÉÉ¾³ýÒ½Éú±ê??)
 }
 
 const activateRectTool = () => {
   annoTool.value = 'rect'
-  ElMessage.info('å·²è¿›å…¥çŸ©å½¢æ ‡æ³¨æ¨¡å¼ï¼šè¯·åœ¨å½±åƒä¸ŠæŒ‰ä½å·¦é”®æ‹–æ‹½æ¡†é€‰ç—…ç¶åŒºåŸ?)
+  ElMessage.info('ÒÑ½øÈë¾ØÐÎ±ê×¢Ä£Ê½£ºÇëÔÚÓ°ÏñÉÏ°´×¡×ó¼üÍÏ×§¿òÑ¡²¡ÔîÇø??)
 }
 
 const activateLineTool = () => {
   annoTool.value = 'line'
-  ElMessage.info('å·²è¿›å…¥åŒç‚¹æµ‹è·æ¨¡å¼ï¼šè¯·åœ¨å½±åƒä¸ŠæŒ‰ä½å·¦é”®æ‹–æ‹½ï¼Œè®°å½•ä¸¤ç‚¹é—´è·ç¦?)
+  ElMessage.info('ÒÑ½øÈëË«µã²â¾àÄ£Ê½£ºÇëÔÚÓ°ÏñÉÏ°´×¡×ó¼üÍÏ×§£¬¼ÇÂ¼Á½µã¼ä¾à??)
 }
 
 const toggleAiLayer = () => {
   showAiAnnos.value = !showAiAnnos.value
   ElMessage.info(showAiAnnos.value
-    ? `å·²æ˜¾ç¤ºAIæ ‡æ³¨å±‚ï¼ˆ${aiAnnotationCount.value}å¤„ï¼‰`
-    : 'å·²éšè—AIæ ‡æ³¨å±?)
+    ? `ÒÑÏÔÊ¾AI±ê×¢²ã£¨${aiAnnotationCount.value}´¦£©`
+    : 'ÒÑÒþ²ØAI±ê×¢??)
 }
 
 const toggleDoctorLayer = () => {
   showDoctorAnnos.value = !showDoctorAnnos.value
   ElMessage.info(showDoctorAnnos.value
-    ? `å·²æ˜¾ç¤ºåŒ»ç”Ÿæ ‡æ³¨å±‚ï¼?{doctorAnnotationCount.value}å¤„ï¼‰`
-    : 'å·²éšè—åŒ»ç”Ÿæ ‡æ³¨å±‚')
+    ? `ÒÑÏÔÊ¾Ò½Éú±ê×¢²ã??{doctorAnnotationCount.value}´¦£©`
+    : 'ÒÑÒþ²ØÒ½Éú±ê×¢²ã')
 }
 
 const cloneAnno = (anno) => anno ? JSON.parse(JSON.stringify(anno)) : null
@@ -1355,9 +1355,9 @@ const toggleCompareMode = () => {
     compareImage.value = null
     return
   }
-  if (!syncCompareImage()) { ElMessage.info('å½“å‰æš‚æ— å¯ç”¨äºŽå¯¹æ¯”çš„å…¶ä»–å½±åƒ'); return }
+  if (!syncCompareImage()) { ElMessage.info('µ±Ç°ÔÝÎÞ¿ÉÓÃÓÚ¶Ô±ÈµÄÆäËûÓ°Ïñ'); return }
   compareMode.value = true
-  ElMessage.success('å·²å¼€å¯åŒå±å¯¹æ¯”ï¼šç¼©æ”¾ä¸Žæ—‹è½¬ä¿æŒåŒæ­?)
+  ElMessage.success('ÒÑ¿ªÆôË«ÆÁ¶Ô±È£ºËõ·ÅÓëÐý×ª±£³ÖÍ¬??)
 }
 const handleThumbSelect = (img) => {
   if (compareMode.value && currentImage.value && img.imageId !== currentImage.value.imageId) {
@@ -1398,7 +1398,7 @@ const undoAnnoAction = async () => {
     redoStack.value.push(entry)
     redrawAnnotations()
   } catch {
-    ElMessage.error('æ’¤é”€å¤±è´¥')
+    ElMessage.error('³·ÏúÊ§°Ü')
     undoStack.value.push(entry)
   }
 }
@@ -1425,7 +1425,7 @@ const redoAnnoAction = async () => {
     undoStack.value.push(entry)
     redrawAnnotations()
   } catch {
-    ElMessage.error('é‡åšå¤±è´¥')
+    ElMessage.error('ÖØ×öÊ§°Ü')
     redoStack.value.push(entry)
   }
 }
@@ -1455,7 +1455,7 @@ const schedulePersistSelectedAnno = () => {
       redrawAnnotations()
     } catch {
       annoHistoryPendingBefore = null
-      ElMessage.error('æ ‡æ³¨å¾®è°ƒä¿å­˜å¤±è´¥')
+      ElMessage.error('±ê×¢Î¢µ÷±£´æÊ§°Ü')
     }
   }, 260)
 }
@@ -1567,7 +1567,7 @@ const onImgLoad = () => {
 
 watch(visibleAnnotations, () => nextTick(redrawAnnotations), { deep: true })
 
-/* ç”»å¸ƒé‡ç»˜ */
+/* »­²¼ÖØ»æ */
 const redrawAnnotations = () => {
   const canvas = annoCanvas.value
   if (!canvas || !imgNW) return
@@ -1649,7 +1649,7 @@ const drawTempRect = (ctx, r) => {
   ctx.restore()
 }
 
-/* é¼ æ ‡åæ ‡ â†?ç”»å¸ƒåƒç´ åæ ‡ */
+/* Êó±ê×ø±ê ??»­²¼ÏñËØ×ø±ê */
 const toCanvasCoords = (e) => {
   const canvas = annoCanvas.value
   const rect = canvas.getBoundingClientRect()
@@ -1724,7 +1724,7 @@ const onAnnoMouseUp = (e) => {
   if (tooSmall) {
     drawState = null; redrawAnnotations(); return
   }
-  // æ˜¾ç¤ºæ ‡æ³¨åè¾“å…¥å¼¹æ¡†ï¼ˆä½ç½®è·Ÿéšå±å¹•é¼ æ ‡ï¼?
+  // ÏÔÊ¾±ê×¢ÃûÊäÈëµ¯¿ò£¨Î»ÖÃ¸úËæÆÁÄ»Êó±ê??
   labelPopupPos.value = { x: e.clientX, y: e.clientY + 12 }
   showLabelInput.value = true
   pendingAnnoLabel.value = ''
@@ -1774,7 +1774,7 @@ const confirmAnnoLabel = async () => {
     imageId: currentImage.value.imageId,
     reportId: currentReport.value?.reportId || null,
     annoType: annoTool.value === 'line' ? 'LINE' : 'RECTANGLE',
-    label: pendingAnnoLabel.value.trim() || (annoTool.value === 'line' ? 'æµ‹è·' : 'ç—…ç¶'),
+    label: pendingAnnoLabel.value.trim() || (annoTool.value === 'line' ? '²â¾à' : '²¡Ôî'),
     x: drawState.x / imgNW, y: drawState.y / imgNH,
     width: drawState.w / imgNW, height: drawState.h / imgNH,
     color: '#52c41a'
@@ -1784,7 +1784,7 @@ const confirmAnnoLabel = async () => {
     annotations.value.push(res.data)
     selectedAnnoId.value = res.data.annotationId
     pushAnnoHistory({ type: 'create', after: cloneAnno(res.data), currentId: res.data.annotationId })
-  } catch { ElMessage.error('æ ‡æ³¨ä¿å­˜å¤±è´¥') }
+  } catch { ElMessage.error('±ê×¢±£´æÊ§°Ü') }
   cancelAnnoLabel()
 }
 
@@ -1812,14 +1812,14 @@ const handleDeleteAnno = async (annotationId) => {
     lineDragState = null
     redrawAnnotations()
     updateCanvasCursor()
-  } catch { ElMessage.error('åˆ é™¤æ ‡æ³¨å¤±è´¥') }
+  } catch { ElMessage.error('É¾³ý±ê×¢Ê§°Ü') }
 }
 
 const deleteSelectedAnno = () => {
   if (selectedAnnoId.value) handleDeleteAnno(selectedAnnoId.value)
 }
 
-/* currentImage åˆ‡æ¢æ—¶åŠ è½½æ ‡æ³?*/
+/* currentImage ÇÐ»»Ê±¼ÓÔØ±ê??*/
 watch(currentImage, async (img) => {
   annotations.value = []
   selectedAnnoId.value = null
@@ -1841,7 +1841,7 @@ watch(compareImage, (img) => {
 })
 
 const beforeUpload = (file) => {
-  if (file.size > 50 * 1024 * 1024) { ElMessage.error('æ–‡ä»¶å¤§å°ä¸èƒ½è¶…è¿‡50MB'); return false }
+  if (file.size > 50 * 1024 * 1024) { ElMessage.error('ÎÄ¼þ´óÐ¡²»ÄÜ³¬¹ý50MB'); return false }
   return true
 }
 const handleUpload = async ({ file }) => {
@@ -1852,16 +1852,23 @@ const handleUpload = async ({ file }) => {
     await ensureFullUrl(data)
     images.value.push(data)
     currentImage.value = data
-    ElMessage.success('å½±åƒä¸Šä¼ æˆåŠŸ')
+    ElMessage.success('Ó°ÏñÉÏ´«³É¹¦')
     searchRetrieval(selectedCaseId.value, res.data.imageId).catch(() => {})
     if (!currentReport.value) {
-      ElMessage.info('æ£€æµ‹åˆ°æ–°å½±åƒï¼Œæ­£åœ¨è‡ªåŠ¨ç”ŸæˆAIæŠ¥å‘Šâ€?)
+      ElMessage.info('¼ì²âµ½ÐÂÓ°Ïñ£¬ÕýÔÚ×Ô¶¯Éú³ÉAI±¨¸æ??)
       await handleGenerate()
     }
-  } catch { /* ignore */ }
+  } catch (err) {
+    const status = err?.response?.status
+    if (status === 413) {
+      ElMessage.error('\u4e0a\u4f20\u5931\u8d25\uff1a\u6587\u4ef6\u5927\u5c0f\u8d85\u51fa\u9650\u5236\uff0c\u8bf7\u589e\u5927\u540e\u7aef\u6216\u7f51\u5173\u9650\u5236')
+      return
+    }
+    ElMessage.error(err?.response?.data?.message || '\u4e0a\u4f20\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5')
+  }
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ å…¸åž‹ç—…ä¾‹æ ‡è®° â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ µäÐÍ²¡Àý±ê¼Ç ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const typicalDialogVisible = ref(false)
 const typicalLoading = ref(false)
 
@@ -1870,7 +1877,7 @@ const handleMarkTypical = async () => {
     try {
       await markTypical(selectedCaseId.value, { isTypical: 0, typicalTags: '', typicalRemark: '' })
       caseInfo.value.isTypical = 0
-      ElMessage.success('å·²å–æ¶ˆå…¸åž‹æ ‡è®?)
+      ElMessage.success('ÒÑÈ¡ÏûµäÐÍ±ê??)
       fetchCases()
     } catch { /* ignore */ }
   } else {
@@ -1884,15 +1891,15 @@ const confirmMarkTypical = async (payload) => {
     await markTypical(selectedCaseId.value, { isTypical: 1, ...payload })
     caseInfo.value.isTypical = 1
     typicalDialogVisible.value = false
-    ElMessage.success('å·²æ ‡è®°ä¸ºå…¸åž‹ç—…ä¾‹')
+    ElMessage.success('ÒÑ±ê¼ÇÎªµäÐÍ²¡Àý')
     fetchCases()
   } finally { typicalLoading.value = false }
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ æ‰“å° â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ´òÓ¡ ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const handlePrint = () => { window.print() }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ å·¥ä½œæµæ­¥éª?â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ¹¤×÷Á÷²½??©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const workflowSteps = computed(() => {
   const r = currentReport.value
   const status = r?.reportStatus
@@ -1900,31 +1907,31 @@ const workflowSteps = computed(() => {
   const isSigned = status === 'SIGNED'
   
   return [
-    { name: 'å½±åƒä¸Šä¼ ', status: images.value.length > 0 ? 'done' : 'pending',
-      time: formatTime(examTime), hint: 'å¾…æ“ä½? },
-    { name: 'AIåˆ†æž', status: r ? 'done' : (images.value.length > 0 ? 'active' : 'pending'),
-      time: formatTime(r?.aiGenerateTime), hint: r ? 'å·²å®Œæˆ? : 'å¾…ç”Ÿæˆ? },
-    { name: 'åŒ»ç”Ÿå®¡é˜…', status: isSigned ? 'done' : (r ? 'active' : 'pending'),
-      time: isSigned ? formatTime(r?.signTime) : '', hint: isSigned ? 'å·²å®Œæˆ? : (r ? 'è¿›è¡Œä¸? : 'å¾…æ“ä½?) },
-    { name: 'ç­¾å‘æŠ¥å‘Š', status: isSigned ? 'done' : 'pending',
-      time: formatTime(r?.signTime), hint: isSigned ? 'å·²å®Œæˆ? : 'å¾…æ“ä½? },
-    { name: 'è¯„æµ‹å­˜æ¡£', status: isSigned ? 'done' : 'pending',
-      time: '', hint: isSigned ? 'å·²å®Œæˆ? : 'å¾…æ“ä½? },
+    { name: 'Ó°ÏñÉÏ´«', status: images.value.length > 0 ? 'done' : 'pending',
+      time: formatTime(examTime), hint: '´ý²Ù?? },
+    { name: 'AI·ÖÎö', status: r ? 'done' : (images.value.length > 0 ? 'active' : 'pending'),
+      time: formatTime(r?.aiGenerateTime), hint: r ? 'ÒÑÍê?? : '´ýÉú?? },
+    { name: 'Ò½ÉúÉóÔÄ', status: isSigned ? 'done' : (r ? 'active' : 'pending'),
+      time: isSigned ? formatTime(r?.signTime) : '', hint: isSigned ? 'ÒÑÍê?? : (r ? '½øÐÐ?? : '´ý²Ù??) },
+    { name: 'Ç©·¢±¨¸æ', status: isSigned ? 'done' : 'pending',
+      time: formatTime(r?.signTime), hint: isSigned ? 'ÒÑÍê?? : '´ý²Ù?? },
+    { name: 'ÆÀ²â´æµµ', status: isSigned ? 'done' : 'pending',
+      time: '', hint: isSigned ? 'ÒÑÍê?? : '´ý²Ù?? },
   ]
 })
 
 const followupSummary = computed(() => {
   if (!currentImage.value) return ''
   if (!priorImages.value.length) {
-    return hasPixelSpacing.value ? 'å½“å‰å›¾åƒå·²å…·å¤‡å®žæµ‹æ¡ä»¶ï¼Œå¯ç›´æŽ¥è®°å½•ç—…ç¶å°ºå¯¸ã€? : 'æš‚æ— åŽ†å²å½±åƒï¼›å½“å‰å¯å…ˆå®Œæˆæœ¬æ¬¡é˜…ç‰‡ä¸Žæ ‡æ³¨ã€?
+    return hasPixelSpacing.value ? 'µ±Ç°Í¼ÏñÒÑ¾ß±¸Êµ²âÌõ¼þ£¬¿ÉÖ±½Ó¼ÇÂ¼²¡Ôî³ß´ç?? : 'ÔÝÎÞÀúÊ·Ó°Ïñ£»µ±Ç°¿ÉÏÈÍê³É±¾´ÎÔÄÆ¬Óë±ê×¢??
   }
   const latest = priorImages.value[0]
   const latestTime = latest?.shootTime || latest?.createdAt
-  const latestText = latestTime ? formatDate(latestTime) : 'æœ€è¿‘ä¸€æ¬¡åŽ†å²æ£€æŸ?
-  return `æœ¬ç—…ä¾‹å­˜åœ?${priorImages.value.length} æ¬¡åŽ†å²å½±åƒï¼Œæœ€è¿‘ä¸€æ¬¡ä¸º ${latestText}ï¼Œå¯ç”¨äºŽéšè®¿å¯¹ç…§ã€‚`
+  const latestText = latestTime ? formatDate(latestTime) : '×î½üÒ»´ÎÀúÊ·¼ì??
+  return `±¾²¡Àý´æ??${priorImages.value.length} ´ÎÀúÊ·Ó°Ïñ£¬×î½üÒ»´ÎÎª ${latestText}£¬¿ÉÓÃÓÚËæ·Ã¶ÔÕÕ¡£`
 })
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ç—…ä¾‹å¯¼èˆª â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ²¡Àýµ¼º½ ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const prevCaseId = computed(() => {
   const idx = caseList.value.findIndex(c => c.caseId === selectedCaseId.value)
   return idx > 0 ? caseList.value[idx - 1].caseId : null
@@ -1941,14 +1948,14 @@ const navigateCase = (dir) => {
   }
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ æ–°å»ºç—…ä¾‹ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ÐÂ½¨²¡Àý ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const createDialogVisible = ref(false)
 const creating = ref(false)
 const handleCreateCase = async (payload) => {
   creating.value = true
   try {
     const res = await createCase(payload)
-    ElMessage.success('ç—…ä¾‹åˆ›å»ºæˆåŠŸ')
+    ElMessage.success('²¡Àý´´½¨³É¹¦')
     createDialogVisible.value = false
     currentPage.value = 1
     await fetchCases()
@@ -1973,7 +1980,7 @@ onUnmounted(() => {
   revokeImageUrls(priorImages.value)
 })
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ AI æŠ¥å‘Šæ¶¦è‰² â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ AI ±¨¸æÈóÉ« ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const polishing = ref(false)
 const polishResult = ref(null)
 const polishDialogVisible = ref(false)
@@ -1986,7 +1993,7 @@ const handlePolish = async () => {
     polishResult.value = res.data
     polishDialogVisible.value = true
   } catch (e) {
-    ElMessage.error('æ¶¦è‰²å¤±è´¥ï¼? + (e?.message || 'è¯·ç¡®è®¤AIæœåŠ¡å¯ç”¨'))
+    ElMessage.error('ÈóÉ«Ê§°Ü?? + (e?.message || 'ÇëÈ·ÈÏAI·þÎñ¿ÉÓÃ'))
   } finally { polishing.value = false }
 }
 
@@ -1995,24 +2002,24 @@ const applyPolish = () => {
     draftFindings.value = polishResult.value.polished_findings || draftFindings.value
     draftImpression.value = polishResult.value.polished_impression || draftImpression.value
     polishDialogVisible.value = false
-    ElMessage.success('AIæ¶¦è‰²å†…å®¹å·²åº”ç”?)
+    ElMessage.success('AIÈóÉ«ÄÚÈÝÒÑÓ¦??)
   }
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ç½®ä¿¡åº¦é¢œè‰?â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ÖÃÐÅ¶ÈÑÕ??©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const confColor = (v) => {
   if (v >= 0.8) return '#52c41a'
   if (v >= 0.6) return '#faad14'
   return '#ff4d4f'
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ å·¥å…·æ–¹æ³• â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const statusLabel = (s) => ({ NONE: 'å¾…ç”Ÿæˆ?, AI_DRAFT: 'AIè‰ç¨¿', EDITING: 'ç¼–è¾‘ä¸?, SIGNED: 'å·²ç­¾å? }[s] || s || 'â€?)
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ¹¤¾ß·½·¨ ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
+const statusLabel = (s) => ({ NONE: '´ýÉú??, AI_DRAFT: 'AI²Ý¸å', EDITING: '±à¼­??, SIGNED: 'ÒÑÇ©?? }[s] || s || '??)
 const statusColor = (s) => ({ NONE: 'orange', AI_DRAFT: 'blue', EDITING: 'blue', SIGNED: 'green' }[s] || 'gray')
-const genderLabel = (g) => ({ M: 'ç”?, F: 'å¥? }[g] || g || 'â€?)
+const genderLabel = (g) => ({ M: '??, F: '?? }[g] || g || '??)
 
 const formatDate = (d) => {
-  if (!d) return 'â€?
+  if (!d) return '??
   return new Date(d).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 const formatTime = (d) => {
@@ -2021,7 +2028,7 @@ const formatTime = (d) => {
   return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ åˆå§‹åŒ?â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ ³õÊ¼??©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 onMounted(async () => {
   window.addEventListener('keydown', handleViewerShortcut)
   window.addEventListener('resize', syncRenderedImageSize)
@@ -2044,9 +2051,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•?
-   æ•´ä½“å¸ƒå±€
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•?*/
+/* ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T??
+   ÕûÌå²¼¾Ö
+¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T??*/
 .workstation {
   display: flex;
   height: 100%;
@@ -2109,9 +2116,9 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•?
-   å³ä¾§å·¥ä½œåŒ?
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•?*/
+/* ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T??
+   ÓÒ²à¹¤×÷??
+¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T??*/
 .workspace {
   flex: 1;
   display: flex;
@@ -2127,7 +2134,7 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-/* æ»šåŠ¨å†…å®¹åŒ?*/
+/* ¹ö¶¯ÄÚÈÝ??*/
 .ws-scroll {
   flex: 1;
   overflow-y: auto;
@@ -2141,7 +2148,7 @@ onMounted(async () => {
 .ws-scroll::-webkit-scrollbar-track { background: transparent; }
 .ws-scroll::-webkit-scrollbar-thumb { background: rgba(111,134,166,0.36); border-radius: 3px; }
 
-/* ä¸»å†…å®¹åˆ†æ ?*/
+/* Ö÷ÄÚÈÝ·Ö??*/
 .ws-body {
   display: flex;
   flex: 0 0 440px;
@@ -2149,7 +2156,7 @@ onMounted(async () => {
   gap: 12px;
 }
 
-/* â”€â”€â”€ å½±åƒæŸ¥çœ‹å™?â”€â”€â”€ */
+/* ©¤©¤©¤ Ó°Ïñ²é¿´??©¤©¤©¤ */
 .viewer-panel {
   width: 420px;
   flex-shrink: 0;
@@ -2231,7 +2238,7 @@ onMounted(async () => {
   height: auto;
 }
 
-/* â”€â”€â”€ æ ‡æ³¨å·¥å…· & ç”»å¸ƒ â”€â”€â”€ */
+/* ©¤©¤©¤ ±ê×¢¹¤¾ß & »­²¼ ©¤©¤©¤ */
 .tool-sep-v {
   width: 1px; height: 14px; background: rgba(255,255,255,0.15);
   margin: 0 2px; align-self: center; flex-shrink: 0;
@@ -2350,7 +2357,7 @@ onMounted(async () => {
   top: 86px;
 }
 
-/* â”€â”€â”€ æ ‡æ³¨åè¾“å…¥å¼¹æ¡†ï¼ˆfixedå®šä½ï¼?â”€â”€â”€ */
+/* ©¤©¤©¤ ±ê×¢ÃûÊäÈëµ¯¿ò£¨fixed¶¨Î»??©¤©¤©¤ */
 .anno-label-popup {
   position: fixed;
   z-index: 9999;
@@ -2431,9 +2438,9 @@ onMounted(async () => {
   border-color: rgba(64,169,255,0.25);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•?
-   ç¼©ç•¥å›¾åˆ é™¤æŒ‰é’?
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•?*/
+/* ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T??
+   ËõÂÔÍ¼É¾³ý°´??
+¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T??*/
 .thumb-del {
   position: absolute;
   top: 2px;

@@ -219,6 +219,17 @@ public class ReportServiceImpl implements ReportService {
         if ("SIGNED".equals(report.getReportStatus())) {
             throw new BusinessException(400, "Report already signed");
         }
+        if (!StringUtils.hasText(report.getFinalFindings())) {
+            String fallbackFindings = StringUtils.hasText(report.getAiFindings())
+                    ? report.getAiFindings()
+                    : "AI service returned empty findings - please write manually.";
+            report.setFinalFindings(fallbackFindings);
+        }
+        if (!StringUtils.hasText(report.getFinalImpression())) {
+            report.setFinalImpression(StringUtils.hasText(report.getAiImpression())
+                    ? report.getAiImpression()
+                    : "");
+        }
         report.setReportStatus("SIGNED");
         report.setDoctorId(doctorId);
         report.setSignTime(LocalDateTime.now());

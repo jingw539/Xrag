@@ -322,10 +322,19 @@ const beforeUpload = (file) => {
 }
 
 const handleUpload = async ({ file }) => {
-  const res = await uploadImage(file, caseId.value)
-  ElMessage.success('上传成功')
-  images.value.push(res.data)
-  selectedImageId.value = res.data.imageId
+  try {
+    const res = await uploadImage(file, caseId.value)
+    ElMessage.success('上传成功')
+    images.value.push(res.data)
+    selectedImageId.value = res.data.imageId
+  } catch (err) {
+    const status = err?.response?.status
+    if (status === 413) {
+      ElMessage.error('上传失败：文件过大，请联系管理员调整网关/服务端限制')
+      return
+    }
+    ElMessage.error(err?.response?.data?.message || '上传失败，请稍后重试')
+  }
 }
 
 const deleteImg = async (img) => {
