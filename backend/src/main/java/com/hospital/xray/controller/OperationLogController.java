@@ -33,14 +33,14 @@ public class OperationLogController {
 
     @Operation(summary = "查询操作日志")
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'QC')")
     public Result<PageResult<OperationLogVO>> listLogs(LogQueryDTO query) {
         return Result.success(operationLogService.listLogs(query));
     }
 
     @Operation(summary = "导出操作日志")
     @GetMapping("/export")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'QC')")
     public ResponseEntity<ByteArrayResource> exportLogs(LogQueryDTO query) {
         byte[] content = operationLogService.exportLogs(query);
         String fileName = "operation-logs-" + LocalDate.now() + ".csv";
