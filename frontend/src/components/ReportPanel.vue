@@ -201,6 +201,8 @@ const props = defineProps({
   currentReport: { type: Object, default: null },
   reportTab: { type: String, default: 'edit' },
   showAiCompare: { type: Boolean, default: false },
+  findings: { type: String, default: undefined },
+  impression: { type: String, default: undefined },
   draftFindings: { type: String, default: '' },
   draftImpression: { type: String, default: '' },
   generating: { type: Boolean, default: false },
@@ -242,12 +244,12 @@ const showAiCompareModel = computed({
 })
 
 const findingsModel = computed({
-  get: () => props.draftFindings,
+  get: () => (props.findings ?? props.draftFindings),
   set: (val) => emit('update:findings', val)
 })
 
 const impressionModel = computed({
-  get: () => props.draftImpression,
+  get: () => (props.impression ?? props.draftImpression),
   set: (val) => emit('update:impression', val)
 })
 
