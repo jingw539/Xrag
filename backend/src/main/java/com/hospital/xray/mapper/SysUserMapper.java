@@ -30,11 +30,11 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
             "SELECT u.*, r.role_code FROM sys_user u " +
             "LEFT JOIN sys_role r ON u.role_id = r.role_id " +
             "WHERE 1=1 " +
-            "<if test='username != null and username != \"\"'> AND u.username LIKE CONCAT('%', #{username}, '%') </if>" +
-            "<if test='realName != null and realName != \"\"'> AND u.real_name LIKE CONCAT('%', #{realName}, '%') </if>" +
-            "<if test='department != null and department != \"\"'> AND u.department LIKE CONCAT('%', #{department}, '%') </if>" +
-            "<if test='status != null'> AND u.status = #{status} </if>" +
-            "<if test='roleCode != null and roleCode != \"\"'> AND r.role_code = #{roleCode} </if>" +
+            "<if test=\"username != null and username != ''\"> AND u.username LIKE CONCAT('%', #{username}, '%') </if>" +
+            "<if test=\"realName != null and realName != ''\"> AND u.real_name LIKE CONCAT('%', #{realName}, '%') </if>" +
+            "<if test=\"department != null and department != ''\"> AND u.department LIKE CONCAT('%', #{department}, '%') </if>" +
+            "<if test=\"status != null\"> AND u.status = #{status} </if>" +
+            "<if test=\"roleCode != null and roleCode != ''\"> AND r.role_code = #{roleCode} </if>" +
             "ORDER BY u.created_at DESC" +
             "</script>")
     Page<SysUser> selectPageWithRole(Page<SysUser> page,
