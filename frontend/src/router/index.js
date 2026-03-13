@@ -4,7 +4,6 @@ import { loadPreviewToken } from '@/utils/preview'
 
 const resolveHomePath = (userStore) => {
   if (userStore.isAdmin) return '/users'
-  if (userStore.isQC) return '/statistics'
   return '/cases'
 }
 
@@ -28,7 +27,7 @@ const routes = [
       { path: 'statistics', name: 'Statistics', component: () => import('@/views/Statistics.vue') },
       { path: 'users', name: 'UserManagement', component: () => import('@/views/UserManagement.vue'), meta: { requiresAdmin: true } },
       { path: 'config', name: 'SystemConfig', component: () => import('@/views/SystemConfig.vue'), meta: { requiresAdmin: true } },
-      { path: 'logs', name: 'OperationLog', component: () => import('@/views/OperationLog.vue'), meta: { requiresQC: true } }
+      { path: 'logs', name: 'OperationLog', component: () => import('@/views/OperationLog.vue'), meta: { requiresAdmin: true } }
     ]
   }
 ]
@@ -58,8 +57,6 @@ router.beforeEach((to, from, next) => {
   } else if (to.path === '/login' && userStore.token) {
     next(resolveHomePath(userStore))
   } else if (to.meta.requiresAdmin && !userStore.isAdmin) {
-    next(resolveHomePath(userStore))
-  } else if (to.meta.requiresQC && !userStore.isAdminOrQC) {
     next(resolveHomePath(userStore))
   } else if (to.meta.requiresDoctor && !userStore.isDoctor) {
     next(resolveHomePath(userStore))

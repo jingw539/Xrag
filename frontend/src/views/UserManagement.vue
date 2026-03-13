@@ -90,7 +90,6 @@
       <el-form-item v-if="!editingId" label="角色" prop="roleCode">
         <el-select v-model="form.roleCode" style="width: 100%">
           <el-option label="医生" value="DOCTOR" />
-          <el-option label="质控" value="QC" />
           <el-option label="管理员" value="ADMIN" />
         </el-select>
       </el-form-item>
@@ -162,8 +161,8 @@ const updateIsMobile = () => {
   isMobile.value = window.innerWidth <= 768
 }
 
-const roleLabel = (code) => ({ ADMIN: '管理员', QC: '质控', DOCTOR: '医生' }[code] || code || '-')
-const roleTagType = (code) => ({ ADMIN: 'danger', QC: 'warning', DOCTOR: 'primary' }[code] || 'info')
+const roleLabel = (code) => ({ ADMIN: '管理员', DOCTOR: '医生' }[code] || code || '-')
+const roleTagType = (code) => ({ ADMIN: 'danger', DOCTOR: 'primary' }[code] || 'info')
 
 const fetchList = async () => {
   loading.value = true

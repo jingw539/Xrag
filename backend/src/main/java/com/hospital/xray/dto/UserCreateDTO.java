@@ -20,7 +20,7 @@ public class UserCreateDTO {
     private String realName;
 
     @NotBlank(message = "角色不能为空")
-    @Pattern(regexp = "^(DOCTOR|QC|ADMIN)$", message = "角色编码必须为 DOCTOR/QC/ADMIN")
+    @Pattern(regexp = "^(DOCTOR|ADMIN)$", message = "角色编码必须为 DOCTOR/ADMIN")
     private String roleCode;
 
     private String department;

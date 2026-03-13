@@ -10,9 +10,7 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref(JSON.parse(storage.getItem('userInfo') || '{}'))
 
   const isAdmin = computed(() => userInfo.value.roleCode === 'ADMIN')
-  const isQC = computed(() => userInfo.value.roleCode === 'QC')
   const isDoctor = computed(() => userInfo.value.roleCode === 'DOCTOR')
-  const isAdminOrQC = computed(() => userInfo.value.roleCode === 'ADMIN' || userInfo.value.roleCode === 'QC')
 
   const setToken = (accessToken, refresh) => {
     token.value = accessToken
@@ -42,5 +40,5 @@ export const useUserStore = defineStore('user', () => {
     storage.removeItem('userInfo')
   }
 
-  return { token, refreshToken, userInfo, isAdmin, isQC, isDoctor, isAdminOrQC, setToken, setUserInfo, logout }
+  return { token, refreshToken, userInfo, isAdmin, isDoctor, setToken, setUserInfo, logout }
 })

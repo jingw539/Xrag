@@ -41,8 +41,7 @@ public class DataInitializer implements ApplicationRunner {
     private void initRoles() {
         List<Object[]> roles = List.of(
                 new Object[]{"ADMIN",  "系统管理员"},
-                new Object[]{"DOCTOR", "放射科医生"},
-                new Object[]{"QC",     "质控师"}
+                new Object[]{"DOCTOR", "放射科医生"}
         );
         for (Object[] r : roles) {
             String code = (String) r[0];

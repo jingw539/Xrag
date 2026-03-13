@@ -55,15 +55,6 @@
             </el-menu-item>
           </template>
 
-          <template v-if="userStore.isQC">
-            <div v-show="!collapsed" class="menu-group-title">质控管理</div>
-            <div v-show="collapsed" class="menu-group-divider"></div>
-
-            <el-menu-item index="/logs">
-              <el-icon><Document /></el-icon>
-              <template #title>操作日志</template>
-            </el-menu-item>
-          </template>
         </el-menu>
       </el-scrollbar>
 
@@ -141,7 +132,7 @@ const PAGE_NAME_MAP = {
 const currentPageName = computed(() => PAGE_NAME_MAP[route.path] || '')
 
 const roleLabel = computed(() => {
-  const map = { ADMIN: '管理员', QC: '质控', DOCTOR: '医生' }
+  const map = { ADMIN: '管理员', DOCTOR: '医生' }
   return map[userStore.userInfo.roleCode] || userStore.userInfo.roleCode
 })
 

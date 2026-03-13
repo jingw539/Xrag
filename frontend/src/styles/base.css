@@ -61,7 +61,12 @@ html, body {
 .el-dropdown-menu,
 .el-select__dropdown,
 .el-picker-panel,
-.el-popover {
+.el-popover,
+.el-popper,
+.el-popper.is-light,
+.el-select__popper,
+.el-dropdown__popper,
+.el-tooltip__popper {
   background: var(--xrag-panel) !important;
   border: 1px solid rgba(237, 246, 250, 0.1) !important;
   box-shadow: var(--xrag-shadow-soft) !important;
@@ -72,6 +77,17 @@ html, body {
 .el-popper__arrow::before {
   background: var(--xrag-panel) !important;
   border: 1px solid rgba(237, 246, 250, 0.08) !important;
+}
+
+.el-select__popper .el-select-dropdown,
+.el-dropdown__popper .el-dropdown-menu,
+.el-popper .el-select-dropdown,
+.el-popper .el-dropdown-menu {
+  background: var(--xrag-panel) !important;
+  color: var(--xrag-text) !important;
+  border: 1px solid rgba(237, 246, 250, 0.1) !important;
+  box-shadow: var(--xrag-shadow-soft) !important;
+  border-radius: var(--xrag-radius-lg) !important;
 }
 
 .el-card__header,
@@ -169,6 +185,10 @@ html, body {
   background: transparent !important;
 }
 
+.el-select-dropdown__item.is-disabled {
+  color: var(--xrag-text-faint) !important;
+}
+
 .el-select-dropdown__item.hover,
 .el-select-dropdown__item:hover {
   background: rgba(28, 168, 200, 0.16) !important;
@@ -188,6 +208,10 @@ html, body {
 .el-dropdown-menu__item:hover {
   background: rgba(28, 168, 200, 0.16) !important;
   color: #ffffff !important;
+}
+
+.el-dropdown-menu__item--divided::before {
+  background: rgba(237, 246, 250, 0.08) !important;
 }
 
 .el-input__inner,

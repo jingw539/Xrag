@@ -160,7 +160,7 @@ public class AiServiceClient {
                                                List<String> missingLabels, List<String> extraLabels) {
         StringBuilder reviewBuilder = new StringBuilder();
         reviewBuilder.append("""
-                你是一名资深放射科医师与质控审核员，请针对已签发报告给出简洁、可执行的中文审核建议。
+                你是一名资深放射科医师，请针对已签发报告给出简洁、可执行的中文审核建议。
                 要求：
                 1. 必须使用中文医学表述，禁止输出英文。
                 2. key_issues 和 check_points 必须是中文数组。

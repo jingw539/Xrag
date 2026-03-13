@@ -24,7 +24,7 @@ public class AnnotationController {
 
     @Operation(summary = "List annotations by image")
     @GetMapping("/image/{imageId}")
-    @PreAuthorize("hasAnyAuthority('DOCTOR', 'QC', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('DOCTOR', 'ADMIN')")
     public Result<List<AnnotationVO>> listByImage(@PathVariable Long imageId) {
         return Result.success(annotationService.listByImage(imageId));
     }
