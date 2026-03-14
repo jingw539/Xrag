@@ -5,12 +5,12 @@
         <span class="page-title"><el-icon><Setting /></el-icon> 系统配置</span>
       </template>
 
-      <el-table class="admin-table" :data="configs" v-loading="loading" border>
+      <el-table class="admin-table perf-table" :data="configs" v-loading="loading" border>
         <el-table-column prop="configKey" label="配置键" width="240" />
         <el-table-column prop="configValue" label="配置值">
           <template #default="{ row }">
             <template v-if="row.editing">
-              <el-input v-model="row._editVal" size="small" style="width: 300px" />
+              <el-input v-model="row._editVal" size="small" class="input-w-300" />
             </template>
             <template v-else>
               <span>{{ row.configValue }}</span>
@@ -38,6 +38,8 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { listConfigs, updateConfig } from '@/api/config'
+import { runWhenIdle } from '@/utils/idle'
+import { Setting } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const configs = ref([])
@@ -47,6 +49,8 @@ const fetchList = async () => {
   try {
     const res = await listConfigs()
     configs.value = (res.data || []).map((item) => ({ ...item, editing: false, _editVal: item.configValue }))
+  } catch {
+    configs.value = []
   } finally {
     loading.value = false
   }
@@ -58,13 +62,19 @@ const startEdit = (row) => {
 }
 
 const handleSave = async (row) => {
-  await updateConfig(row.configKey, row._editVal)
-  row.configValue = row._editVal
-  row.editing = false
-  ElMessage.success('保存成功')
+  try {
+    await updateConfig(row.configKey, row._editVal)
+    row.configValue = row._editVal
+    row.editing = false
+    ElMessage.success('保存成功')
+  } catch {
+    // error message handled globally
+  }
 }
 
-onMounted(fetchList)
+onMounted(() => {
+  runWhenIdle(() => fetchList(), { timeout: 1200 })
+})
 </script>
 <style scoped>
 .page-wrap {
@@ -111,6 +121,7 @@ onMounted(fetchList)
   padding: 16px 20px;
   color: #e8f0ff;
 }
+.input-w-300 { width: 300px; }
 
 :deep(.admin-table) {
   --el-table-bg-color: #0f1923;
@@ -134,9 +145,8 @@ onMounted(fetchList)
   background: #111a27;
   box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.22) inset;
 }
-</style>
 
-<style scoped>
+
 .page-wrap {
   background: var(--xrag-bg) !important;
   color: var(--xrag-text) !important;

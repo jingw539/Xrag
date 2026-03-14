@@ -88,7 +88,7 @@
                 <span class="user-name">{{ userStore.userInfo.realName || userStore.userInfo.username }}</span>
                 <span class="user-role">{{ roleLabel }}</span>
               </div>
-              <el-icon :size="12" style="opacity:.5;margin-left:4px;"><ArrowDown /></el-icon>
+              <el-icon :size="12" class="user-caret"><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
@@ -113,6 +113,19 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getMe } from '@/api/auth'
 import { isPreviewMode } from '@/utils/preview'
+import {
+  Folder,
+  Star,
+  DataAnalysis,
+  Avatar,
+  Setting,
+  Document,
+  Menu,
+  SwitchButton,
+  Expand,
+  Fold,
+  ArrowDown
+} from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -419,6 +432,11 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   margin-left: 10px;
+}
+
+.user-caret {
+  opacity: 0.5;
+  margin-left: 4px;
 }
 
 .user-name {

@@ -41,6 +41,39 @@ html, body {
   animation-delay: -8s;
 }
 
+.perf-mode #app {
+  background: #040c12;
+}
+
+.perf-mode #app::before,
+.perf-mode #app::after {
+  display: none;
+}
+
+.perf-mode .el-card,
+.perf-mode .el-dialog,
+.perf-mode .el-drawer,
+.perf-mode .el-dropdown-menu,
+.perf-mode .el-select__dropdown,
+.perf-mode .el-picker-panel,
+.perf-mode .el-popover,
+.perf-mode .el-popper,
+.perf-mode .el-popper.is-light,
+.perf-mode .el-select__popper,
+.perf-mode .el-dropdown__popper,
+.perf-mode .el-tooltip__popper {
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+.perf-mode .sidebar,
+.perf-mode .top-header,
+.perf-mode .full-card,
+.perf-mode .detail-header {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -52,6 +85,23 @@ html, body {
   50% {
     transform: translate3d(0, -12px, 0) scale(1.02);
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app::before,
+  #app::after {
+    animation: none;
+  }
+}
+
+/* Perf: skip offscreen rendering for large sections */
+.perf-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 600px 400px;
+}
+.perf-table {
+  content-visibility: auto;
+  contain-intrinsic-size: 900px 700px;
 }
 
 /* Element Plus base */

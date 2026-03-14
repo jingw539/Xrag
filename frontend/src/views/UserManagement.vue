@@ -10,7 +10,7 @@
         </div>
       </template>
 
-      <el-table v-if="!isMobile" class="admin-table" :data="users" v-loading="loading" border>
+      <el-table v-if="!isMobile" class="admin-table perf-table" :data="users" v-loading="loading" border>
         <el-table-column prop="username" label="用户名" width="130" />
         <el-table-column prop="realName" label="姓名" width="120" />
         <el-table-column prop="roleCode" label="角色" width="100" align="center">
@@ -40,7 +40,7 @@
         </el-table-column>
       </el-table>
 
-      <div v-else class="user-card-list" v-loading="loading">
+      <div v-else class="user-card-list perf-section" v-loading="loading">
         <div v-for="row in users" :key="row.userId" class="user-card">
           <div class="user-card-top">
             <div class="user-identity">
@@ -79,7 +79,7 @@
     </el-card>
   </div>
 
-  <el-dialog v-model="formVisible" :title="editingId ? '编辑用户' : '新建用户'" width="460px">
+  <el-dialog v-if="formVisible" v-model="formVisible" :title="editingId ? '编辑用户' : '新建用户'" width="460px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
       <el-form-item label="用户名" prop="username">
         <el-input v-model="form.username" :disabled="!!editingId" />
@@ -88,7 +88,7 @@
         <el-input v-model="form.realName" />
       </el-form-item>
       <el-form-item v-if="!editingId" label="角色" prop="roleCode">
-        <el-select v-model="form.roleCode" style="width: 100%">
+        <el-select v-model="form.roleCode" class="full-width">
           <el-option label="医生" value="DOCTOR" />
           <el-option label="管理员" value="ADMIN" />
         </el-select>
@@ -111,7 +111,7 @@
     </template>
   </el-dialog>
 
-  <el-dialog v-model="pwdVisible" title="重置密码" width="380px">
+  <el-dialog v-if="pwdVisible" v-model="pwdVisible" title="重置密码" width="380px">
     <el-form label-width="80px">
       <el-form-item label="新密码">
         <el-input
@@ -135,6 +135,8 @@ import { onMounted, onBeforeUnmount, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Avatar, Plus } from '@element-plus/icons-vue'
 import { createUser, deleteUser, listUsers, resetPassword, toggleUserStatus, updateUser } from '@/api/user'
+import { runWhenIdle } from '@/utils/idle'
+import { formatDateTime } from '@/utils/format'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -170,6 +172,9 @@ const fetchList = async () => {
     const res = await listUsers(query)
     users.value = res.data.list || []
     total.value = res.data.total || 0
+  } catch {
+    users.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -211,6 +216,8 @@ const handleSubmit = async () => {
     ElMessage.success('保存成功')
     formVisible.value = false
     fetchList()
+  } catch {
+    // error message handled globally
   } finally {
     submitting.value = false
   }
@@ -218,9 +225,13 @@ const handleSubmit = async () => {
 
 const toggleStatus = async (row) => {
   const newStatus = row.status === 1 ? 0 : 1
-  await toggleUserStatus(row.userId, newStatus)
-  row.status = newStatus
-  ElMessage.success(newStatus === 1 ? '已启用' : '已禁用')
+  try {
+    await toggleUserStatus(row.userId, newStatus)
+    row.status = newStatus
+    ElMessage.success(newStatus === 1 ? '已启用' : '已禁用')
+  } catch {
+    // error message handled globally
+  }
 }
 
 const openResetPwd = (row) => {
@@ -234,9 +245,13 @@ const handleResetPwd = async () => {
     ElMessage.warning('请输入新密码')
     return
   }
-  await resetPassword(pwdTargetId.value, newPwd.value)
-  ElMessage.success('密码重置成功')
-  pwdVisible.value = false
+  try {
+    await resetPassword(pwdTargetId.value, newPwd.value)
+    ElMessage.success('密码重置成功')
+    pwdVisible.value = false
+  } catch {
+    // error message handled globally
+  }
 }
 
 const handleDelete = async (row) => {
@@ -245,15 +260,17 @@ const handleDelete = async (row) => {
     await deleteUser(row.userId)
     ElMessage.success('用户删除成功')
     fetchList()
-  } catch { /* ignore */ }
+  } catch {
+    // cancel or error handled globally
+  }
 }
 
-const formatDate = (value) => (value ? value.replace('T', ' ').substring(0, 16) : '-')
+const formatDate = (value) => formatDateTime(value)
 
 onMounted(() => {
   updateIsMobile()
   window.addEventListener('resize', updateIsMobile)
-  fetchList()
+  runWhenIdle(() => fetchList(), { timeout: 1200 })
 })
 
 onBeforeUnmount(() => {
@@ -316,6 +333,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   color: #e8f0ff;
 }
+.full-width { width: 100%; }
 
 .pagination {
   margin-top: 16px;
@@ -406,9 +424,8 @@ onBeforeUnmount(() => {
   background: #111a27;
   box-shadow: 0 0 0 1px rgba(111, 134, 166, 0.22) inset;
 }
-</style>
 
-<style scoped>
+
 .page-wrap {
   background: var(--xrag-bg) !important;
   color: var(--xrag-text) !important;

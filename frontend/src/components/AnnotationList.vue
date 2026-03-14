@@ -1,7 +1,7 @@
 <template>
   <div class="anno-list-panel" v-if="visibleAnnotations.length > 0">
     <div class="anno-list-header">
-      <el-icon style="color:#faad14;font-size:13px"><Flag /></el-icon>
+      <el-icon class="anno-flag"><Flag /></el-icon>
       <span>标注列表</span>
       <span class="anno-count">{{ totalCount }} 处</span>
       <span class="anno-hint">虚线=AI · 实线=医生</span>
@@ -28,6 +28,7 @@
 </template>
 
 <script setup>
+import { Flag } from '@element-plus/icons-vue'
 const emit = defineEmits(['select', 'delete'])
 
 defineProps({
@@ -61,6 +62,10 @@ const handleDelete = (id) => emit('delete', id)
   color: rgba(255,255,255,0.7);
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
+}
+.anno-flag {
+  color: #faad14;
+  font-size: 13px;
 }
 .anno-count { color: #40a9ff; margin-left: 2px; }
 .anno-hint { font-size: 10px; font-weight: 400; color: rgba(255,255,255,0.35); margin-left: auto; }

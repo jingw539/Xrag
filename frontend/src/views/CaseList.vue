@@ -12,10 +12,10 @@
 
       <el-form :model="query" inline class="search-form">
         <el-form-item label="检查号">
-          <el-input v-model="query.examNo" placeholder="输入检查号" clearable style="width:150px" />
+          <el-input v-model="query.examNo" placeholder="输入检查号" clearable class="input-w-150" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="query.reportStatus" clearable placeholder="全部" style="width:120px">
+          <el-select v-model="query.reportStatus" clearable placeholder="全部" class="select-w-120">
             <el-option label="待生成" value="NONE" />
             <el-option label="AI草稿" value="AI_DRAFT" />
             <el-option label="编辑中" value="EDITING" />
@@ -23,7 +23,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="科室">
-          <el-input v-model="query.department" placeholder="如：影像科" clearable style="width:120px" />
+          <el-input v-model="query.department" placeholder="如：影像科" clearable class="input-w-120" />
         </el-form-item>
         <el-form-item label="检查时间">
           <el-date-picker
@@ -33,7 +33,7 @@
             start-placeholder="开始日期"
             end-placeholder="结束日期"
             value-format="YYYY-MM-DD"
-            style="width:240px"
+            class="date-w-240"
             @change="onDateChange"
           />
         </el-form-item>
@@ -51,7 +51,7 @@
           stripe
           row-key="caseId"
           @row-click="goDetail"
-          style="cursor:pointer"
+          class="clickable-table perf-table"
         >
           <el-table-column prop="examNo" label="检查号" width="130" />
           <el-table-column prop="patientAnonId" label="患者ID" width="130" />
@@ -88,7 +88,7 @@
           </el-table-column>
         </el-table>
 
-        <div v-else class="card-list">
+        <div v-else class="card-list perf-section">
           <div v-for="row in cases" :key="row.caseId" class="case-card" @click="goDetail(row)">
             <div class="case-card-top">
               <span class="case-no">{{ row.examNo }}</span>
@@ -128,7 +128,7 @@
     </el-card>
   </div>
 
-  <el-dialog v-model="showCreateDialog" title="新建病例" width="520px">
+  <el-dialog v-if="showCreateDialog" v-model="showCreateDialog" title="新建病例" width="520px" @closed="resetCreateForm">
     <el-form :model="createForm" :rules="createRules" ref="createFormRef" label-width="80px">
       <el-form-item label="检查号" prop="examNo">
         <el-input v-model="createForm.examNo" placeholder="如：CXR20240301001" />
@@ -136,10 +136,10 @@
       <el-form-item label="患者ID" prop="patientAnonId">
         <el-input v-model="createForm.patientAnonId" placeholder="匿名患者标识" />
       </el-form-item>
-      <el-row :gutter="12">
+          <el-row :gutter="12">
         <el-col :span="12">
           <el-form-item label="性别">
-            <el-select v-model="createForm.gender" style="width:100%">
+            <el-select v-model="createForm.gender" class="full-width">
               <el-option label="男" value="M" />
               <el-option label="女" value="F" />
             </el-select>
@@ -147,7 +147,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="年龄">
-            <el-input-number v-model="createForm.age" :min="0" :max="120" style="width:100%" />
+            <el-input-number v-model="createForm.age" :min="0" :max="120" class="full-width" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -158,7 +158,7 @@
         <el-input v-model="createForm.department" />
       </el-form-item>
       <el-form-item label="检查时间" prop="examTime">
-        <el-date-picker v-model="createForm.examTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" style="width:100%" />
+        <el-date-picker v-model="createForm.examTime" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" class="full-width" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -173,6 +173,9 @@ import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, createCase, deleteCase } from '@/api/case'
+import { runWhenIdle } from '@/utils/idle'
+import { formatDateTime, reportStatusLabel, reportStatusType } from '@/utils/format'
+import { Folder, Plus, Star } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -202,6 +205,9 @@ const fetchList = async () => {
     const res = await listCases(query)
     cases.value = res.data.list || []
     total.value = res.data.total || 0
+  } catch {
+    cases.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -218,6 +224,11 @@ const onDateChange = (val) => {
   query.endTime = val ? `${val[1]}T23:59:59` : ''
 }
 
+const resetCreateForm = () => {
+  Object.assign(createForm, { examNo: '', patientAnonId: '', gender: 'M', age: null, bodyPart: '胸部', department: '', examTime: '' })
+  createFormRef.value?.clearValidate()
+}
+
 const goDetail = (row) => router.push(`/cases/${row.caseId}`)
 
 const handleCreate = async () => {
@@ -228,26 +239,33 @@ const handleCreate = async () => {
     ElMessage.success('创建成功')
     showCreateDialog.value = false
     router.push(`/cases/${res.data}`)
+    resetCreateForm()
+  } catch {
+    // error message handled globally
   } finally {
     creating.value = false
   }
 }
 
 const handleDelete = async (row) => {
-  await ElMessageBox.confirm(`确认删除病例“${row.examNo}”吗？此操作不可恢复。`, '警告', { type: 'warning' })
-  await deleteCase(row.caseId)
-  ElMessage.success('删除成功')
-  fetchList()
+  try {
+    await ElMessageBox.confirm(`确认删除病例“${row.examNo}”吗？此操作不可恢复。`, '警告', { type: 'warning' })
+    await deleteCase(row.caseId)
+    ElMessage.success('删除成功')
+    fetchList()
+  } catch {
+    // cancel or error handled globally
+  }
 }
 
-const formatDate = (val) => val ? val.replace('T', ' ').substring(0, 16) : '-'
-const statusLabel = (s) => ({ NONE: '待生成', AI_DRAFT: 'AI草稿', EDITING: '编辑中', SIGNED: '已签发' }[s] || s || '-')
-const statusType = (s) => ({ NONE: 'info', AI_DRAFT: 'info', EDITING: 'warning', SIGNED: 'success' }[s] || 'info')
+const formatDate = (val) => formatDateTime(val)
+const statusLabel = (s) => reportStatusLabel(s)
+const statusType = (s) => reportStatusType(s)
 
 onMounted(() => {
   updateIsMobile()
   window.addEventListener('resize', updateIsMobile)
-  fetchList()
+  runWhenIdle(() => fetchList(), { timeout: 1200 })
 })
 
 onBeforeUnmount(() => {
@@ -280,6 +298,12 @@ onBeforeUnmount(() => {
 .page-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 6px; color: #e8f0ff; }
 .search-form { margin-bottom: 12px; }
 .pagination { margin-top: 16px; justify-content: flex-end; }
+.input-w-150 { width: 150px; }
+.input-w-120 { width: 120px; }
+.select-w-120 { width: 120px; }
+.date-w-240 { width: 240px; }
+.clickable-table { cursor: pointer; }
+.full-width { width: 100%; }
 
 .table-wrap { min-height: 240px; }
 

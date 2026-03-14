@@ -14,7 +14,7 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="年龄" prop="age">
-        <el-input-number v-model="form.age" :min="0" :max="150" style="width:100%" />
+        <el-input-number v-model="form.age" :min="0" :max="150" class="full-width" />
       </el-form-item>
       <el-form-item label="检查部位" prop="bodyPart">
         <el-input v-model="form.bodyPart" placeholder="如：胸部" />
@@ -24,7 +24,7 @@
       </el-form-item>
       <el-form-item label="检查时间" prop="examTime">
         <el-date-picker v-model="form.examTime" type="datetime"
-          placeholder="选择检查时间" style="width:100%"
+          placeholder="选择检查时间" class="full-width"
           format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DDTHH:mm:ss" />
       </el-form-item>
     </el-form>
@@ -73,3 +73,7 @@ const handleSubmit = async () => {
   emit('submit', { ...form.value })
 }
 </script>
+
+<style scoped>
+.full-width { width: 100%; }
+</style>

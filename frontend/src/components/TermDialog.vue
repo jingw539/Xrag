@@ -1,20 +1,20 @@
 <template>
   <el-dialog v-model="visibleModel" title="AI 术语标准化" width="520px" align-center>
-    <div v-if="items.length === 0" style="text-align:center;color:var(--xrag-text-faint);padding:20px 0">
+    <div v-if="items.length === 0" class="term-empty">
       未发现需要纠正的术语
     </div>
-    <el-table v-else :data="items" size="small" style="width:100%"
+    <el-table v-else :data="items" size="small" class="term-table"
       @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="40" />
       <el-table-column type="index" label="#" width="40" />
       <el-table-column label="原始术语" min-width="140">
         <template #default="{ row }">
-          <span style="color:#f56c6c;text-decoration:line-through">{{ row.originalTerm }}</span>
+          <span class="term-original">{{ row.originalTerm }}</span>
         </template>
       </el-table-column>
       <el-table-column label="标准术语" min-width="140">
         <template #default="{ row }">
-          <span style="color:#52c41a;font-weight:600">{{ row.suggestedTerm }}</span>
+          <span class="term-suggested">{{ row.suggestedTerm }}</span>
         </template>
       </el-table-column>
     </el-table>
@@ -68,3 +68,14 @@ watch(
   }
 )
 </script>
+
+<style scoped>
+.term-empty {
+  text-align: center;
+  color: var(--xrag-text-faint);
+  padding: 20px 0;
+}
+.term-table { width: 100%; }
+.term-original { color: #f56c6c; text-decoration: line-through; }
+.term-suggested { color: #52c41a; font-weight: 600; }
+</style>

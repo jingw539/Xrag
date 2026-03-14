@@ -37,7 +37,7 @@
               show-password
             />
           </el-form-item>
-          <el-form-item style="margin-bottom:0">
+          <el-form-item class="form-item-last">
             <el-button
               type="primary"
               size="large"
@@ -278,6 +278,10 @@ const handleLogin = async () => {
 .login-btn:hover,
 .login-btn:focus {
   filter: saturate(1.05);
+}
+
+.form-item-last {
+  margin-bottom: 0;
 }
 
 .footer-section {

@@ -10,10 +10,10 @@
 
       <el-form :model="query" inline class="toolbar-form">
         <el-form-item label="检查号">
-          <el-input v-model="query.examNo" clearable placeholder="输入检查号" style="width:160px" />
+          <el-input v-model="query.examNo" clearable placeholder="输入检查号" class="input-w-160" />
         </el-form-item>
         <el-form-item label="科室">
-          <el-input v-model="query.department" clearable placeholder="如：影像科" style="width:140px" />
+          <el-input v-model="query.department" clearable placeholder="如：影像科" class="input-w-140" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchList">查询</el-button>
@@ -21,7 +21,7 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="cases" v-loading="loading" border stripe>
+      <el-table :data="cases" v-loading="loading" border stripe class="perf-table">
         <el-table-column prop="examNo" label="检查号" width="150" />
         <el-table-column prop="patientAnonId" label="患者匿名ID" width="140" />
         <el-table-column prop="gender" label="性别" width="80" align="center">
@@ -38,7 +38,7 @@
         </el-table-column>
         <el-table-column prop="typicalTags" label="典型标签" min-width="180">
           <template #default="{ row }">
-            <el-tag v-for="tag in splitTags(row.typicalTags)" :key="tag" size="small" style="margin:2px">
+            <el-tag v-for="tag in splitTags(row.typicalTags)" :key="tag" size="small" class="tag-chip">
               {{ tag }}
             </el-tag>
           </template>
@@ -63,6 +63,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCases, markTypical } from '@/api/case'
+import { runWhenIdle } from '@/utils/idle'
+import { formatDateTime } from '@/utils/format'
+import { Star } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -76,6 +79,9 @@ const fetchList = async () => {
     const res = await listCases(query)
     cases.value = res.data.list || []
     total.value = res.data.total || 0
+  } catch {
+    cases.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -88,20 +94,22 @@ const resetQuery = () => {
 
 const goDetail = (row) => router.push({ path: '/cases', query: { caseId: row.caseId } })
 const splitTags = (tags) => (tags ? tags.split(',').filter(Boolean) : [])
-const formatDate = (val) => (val ? val.replace('T', ' ').substring(0, 16) : '-')
+const formatDate = (val) => formatDateTime(val)
 
 const handleUnmark = async (row) => {
   try {
     await ElMessageBox.confirm(`确认将“${row.examNo}”从典型病例库移除吗？`, '提示', { type: 'warning' })
+    await markTypical(row.caseId, { isTypical: 0 })
+    ElMessage.success('已取消典型标记')
+    fetchList()
   } catch {
-    return
+    // cancel or error handled globally
   }
-  await markTypical(row.caseId, { isTypical: 0 })
-  ElMessage.success('已取消典型标记')
-  fetchList()
 }
 
-onMounted(fetchList)
+onMounted(() => {
+  runWhenIdle(() => fetchList(), { timeout: 1200 })
+})
 </script>
 <style scoped>
 .page-wrap {
@@ -154,6 +162,9 @@ onMounted(fetchList)
   gap: 6px;
   color: #EAF2FF;
 }
+.input-w-160 { width: 160px; }
+.input-w-140 { width: 140px; }
+.tag-chip { margin: 2px; }
 
 .toolbar-form {
   margin-bottom: 8px;

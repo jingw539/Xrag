@@ -5,7 +5,7 @@
         <el-breadcrumb-item :to="{ path: '/cases' }">病例管理</el-breadcrumb-item>
         <el-breadcrumb-item>{{ caseInfo.examNo || '病例详情' }}</el-breadcrumb-item>
       </el-breadcrumb>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div class="header-actions">
         <el-tag :type="statusType(caseInfo.reportStatus)" size="large">{{ statusLabel(caseInfo.reportStatus) }}</el-tag>
         <el-button v-if="caseInfo.isTypical" type="warning" plain size="small" @click="handleUnmarkTypical">
           <el-icon><StarFilled /></el-icon>
@@ -19,7 +19,7 @@
     </div>
 
     <el-tabs v-model="activeTab" class="detail-tabs">
-      <el-tab-pane label="病例信息" name="info">
+      <el-tab-pane label="病例信息" name="info" lazy>
         <el-row :gutter="16">
           <el-col :span="12">
             <el-card header="基本信息">
@@ -60,7 +60,8 @@
                     :src="img.thumbnailUrl || img.fullUrl"
                     fit="cover"
                     :preview-src-list="images.map(i => i.fullUrl).filter(Boolean)"
-                    style="width:100%;height:100%"
+                    :lazy="true"
+                    class="image-full"
                   >
                     <template #error>
                       <div class="image-error"><el-icon><Picture /></el-icon></div>
@@ -68,29 +69,29 @@
                   </el-image>
                   <div class="image-overlay">
                     <span>{{ img.viewPosition || '正位' }}</span>
-                    <el-button link size="small" style="color:white" @click.stop="deleteImg(img)">
+                    <el-button link size="small" class="image-delete-btn" @click.stop="deleteImg(img)">
                       <el-icon><Delete /></el-icon>
                     </el-button>
                   </div>
                   <el-icon v-if="selectedImageId === img.imageId" class="check-icon"><Select /></el-icon>
                 </div>
               </div>
-              <el-empty v-else description="暂无影像，请上传" :image-size="60" style="padding:10px 0" />
+              <el-empty v-else description="暂无影像，请上传" :image-size="60" class="image-empty" />
             </el-card>
           </el-col>
         </el-row>
       </el-tab-pane>
 
-      <el-tab-pane label="报告" name="report">
+      <el-tab-pane label="报告" name="report" lazy>
         <el-row :gutter="16">
           <el-col :span="8">
             <el-card header="操作">
-              <el-space direction="vertical" style="width:100%">
+              <el-space direction="vertical" class="space-full">
                 <el-button
                   type="primary"
                   :disabled="!selectedImageId"
                   :loading="generating"
-                  style="width:100%"
+                  class="full-width"
                   @click="handleGenerate"
                 >
                   <el-icon><MagicStick /></el-icon>
@@ -99,7 +100,7 @@
                 <el-button
                   :disabled="!report"
                   :loading="saving"
-                  style="width:100%"
+                  class="full-width"
                   @click="handleSaveDraft"
                 >
                   保存草稿
@@ -107,7 +108,7 @@
                 <el-button
                   type="success"
                   :disabled="!report || report.reportStatus === 'SIGNED'"
-                  style="width:100%"
+                  class="full-width"
                   @click="handleSign"
                 >
                   签发报告
@@ -115,7 +116,7 @@
                 <el-button
                   :disabled="!report"
                   :loading="analyzingTerms"
-                  style="width:100%"
+                  class="full-width"
                   @click="handleAnalyzeTerms"
                 >
                   术语校正分析
@@ -129,7 +130,7 @@
               </el-space>
             </el-card>
 
-            <el-card header="RAG 参考病例" style="margin-top:16px" v-if="retrieval">
+            <el-card header="RAG 参考病例" class="card-offset" v-if="retrieval">
               <div v-for="(c, i) in retrievalCases" :key="i" class="rag-case">
                 <div class="rag-case-header">
                   <span>参考{{ i + 1 }}：{{ c.examNo || '-' }}</span>
@@ -144,9 +145,9 @@
           <el-col :span="16">
             <el-card header="报告内容">
               <template v-if="report">
-                <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+                <div class="report-meta">
                   <el-tag type="info">AI置信度：{{ report.aiConfidence != null ? `${(Number(report.aiConfidence) * 100).toFixed(1)}%` : report.modelConfidence != null ? `${(Number(report.modelConfidence) * 100).toFixed(1)}%` : '-' }}</el-tag>
-                  <div style="color:rgba(208,220,240,0.72);font-size:13px">
+                  <div class="report-signer">
                     签发医生：{{ report.signedDoctorName || report.signedByName || report.signerName || '-' }}
                   </div>
                 </div>
@@ -169,7 +170,7 @@
                         :timestamp="formatDate(h.editTime)"
                       >
                         <div>{{ h.editorName || h.operatorName || '系统' }}</div>
-                        <div style="color:rgba(208,220,240,0.72)">{{ h.actionType || h.action || h.remark || '编辑报告' }}</div>
+                        <div class="history-remark">{{ h.actionType || h.action || h.remark || '编辑报告' }}</div>
                       </el-timeline-item>
                     </el-timeline>
                   </el-collapse-item>
@@ -181,10 +182,10 @@
         </el-row>
       </el-tab-pane>
 
-      <el-tab-pane label="术语校正" name="terms">
+      <el-tab-pane label="术语校正" name="terms" lazy>
         <el-card>
           <template #header>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div class="term-header">
               <span>术语规范化建议</span>
               <el-button type="primary" size="small" @click="handleAnalyzeTerms" :loading="analyzingTerms">重新分析</el-button>
             </div>
@@ -193,7 +194,7 @@
             <el-table-column prop="originalTerm" label="原始术语" width="160" />
             <el-table-column prop="suggestedTerm" label="建议术语" width="160">
               <template #default="{ row }">
-                <span style="color:#67c23a;font-weight:600">{{ row.suggestedTerm }}</span>
+                <span class="term-suggest">{{ row.suggestedTerm }}</span>
               </template>
             </el-table-column>
             <el-table-column prop="contextSentence" label="上下文" show-overflow-tooltip />
@@ -218,7 +219,7 @@
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog v-model="showTypicalDialog" title="标记为典型病例" width="400px">
+  <el-dialog v-if="showTypicalDialog" v-model="showTypicalDialog" title="标记为典型病例" width="400px">
       <el-form label-width="80px">
         <el-form-item label="标签">
           <el-input v-model="typicalForm.tags" placeholder="如：气胸,肺炎" />
@@ -244,6 +245,8 @@ import { listImages, uploadImage, deleteImage } from '@/api/image'
 import { generateReport, regenerateReport, saveDraft, signReport, listReports, getReport } from '@/api/report'
 import { searchRetrieval } from '@/api/retrieval'
 import { analyzeTerms, acceptCorrection, dismissCorrection } from '@/api/term'
+import { formatDateTime, reportStatusLabel, reportStatusType } from '@/utils/format'
+import { Star, StarFilled, UploadFilled, Picture, Delete, Select, MagicStick } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const caseId = computed(() => Number(route.params.id))
@@ -259,6 +262,8 @@ const editImpression = ref('')
 const editHistory = ref([])
 const retrieval = ref(null)
 const termCorrections = ref([])
+const reportLoaded = ref(false)
+const reportLoading = ref(false)
 const generating = ref(false)
 const saving = ref(false)
 const analyzingTerms = ref(false)
@@ -266,6 +271,28 @@ const showTypicalDialog = ref(false)
 const typicalForm = reactive({ tags: '', remark: '' })
 
 const retrievalCases = computed(() => retrieval.value?.similarCases || retrieval.value?.cases || [])
+
+const ensureReportLoaded = async () => {
+  if (reportLoaded.value || reportLoading.value) return
+  reportLoading.value = true
+  try {
+    if (!caseId.value) return
+    const listRes = await listReports({ caseId: caseId.value, pageSize: 1, page: 1 })
+    const list = listRes.data?.list || []
+    if (list.length) {
+      await loadReportDetail(list[0].reportId)
+    } else {
+      report.value = null
+      termCorrections.value = []
+      editHistory.value = []
+    }
+    reportLoaded.value = true
+  } catch (error) {
+    console.warn('Failed to load report list', error)
+  } finally {
+    reportLoading.value = false
+  }
+}
 
 const loadAll = async () => {
   pageLoading.value = true
@@ -278,25 +305,13 @@ const loadAll = async () => {
     caseInfo.value = caseRes.status === 'fulfilled' ? (caseRes.value.data || {}) : {}
     images.value = imgRes.status === 'fulfilled' ? (imgRes.value.data || []) : []
     selectedImageId.value = images.value.length ? images.value[0].imageId : null
-
-    if (caseInfo.value.caseId || caseInfo.value.examNo) {
-      try {
-        const listRes = await listReports({ caseId: caseId.value, pageSize: 1, page: 1 })
-        const list = listRes.data?.list || []
-        if (list.length) {
-          await loadReportDetail(list[0].reportId)
-        } else {
-          report.value = null
-          termCorrections.value = []
-          editHistory.value = []
-        }
-      } catch (error) {
-        console.warn('Failed to load report list', error)
-      }
-    } else {
-      report.value = null
-      termCorrections.value = []
-      editHistory.value = []
+    reportLoaded.value = false
+    report.value = null
+    termCorrections.value = []
+    editHistory.value = []
+    retrieval.value = null
+    if (activeTab.value === 'report' || activeTab.value === 'terms') {
+      ensureReportLoaded()
     }
   } finally {
     pageLoading.value = false
@@ -304,13 +319,22 @@ const loadAll = async () => {
 }
 
 const loadReportDetail = async (reportId) => {
-  const res = await getReport(reportId)
-  const detail = res.data || {}
-  report.value = detail
-  editFindings.value = detail.finalFindings || detail.aiFindings || ''
-  editImpression.value = detail.finalImpression || detail.aiImpression || ''
-  editHistory.value = detail.editHistory || []
-  if (detail.termCorrections) termCorrections.value = detail.termCorrections
+  try {
+    const res = await getReport(reportId)
+    const detail = res.data || {}
+    report.value = detail
+    editFindings.value = detail.finalFindings || detail.aiFindings || ''
+    editImpression.value = detail.finalImpression || detail.aiImpression || ''
+    editHistory.value = detail.editHistory || []
+    if (detail.termCorrections) termCorrections.value = detail.termCorrections
+  } catch {
+    report.value = null
+    editFindings.value = ''
+    editImpression.value = ''
+    editHistory.value = []
+    termCorrections.value = []
+    ElMessage.error('报告详情加载失败')
+  }
 }
 
 const beforeUpload = (file) => {
@@ -338,11 +362,15 @@ const handleUpload = async ({ file }) => {
 }
 
 const deleteImg = async (img) => {
-  await ElMessageBox.confirm('确认删除该影像吗？', '警告', { type: 'warning' })
-  await deleteImage(img.imageId)
-  images.value = images.value.filter(i => i.imageId !== img.imageId)
-  if (selectedImageId.value === img.imageId) selectedImageId.value = images.value[0]?.imageId || null
-  ElMessage.success('删除成功')
+  try {
+    await ElMessageBox.confirm('确认删除该影像吗？', '警告', { type: 'warning' })
+    await deleteImage(img.imageId)
+    images.value = images.value.filter(i => i.imageId !== img.imageId)
+    if (selectedImageId.value === img.imageId) selectedImageId.value = images.value[0]?.imageId || null
+    ElMessage.success('删除成功')
+  } catch {
+    // cancel or error handled globally
+  }
 }
 
 const handleGenerate = async () => {
@@ -359,7 +387,10 @@ const handleGenerate = async () => {
       rptRes = await generateReport({ caseId: caseId.value, imageId: selectedImageId.value })
     }
     await loadReportDetail(rptRes.data.reportId || rptRes.data)
+    reportLoaded.value = true
     ElMessage.success('报告生成成功')
+  } catch {
+    // error message handled globally
   } finally {
     generating.value = false
   }
@@ -372,21 +403,30 @@ const handleSaveDraft = async () => {
     report.value.reportStatus = 'EDITING'
     caseInfo.value.reportStatus = 'EDITING'
     ElMessage.success('草稿已保存')
+  } catch {
+    // error message handled globally
   } finally {
     saving.value = false
   }
 }
 
 const handleSign = async () => {
-  await ElMessageBox.confirm('签发后报告不可修改，确认签发吗？', '提示', { type: 'warning' })
-  await signReport(report.value.reportId)
-  report.value.reportStatus = 'SIGNED'
-  caseInfo.value.reportStatus = 'SIGNED'
-  ElMessage.success('报告已签发')
+  try {
+    await ElMessageBox.confirm('签发后报告不可修改，确认签发吗？', '提示', { type: 'warning' })
+    await signReport(report.value.reportId)
+    report.value.reportStatus = 'SIGNED'
+    caseInfo.value.reportStatus = 'SIGNED'
+    ElMessage.success('报告已签发')
+  } catch {
+    // cancel or error handled globally
+  }
 }
 
 
 const handleAnalyzeTerms = async () => {
+  if (!report.value) {
+    await ensureReportLoaded()
+  }
   if (!report.value) return ElMessage.warning('请先生成报告')
   analyzingTerms.value = true
   activeTab.value = 'terms'
@@ -394,42 +434,65 @@ const handleAnalyzeTerms = async () => {
     const res = await analyzeTerms(report.value.reportId)
     termCorrections.value = res.data || []
     ElMessage.success(`发现 ${termCorrections.value.length} 条建议`)
+  } catch {
+    // error message handled globally
   } finally {
     analyzingTerms.value = false
   }
 }
 
 const handleAcceptTerm = async (row) => {
-  await acceptCorrection(row.correctionId)
-  row.isAccepted = 1
-  ElMessage.success('已采纳建议')
+  try {
+    await acceptCorrection(row.correctionId)
+    row.isAccepted = 1
+    ElMessage.success('已采纳建议')
+  } catch {
+    // error message handled globally
+  }
 }
 
 const handleDismissTerm = async (row) => {
-  await dismissCorrection(row.correctionId)
-  row.isAccepted = -1
+  try {
+    await dismissCorrection(row.correctionId)
+    row.isAccepted = -1
+  } catch {
+    // error message handled globally
+  }
 }
 
 const handleMarkTypical = async () => {
-  await markTypical(caseId.value, { isTypical: 1, typicalTags: typicalForm.tags, typicalRemark: typicalForm.remark })
-  caseInfo.value.isTypical = 1
-  showTypicalDialog.value = false
-  ElMessage.success('已标记为典型病例')
+  try {
+    await markTypical(caseId.value, { isTypical: 1, typicalTags: typicalForm.tags, typicalRemark: typicalForm.remark })
+    caseInfo.value.isTypical = 1
+    showTypicalDialog.value = false
+    ElMessage.success('已标记为典型病例')
+  } catch {
+    // error message handled globally
+  }
 }
 
 const handleUnmarkTypical = async () => {
-  await markTypical(caseId.value, { isTypical: 0 })
-  caseInfo.value.isTypical = 0
-  ElMessage.success('已取消典型标记')
+  try {
+    await markTypical(caseId.value, { isTypical: 0 })
+    caseInfo.value.isTypical = 0
+    ElMessage.success('已取消典型标记')
+  } catch {
+    // error message handled globally
+  }
 }
 
-const formatDate = (val) => val ? String(val).replace('T', ' ').substring(0, 16) : '-'
-const statusLabel = (s) => ({ NONE: '待生成', AI_DRAFT: 'AI草稿', EDITING: '编辑中', SIGNED: '已签发' }[s] || s || '-')
-const statusType = (s) => ({ NONE: 'info', AI_DRAFT: 'info', EDITING: 'warning', SIGNED: 'success' }[s] || 'info')
+const formatDate = (val) => formatDateTime(val)
+const statusLabel = (s) => reportStatusLabel(s)
+const statusType = (s) => reportStatusType(s)
 const termStatusLabel = (v) => (v === 1 ? '已采纳' : v === -1 ? '已忽略' : '待处理')
 const termStatusType = (v) => (v === 1 ? 'success' : v === -1 ? 'info' : 'warning')
 
 watch(() => route.params.id, () => loadAll())
+watch(activeTab, (tab) => {
+  if (tab === 'report' || tab === 'terms') {
+    ensureReportLoaded()
+  }
+})
 onMounted(loadAll)
 </script>
 
@@ -444,6 +507,12 @@ onMounted(loadAll)
   background: var(--xrag-panel);
   border: 1px solid var(--xrag-border);
   box-shadow: var(--xrag-shadow);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .detail-tabs {
@@ -652,6 +721,62 @@ onMounted(loadAll)
   height: 100%;
   background: rgba(111, 134, 166, 0.12);
   color: var(--xrag-text-faint);
+}
+
+.image-full {
+  width: 100%;
+  height: 100%;
+}
+
+.image-delete-btn {
+  color: #ffffff;
+}
+
+.image-empty {
+  padding: 10px 0;
+}
+
+.space-full {
+  width: 100%;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.card-offset {
+  margin-top: 16px;
+}
+
+.report-meta {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.report-signer {
+  color: rgba(208, 220, 240, 0.72);
+  font-size: 13px;
+}
+
+.history-remark {
+  color: rgba(208, 220, 240, 0.72);
+}
+
+.term-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.term-suggest {
+  color: #67c23a;
+  font-weight: 600;
 }
 
 .check-icon {

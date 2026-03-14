@@ -1,7 +1,7 @@
 <template>
   <div class="similar-section" v-if="similarCases.length > 0">
     <div class="section-title">
-      <el-icon style="color:#1890ff"><Search /></el-icon>
+      <el-icon class="section-icon"><Search /></el-icon>
       相似病例检索 <span class="section-sub">Top-{{ similarCases.length }} 相似结果</span>
     </div>
     <div class="similar-cards">
@@ -9,13 +9,12 @@
         v-for="(sc, i) in similarCases"
         :key="sc.caseId"
         class="similar-card"
-        style="cursor:pointer"
         @click="handleSelect(sc.caseId)"
       >
         <div class="similar-img-placeholder">
           <img v-if="sc.thumbnailUrl" :src="sc.thumbnailUrl"
-            style="width:100%;height:100%;object-fit:cover;border-radius:4px" />
-          <el-icon v-else :size="24" style="color:rgba(255,255,255,0.2)"><Picture /></el-icon>
+            class="similar-img" loading="lazy" decoding="async" fetchpriority="low" />
+          <el-icon v-else :size="24" class="similar-icon"><Picture /></el-icon>
         </div>
         <div class="similar-info">
           <span :class="['sim-score', i === 0 ? 'score-high' : i === 1 ? 'score-mid' : 'score-low']">
@@ -30,6 +29,7 @@
 </template>
 
 <script setup>
+import { Search, Picture } from '@element-plus/icons-vue'
 const emit = defineEmits(['select'])
 
 defineProps({
@@ -48,6 +48,7 @@ const handleSelect = (caseId) => emit('select', caseId)
   font-size: 13px; font-weight: 600; color: var(--xrag-text);
   margin-bottom: 8px;
 }
+.section-icon { color: #1890ff; }
 .section-sub { font-size: 11px; font-weight: 400; color: var(--xrag-text-faint); }
 
 .similar-cards { display: flex; gap: 10px; }
@@ -56,6 +57,7 @@ const handleSelect = (caseId) => emit('select', caseId)
   border: 1px solid var(--xrag-border); overflow: hidden;
   display: flex; flex-direction: column;
   transition: border-color .15s, box-shadow .15s;
+  cursor: pointer;
 }
 .similar-card:hover {
   border-color: var(--xrag-primary);
@@ -65,6 +67,13 @@ const handleSelect = (caseId) => emit('select', caseId)
   height: 70px; background: #1a2030;
   display: flex; align-items: center; justify-content: center;
 }
+.similar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.similar-icon { color: rgba(255,255,255,0.2); }
 .similar-info { padding: 8px 10px; }
 .sim-score { font-size: 11px; font-weight: 700; }
 .score-high { color: #52c41a; }

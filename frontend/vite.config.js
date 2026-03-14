@@ -33,6 +33,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            if (id.includes('cornerstone') || id.includes('dicom-parser')) return 'dicom'
             if (id.includes('element-plus')) return 'element-plus'
             if (id.includes('@element-plus/icons-vue')) return 'element-icons'
             if (id.includes('vue-router')) return 'vue-router'

@@ -6,7 +6,7 @@
         <div class="page-subtitle">报告生成与签发的运行概览</div>
       </div>
       <div class="header-actions">
-        <el-select v-model="filters.groupBy" size="small" style="width: 110px" @change="loadData">
+        <el-select v-model="filters.groupBy" size="small" class="select-w-110" @change="loadData">
           <el-option label="按日" value="day" />
           <el-option label="按周" value="week" />
           <el-option label="按月" value="month" />
@@ -19,14 +19,14 @@
           range-separator="至"
           start-placeholder="开始日期"
           end-placeholder="结束日期"
-          style="width: 260px"
+          class="date-w-260"
           @change="loadData"
         />
         <el-button size="small" plain @click="loadData"><el-icon><Refresh /></el-icon>刷新</el-button>
       </div>
     </div>
 
-    <div class="kpi-grid">
+    <div class="kpi-grid perf-section">
       <div v-for="card in statCards" :key="card.label" class="kpi-card">
         <div class="kpi-icon" :style="{ background: card.color }">
           <el-icon :size="20"><component :is="card.icon" /></el-icon>
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div class="chart-grid">
+    <div v-if="chartReady" class="chart-grid perf-section">
       <div class="chart-card">
         <div class="card-head">
           <div class="section-title"><el-icon><TrendCharts /></el-icon>报告生成趋势</div>
@@ -71,25 +71,26 @@
         <el-empty v-else description="暂无状态统计" :image-size="60" />
       </div>
     </div>
+    <div v-else class="chart-placeholder">图表加载中...</div>
   
 
-    <div class="chart-grid" style="margin-top:16px">
+    <div v-if="evalReady" class="chart-grid chart-grid-spaced perf-section">
       <div class="chart-card">
         <div class="card-head">
           <div class="section-title"><el-icon><DataAnalysis /></el-icon>评测标签指标</div>
           <div class="card-meta">{{ evalRunMeta }}</div>
         </div>
         <div class="eval-controls">
-          <el-select v-model="selectedRunId" size="small" style="width: 220px" @change="loadEvalMetrics">
+          <el-select v-model="selectedRunId" size="small" class="select-w-220" @change="loadEvalMetrics">
             <el-option v-for="run in evalRuns" :key="run.runId" :label="`${run.runName || run.runId} · ${run.modelName || '-'} · ${run.datasetName || '-'}`" :value="run.runId" />
           </el-select>
-          <el-select v-model="evalCompareMetric" size="small" style="width: 120px" @change="loadEvalCompare">
+          <el-select v-model="evalCompareMetric" size="small" class="select-w-120" @change="loadEvalCompare">
             <el-option label="F1" value="f1" />
             <el-option label="Recall" value="recall" />
             <el-option label="Precision" value="precision" />
             <el-option label="AUC" value="auc" />
           </el-select>
-          <el-select v-model="evalCompareTag" size="small" style="width: 140px" @change="loadEvalCompare">
+          <el-select v-model="evalCompareTag" size="small" class="select-w-140" @change="loadEvalCompare">
             <el-option label="全部标签" value="ALL" />
             <el-option v-for="tag in tagOptions" :key="tag" :label="tag" :value="tag" />
           </el-select>
@@ -97,19 +98,37 @@
 
         <div v-if="evalTagMetrics.length" class="eval-table">
           <div class="eval-row eval-head">
-            <span>标签</span>
-            <span>指标</span>
-            <span>数值</span>
-            <span>样本数</span>
+            <span>??</span>
+            <span>??</span>
+            <span>??</span>
+            <span>???</span>
           </div>
-          <div v-for="row in evalTagMetrics" :key="`${row.tagName}-${row.metricName}`" class="eval-row">
-            <span>{{ row.tagName || 'ALL' }}</span>
-            <span>{{ row.metricName }}</span>
-            <span>{{ formatMetric(row.metricValue) }}</span>
-            <span>{{ row.support || '-' }}</span>
+          <VirtualList
+            v-if="perfMode"
+            :items="evalTagMetrics"
+            :item-height="38"
+            :height="evalListHeight"
+            class="eval-virtual"
+          >
+            <template #default="{ item }">
+              <div class="eval-row">
+                <span>{{ item.tagName || 'ALL' }}</span>
+                <span>{{ item.metricName }}</span>
+                <span>{{ formatMetric(item.metricValue) }}</span>
+                <span>{{ item.support || '-' }}</span>
+              </div>
+            </template>
+          </VirtualList>
+          <div v-else>
+            <div v-for="row in evalTagMetrics" :key="`${row.tagName}-${row.metricName}`" class="eval-row">
+              <span>{{ row.tagName || 'ALL' }}</span>
+              <span>{{ row.metricName }}</span>
+              <span>{{ formatMetric(row.metricValue) }}</span>
+              <span>{{ row.support || '-' }}</span>
+            </div>
           </div>
         </div>
-        <el-empty v-else description="暂无标签级评测" :image-size="60" />
+<el-empty v-else description="暂无标签级评测" :image-size="60" />
       </div>
 
       <div class="chart-card">
@@ -119,21 +138,40 @@
         </div>
         <div v-if="evalCompareRows.length" class="eval-table">
           <div class="eval-row eval-head">
-            <span>模型</span>
-            <span>数据集</span>
-            <span>指标</span>
-            <span>数值</span>
+            <span>??</span>
+            <span>???</span>
+            <span>??</span>
+            <span>??</span>
           </div>
-          <div v-for="row in evalCompareRows" :key="`${row.modelName}-${row.tagName}`" class="eval-row">
-            <span>{{ row.modelName || '-' }}</span>
-            <span>{{ row.datasetName || '-' }}</span>
-            <span>{{ row.metricName }}</span>
-            <span>{{ formatMetric(row.metricValue) }}</span>
+          <VirtualList
+            v-if="perfMode"
+            :items="evalCompareRows"
+            :item-height="38"
+            :height="evalListHeight"
+            class="eval-virtual"
+          >
+            <template #default="{ item }">
+              <div class="eval-row">
+                <span>{{ item.modelName || '-' }}</span>
+                <span>{{ item.datasetName || '-' }}</span>
+                <span>{{ item.metricName }}</span>
+                <span>{{ formatMetric(item.metricValue) }}</span>
+              </div>
+            </template>
+          </VirtualList>
+          <div v-else>
+            <div v-for="row in evalCompareRows" :key="`${row.modelName}-${row.tagName}`" class="eval-row">
+              <span>{{ row.modelName || '-' }}</span>
+              <span>{{ row.datasetName || '-' }}</span>
+              <span>{{ row.metricName }}</span>
+              <span>{{ formatMetric(row.metricValue) }}</span>
+            </div>
           </div>
         </div>
-        <el-empty v-else description="暂无对比数据" :image-size="60" />
+<el-empty v-else description="暂无对比数据" :image-size="60" />
       </div>
     </div>
+    <div v-else class="chart-placeholder">评测数据加载中...</div>
 
 </div>
 </template>
@@ -150,6 +188,8 @@ import {
 } from '@element-plus/icons-vue'
 import { getOverview, getReportTrend } from '@/api/statistics'
 import { listEvaluationRuns, getEvaluationMetrics, compareEvaluationModels } from '@/api/evaluation'
+import { runWhenIdle } from '@/utils/idle'
+import VirtualList from '@/components/VirtualList.vue'
 
 const overview = ref({})
 const reportTrend = ref([])
@@ -161,6 +201,10 @@ const evalCompareMetric = ref('f1')
 const evalCompareTag = ref('ALL')
 const dateRange = ref([])
 const filters = reactive({ groupBy: 'month' })
+const perfMode = import.meta.env.VITE_PERF_MODE === 'true'
+const chartReady = ref(!perfMode)
+const evalReady = ref(!perfMode)
+const evalListHeight = ref(260)
 
 const SIX_MONTHS_AGO = new Date()
 SIX_MONTHS_AGO.setMonth(SIX_MONTHS_AGO.getMonth() - 6)
@@ -250,6 +294,10 @@ const loadEvalRuns = async () => {
     await loadEvalMetrics()
   } catch {
     evalRuns.value = []
+  } finally {
+    if (perfMode && !evalReady.value) {
+      runWhenIdle(() => { evalReady.value = true }, { timeout: 1600 })
+    }
   }
 }
 
@@ -310,7 +358,15 @@ const formatMetric = (value) => {
   return Number.isFinite(num) ? num.toFixed(4) : '-'
 }
 
-onMounted(async () => { await loadData(); await loadEvalRuns(); })
+onMounted(async () => {
+  await loadData()
+  if (perfMode && !chartReady.value) {
+    runWhenIdle(() => { chartReady.value = true }, { timeout: 1200 })
+  } else {
+    chartReady.value = true
+  }
+  runWhenIdle(() => loadEvalRuns(), { timeout: 1500 })
+})
 </script>
 
 <style scoped>
@@ -353,6 +409,12 @@ onMounted(async () => { await loadData(); await loadEvalRuns(); })
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.select-w-110 { width: 110px; }
+.date-w-260 { width: 260px; }
+.select-w-220 { width: 220px; }
+.select-w-120 { width: 120px; }
+.select-w-140 { width: 140px; }
+.chart-grid-spaced { margin-top: 16px; }
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -441,6 +503,15 @@ onMounted(async () => { await loadData(); await loadEvalRuns(); })
   color: rgba(220, 231, 247, 0.75) !important;
 }
 .bar-fill { display: block; height: 100%; border-radius: 999px; }
+
+.chart-placeholder {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--xrag-text-faint);
+  border: 1px dashed var(--xrag-border);
+  border-radius: 12px;
+  background: rgba(15, 25, 35, 0.5);
+}
 
 :deep(.el-select__wrapper),
 :deep(.el-input__wrapper),

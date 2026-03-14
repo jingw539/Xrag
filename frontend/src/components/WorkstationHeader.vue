@@ -30,6 +30,7 @@
 </template>
 
 <script setup>
+import { Refresh, Star, Printer, Delete } from '@element-plus/icons-vue'
 const emit = defineEmits(['regenerate', 'mark-typical', 'print', 'delete-case'])
 
 defineProps({

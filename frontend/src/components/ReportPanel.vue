@@ -12,7 +12,7 @@
             </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto"></div>
+        <div class="signed-banner-spacer"></div>
       </div>
 
       <div class="signed-content">
@@ -31,7 +31,7 @@
             <el-icon><Cpu /></el-icon>
             <span>AI 原始草稿对比</span>
             <span class="compare-diff-hint">医生已修改</span>
-            <el-icon style="margin-left:auto"><ArrowDown v-if="!showAiCompareModel" /><ArrowUp v-else /></el-icon>
+            <el-icon class="compare-toggle-icon"><ArrowDown v-if="!showAiCompareModel" /><ArrowUp v-else /></el-icon>
           </div>
           <div v-if="showAiCompareModel" class="compare-body">
             <div class="compare-field">
@@ -63,18 +63,18 @@
         <div v-else class="report-form">
           <div class="status-notice"
             :class="currentReport.reportStatus === 'AI_DRAFT' ? 'status-ai-draft' : 'status-editing'">
-            <el-icon style="margin-right:4px">
+            <el-icon class="status-icon">
               <Cpu v-if="currentReport.reportStatus === 'AI_DRAFT'" />
               <Edit v-else />
             </el-icon>
-            <span :style="{ color: currentReport.reportStatus === 'AI_DRAFT' ? '#1890ff' : '#fa8c16', fontWeight: 600 }">
+            <span :class="['status-text', currentReport.reportStatus === 'AI_DRAFT' ? 'status-text-ai' : 'status-text-edit']">
               {{ currentReport.reportStatus === 'AI_DRAFT' ? 'AI草稿' : '编辑中' }}
             </span>
-            <span style="color:var(--xrag-text-faint);margin-left:8px;font-size:11px">
+            <span class="status-hint">
               {{ currentReport.reportStatus === 'AI_DRAFT' ? '可直接修改内容后签发' : '医生编辑中' }}
             </span>
-            <span style="margin-left:auto;font-size:11px;color:#8c8c8c">
-              <el-icon style="vertical-align:-2px"><User /></el-icon>
+            <span class="status-owner">
+              <el-icon class="status-user-icon"><User /></el-icon>
               {{ doctorName }} 负责
             </span>
           </div>
@@ -87,7 +87,7 @@
             <el-input v-model="findingsModel" type="textarea" :rows="6"
               placeholder="请输入影像所见，建议描述部位、形态、密度及范围" resize="none" />
           </div>
-          <div class="field-block" style="margin-top:12px">
+          <div class="field-block field-block-spaced">
             <div class="field-label">
               影像印象
               <span class="ai-label"><el-icon><Cpu /></el-icon> AI生成</span>
@@ -96,30 +96,30 @@
               placeholder="请输入影像印象，概括主要结论及诊断倾向" resize="none" />
           </div>
 
-          <div class="edit-toolbar" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="edit-toolbar">
             <el-button size="small" type="primary" plain :loading="polishing" @click="handlePolish">
               <el-icon><MagicStick /></el-icon> AI 润色
             </el-button>
             <el-button size="small" :loading="termLoading" @click="handleTermNormalize">
               <el-icon><Edit /></el-icon> 术语纠正
             </el-button>
-            <span v-if="termLastCount > 0" style="font-size:11px;color:#52c41a">
+            <span v-if="termLastCount > 0" class="term-count">
               已替换 {{ termLastCount }} 处术语
             </span>
           </div>
 
           <!-- AI审核建议 -->
           <template>
-            <el-divider style="margin:10px 0" />
-            <el-button size="small" type="warning" plain style="width:100%"
+            <el-divider class="toolbar-divider" />
+            <el-button size="small" type="warning" plain class="full-width"
               :loading="aiAdviceLoading" @click="handleGetAiAdvice">
               <el-icon><MagicStick /></el-icon>
               {{ aiAdvice ? '重新获取AI审核建议' : '获取AI审核建议' }}
             </el-button>
 
-            <div v-if="aiAdvice" class="ai-advice-panel" style="margin-top:8px">
+            <div v-if="aiAdvice" class="ai-advice-panel ai-advice-panel-compact">
               <div class="ai-advice-header">
-                <el-icon style="color:#722ed1"><Cpu /></el-icon>
+                <el-icon class="advice-icon"><Cpu /></el-icon>
                 <span>AI 复核建议</span>
                 <span v-if="aiAdvice.priority === 'high'" class="advice-priority-high">⚠ 高优先级</span>
                 <span v-else-if="aiAdvice.priority === 'medium'" class="advice-priority-mid">注意</span>
@@ -157,7 +157,7 @@
             <el-progress
               :percentage="Math.round(currentReport.modelConfidence * 100)"
               :color="confColor(currentReport.modelConfidence)"
-              :stroke-width="8" style="flex:1" />
+              :stroke-width="8" class="conf-progress" />
             <span class="conf-value">{{ Math.round(currentReport.modelConfidence * 100) }}%</span>
           </div>
         </div>
@@ -173,7 +173,7 @@
               <el-button size="small" link type="primary"
                 v-if="currentReport && currentReport.reportStatus !== 'SIGNED'"
                 @click="handleRestoreHistory(h)"
-                style="margin-left:auto;font-size:11px">恢复此版本</el-button>
+                class="history-restore-btn">恢复此版本</el-button>
             </div>
             <div class="history-content">
               <div class="history-field">
@@ -196,6 +196,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { Check, Document, Cpu, ArrowDown, ArrowUp, MagicStick, Edit, User } from '@element-plus/icons-vue'
 
 const props = defineProps({
   currentReport: { type: Object, default: null },
@@ -283,6 +284,12 @@ const handleRestoreHistory = (h) => emit('restore-history', h)
   padding: 24px 16px;
 }
 .report-form { padding: 16px; }
+.signed-banner-spacer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
 
 /* ─── 状态提示 ─── */
 .status-notice {
@@ -293,6 +300,13 @@ const handleRestoreHistory = (h) => emit('restore-history', h)
   margin-bottom: 12px;
   font-size: 12px;
 }
+.status-icon { margin-right: 4px; }
+.status-text { font-weight: 600; }
+.status-text-ai { color: #1890ff; }
+.status-text-edit { color: #fa8c16; }
+.status-hint { color: var(--xrag-text-faint); margin-left: 8px; font-size: 11px; }
+.status-owner { margin-left: auto; font-size: 11px; color: #8c8c8c; }
+.status-user-icon { vertical-align: -2px; }
 .status-ai-draft {
   background: rgba(24, 144, 255, 0.12);
   border: 1px solid rgba(64, 169, 255, 0.28);
@@ -344,6 +358,7 @@ const handleRestoreHistory = (h) => emit('restore-history', h)
 .advice-D, .advice-F { color: #cf1322; }
 
 .field-block {}
+.field-block-spaced { margin-top: 12px; }
 .field-label {
   display: flex; align-items: center; gap: 6px;
   font-size: 13px; font-weight: 600; color: var(--xrag-text);
@@ -354,6 +369,20 @@ const handleRestoreHistory = (h) => emit('restore-history', h)
   font-size: 11px; font-weight: 400; color: #69b1ff;
   background: rgba(24, 144, 255, 0.14); padding: 1px 6px; border-radius: 3px;
 }
+.edit-toolbar {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.term-count { font-size: 11px; color: #52c41a; }
+.toolbar-divider { margin: 10px 0; }
+.full-width { width: 100%; }
+.compare-toggle-icon { margin-left: auto; }
+.advice-icon { color: #722ed1; }
+.conf-progress { flex: 1; }
+.history-restore-btn { margin-left: auto; font-size: 11px; }
 .confidence-bar {
   display: flex; align-items: center; gap: 10px;
   margin-top: 14px; padding: 10px 12px;
@@ -554,6 +583,7 @@ const handleRestoreHistory = (h) => emit('restore-history', h)
   margin-top: 10px;
   font-size: 12px;
 }
+.ai-advice-panel.ai-advice-panel-compact { margin-top: 8px; }
 .ai-advice-header {
   display: flex;
   align-items: center;

@@ -1,31 +1,31 @@
 <template>
   <el-dialog v-model="visibleModel" title="AI 报告润色" width="640px" align-center>
     <template v-if="polishResult">
-      <div style="margin-bottom:12px">
+      <div class="polish-alert">
         <el-alert :title="polishResult.changes_summary || 'AI 已完成报告润色'"
           type="success" show-icon :closable="false" />
       </div>
       <div class="polish-compare">
         <div class="polish-col">
-          <div class="polish-col-title" style="color:#f56c6c">原始草稿</div>
+          <div class="polish-col-title polish-col-title-old">原始草稿</div>
           <div class="polish-field-label">影像所见</div>
           <div class="polish-text">{{ draftFindings }}</div>
-          <div class="polish-field-label" style="margin-top:8px">影像印象</div>
+          <div class="polish-field-label field-gap">影像印象</div>
           <div class="polish-text">{{ draftImpression }}</div>
         </div>
         <div class="polish-arrow">→</div>
         <div class="polish-col">
-          <div class="polish-col-title" style="color:#52c41a">AI 润色后</div>
+          <div class="polish-col-title polish-col-title-new">AI 润色后</div>
           <div class="polish-field-label">影像所见</div>
           <div class="polish-text polish-text-new">{{ polishResult.polished_findings }}</div>
-          <div class="polish-field-label" style="margin-top:8px">影像印象</div>
+          <div class="polish-field-label field-gap">影像印象</div>
           <div class="polish-text polish-text-new">{{ polishResult.polished_impression }}</div>
         </div>
       </div>
-      <div v-if="polishResult.suggestions && polishResult.suggestions.length" style="margin-top:12px">
-        <div style="font-size:12px;font-weight:600;color:#722ed1;margin-bottom:6px">AI 建议</div>
+      <div v-if="polishResult.suggestions && polishResult.suggestions.length" class="suggestions">
+        <div class="suggestions-title">AI 建议</div>
         <div v-for="(s, i) in polishResult.suggestions" :key="i"
-          style="font-size:12px;color:var(--xrag-text-soft);padding:2px 0">
+          class="suggestions-item">
           {{ i + 1 }}. {{ s }}
         </div>
       </div>
@@ -41,6 +41,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { Check } from '@element-plus/icons-vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -67,4 +68,20 @@ const handleApply = () => emit('apply')
 .polish-text { font-size: 12px; color: var(--xrag-text); line-height: 1.6; white-space: pre-wrap; }
 .polish-text-new { color: #52c41a; }
 .polish-arrow { display: flex; align-items: center; font-size: 20px; color: #bbb; flex-shrink: 0; }
+.polish-alert { margin-bottom: 12px; }
+.polish-col-title-old { color: #f56c6c; }
+.polish-col-title-new { color: #52c41a; }
+.field-gap { margin-top: 8px; }
+.suggestions { margin-top: 12px; }
+.suggestions-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #722ed1;
+  margin-bottom: 6px;
+}
+.suggestions-item {
+  font-size: 12px;
+  color: var(--xrag-text-soft);
+  padding: 2px 0;
+}
 </style>

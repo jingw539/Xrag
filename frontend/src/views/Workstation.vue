@@ -5,6 +5,7 @@
       <button :class="['mobile-tab', mobileTab === 'workspace' && 'active']" @click="mobileTab = 'workspace'">工作区</button>
     </div>
     <CasePanel
+      class="perf-section"
       v-show="!isMobile || mobileTab === 'cases'"
       :case-total="caseTotal"
       :is-admin="userStore.isAdmin"
@@ -87,7 +88,7 @@
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
                 <div v-if="isCurrentDicom" ref="dicomViewportRef" class="dicom-viewport"></div>
-                <img v-else :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像" decoding="async"
+                <img v-else :src="currentImage.fullUrl" class="dicom-img" ref="diagImgRef" alt="X光影像" decoding="async" fetchpriority="high"
                   @load="onImgLoad" @error="onImgError" draggable="false" />
                 <!-- 标注画布覆盖层 -->
                 <canvas ref="annoCanvas" class="anno-overlay"
@@ -136,7 +137,7 @@
                 @mouseleave="clearCompareCrosshair"
                 :style="{ transform: `scale(${viewerScale}) rotate(${viewerRotate}deg)` }">
                 <div v-if="isCompareDicom" ref="compareDicomViewportRef" class="dicom-viewport compare-dicom-viewport"></div>
-                <img v-else :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="对比影像" decoding="async"
+                <img v-else :src="compareImage.fullUrl" class="dicom-img compare-dicom-img" ref="compareImgRef" alt="对比影像" decoding="async" loading="lazy"
                   @load="onCompareImgLoad"
                   @error="onCompareImgError" draggable="false" />
                 <div class="compare-image-tag">对比影像 · {{ compareImage.fileName || '历史影像' }}</div>
@@ -159,7 +160,7 @@
               </div>
             </div>
             <div v-else class="viewer-empty">
-              <el-icon :size="48" style="color:rgba(255,255,255,0.2)"><Picture /></el-icon>
+              <el-icon :size="48" class="empty-icon"><Picture /></el-icon>
               <p>请选择检查图像或上传新影像</p>
             </div>
           </div>
@@ -182,11 +183,11 @@
           <div v-else class="upload-zone">
             <el-upload drag :show-file-list="false" :before-upload="beforeUpload"
               :http-request="handleUpload" accept=".jpg,.jpeg,.png,.dcm">
-              <el-icon :size="28" style="color:#40a9ff"><UploadFilled /></el-icon>
-              <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:6px">
+              <el-icon :size="28" class="upload-icon"><UploadFilled /></el-icon>
+              <div class="upload-title">
                 拖拽或点击上传检查图像
               </div>
-              <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px">
+              <div class="upload-tip">
                 支持 JPG / PNG / DICOM，≤50MB
               </div>
             </el-upload>
@@ -285,12 +286,13 @@
 
     <!-- 未选择病例时的占位 -->
     <div class="workspace workspace-empty" v-else v-show="!isMobile || mobileTab === 'workspace'">
-      <el-icon :size="64" style="color:rgba(0,0,0,0.18)"><Monitor /></el-icon>
-      <p style="color:var(--xrag-text-faint);font-size:14px;margin:0">请从左侧选择病例开始阅片与报告书写</p>
+      <el-icon :size="64" class="placeholder-icon"><Monitor /></el-icon>
+      <p class="placeholder-text">请从左侧选择病例开始阅片与报告书写</p>
     </div>
 
     <!-- 新建病例弹框 -->
     <CreateCaseDialog
+      v-if="createDialogVisible"
       v-model="createDialogVisible"
       :loading="creating"
       @submit="handleCreateCase"
@@ -298,6 +300,7 @@
 
     <!-- 典型病例标记弹框 -->
     <TypicalCaseDialog
+      v-if="typicalDialogVisible"
       v-model="typicalDialogVisible"
       :loading="typicalLoading"
       @confirm="confirmMarkTypical"
@@ -305,6 +308,7 @@
 
     <!-- 术语标准化弹窗 -->
     <TermDialog
+      v-if="termDialogVisible"
       v-model="termDialogVisible"
       :items="termDialogList"
       :auto-select-all="true"
@@ -313,6 +317,7 @@
 
     <!-- AI 润色弹窗 -->
     <PolishDialog
+      v-if="polishDialogVisible"
       v-model="polishDialogVisible"
       :polish-result="polishResult"
       :draft-findings="draftFindings"
@@ -327,13 +332,16 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch, defineAsyncComp
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Close, Plus, UploadFilled, Picture, Monitor } from '@element-plus/icons-vue'
 import { listCases, getCaseById, markTypical, createCase, deleteCase, importCases } from '@/api/case'
 import { listImages, listPriorImages, uploadImage, deleteImage, fetchImageBlob } from '@/api/image'
 import { generateReport, regenerateReport, saveDraft, signReport, listReports, getReport, getEditHistory, polishReport, getAiAdvice } from '@/api/report'
 import { searchRetrieval, listRetrievalByCaseId } from '@/api/retrieval'
 import { analyzeTerms, acceptCorrection } from '@/api/term'
 import { listAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } from '@/api/annotation'
+import { runWhenIdle } from '@/utils/idle'
 import { loadDicom } from '@/utils/dicom'
+import { reportStatusLabel } from '@/utils/format'
 const CasePanel = defineAsyncComponent(() => import('@/components/CasePanel.vue'))
 const ViewerToolbar = defineAsyncComponent(() => import('@/components/ViewerToolbar.vue'))
 const AnnotationList = defineAsyncComponent(() => import('@/components/AnnotationList.vue'))
@@ -2070,7 +2078,7 @@ const confColor = (v) => {
 }
 
 /* ─────────────── 工具方法 ─────────────── */
-const statusLabel = (s) => ({ NONE: '待生成', AI_DRAFT: 'AI草稿', EDITING: '编辑中', SIGNED: '已签发' }[s] || s || '—')
+const statusLabel = (s) => reportStatusLabel(s, '—')
 const statusColor = (s) => ({ NONE: 'orange', AI_DRAFT: 'blue', EDITING: 'blue', SIGNED: 'green' }[s] || 'gray')
 const genderLabel = (g) => ({ M: '男', F: '女' }[g] || g || '—')
 
@@ -2105,11 +2113,7 @@ onMounted(() => {
       }
     }
   }
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(() => runInitialLoad(), { timeout: 1500 })
-  } else {
-    setTimeout(runInitialLoad, 0)
-  }
+  runWhenIdle(runInitialLoad, { timeout: 1500 })
 })
 </script>
 
@@ -2273,6 +2277,12 @@ onMounted(() => {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   color: rgba(255,255,255,0.3); font-size: 12px;
 }
+.empty-icon { color: rgba(255,255,255,0.2); }
+.upload-icon { color: #40a9ff; }
+.upload-title { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 6px; }
+.upload-tip { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 4px; }
+.placeholder-icon { color: rgba(0,0,0,0.18); }
+.placeholder-text { color: var(--xrag-text-faint); font-size: 14px; margin: 0; }
 
 .thumb-strip {
   display: flex; gap: 6px; padding: 8px 10px;

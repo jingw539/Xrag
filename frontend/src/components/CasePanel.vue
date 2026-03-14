@@ -114,6 +114,7 @@
 </template>
 
 <script setup>
+import { Upload, Plus, VideoPlay } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 const emit = defineEmits([

@@ -9,13 +9,11 @@ import './styles/element-variables.css'
 import './styles/base.css'
 import App from './App.vue'
 import router from './router'
-import { elementPlusIcons } from './icons'
-
 const app = createApp(App)
 const pinia = createPinia()
 
-for (const [key, component] of Object.entries(elementPlusIcons)) {
-  app.component(key, component)
+if (import.meta.env.VITE_PERF_MODE === 'true') {
+  document.documentElement.classList.add('perf-mode')
 }
 
 app.use(pinia)

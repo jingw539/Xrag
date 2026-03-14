@@ -37,6 +37,7 @@
 </template>
 
 <script setup>
+import { FolderOpened, Check, MagicStick } from '@element-plus/icons-vue'
 const emit = defineEmits(['navigate', 'save-draft', 'sign', 'generate'])
 
 defineProps({

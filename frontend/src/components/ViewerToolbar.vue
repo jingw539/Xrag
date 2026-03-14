@@ -23,6 +23,16 @@
 </template>
 
 <script setup>
+import {
+  ZoomIn,
+  ZoomOut,
+  RefreshRight,
+  RefreshLeft,
+  FullScreen,
+  Pointer,
+  Crop,
+  Delete
+} from '@element-plus/icons-vue'
 const emit = defineEmits([
   'zoom',
   'rotate',

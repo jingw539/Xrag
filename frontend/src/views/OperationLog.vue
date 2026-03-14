@@ -12,16 +12,16 @@
 
       <el-form :model="query" inline>
         <el-form-item label="操作类型">
-          <el-input v-model="query.operationType" clearable placeholder="如：SIGN_REPORT" style="width: 160px" />
+          <el-input v-model="query.operationType" clearable placeholder="如：SIGN_REPORT" class="input-w-160" />
         </el-form-item>
         <el-form-item label="执行结果">
-          <el-select v-model="query.resultType" clearable placeholder="全部" style="width: 120px">
+          <el-select v-model="query.resultType" clearable placeholder="全部" class="select-w-120">
             <el-option label="成功" value="success" />
             <el-option label="失败" value="error" />
           </el-select>
         </el-form-item>
         <el-form-item label="失败原因">
-          <el-input v-model="query.errorKeyword" clearable placeholder="按错误信息筛选" style="width: 180px" />
+          <el-input v-model="query.errorKeyword" clearable placeholder="按错误信息筛选" class="input-w-180" />
         </el-form-item>
         <el-form-item label="时间范围">
           <el-date-picker
@@ -31,7 +31,7 @@
             start-placeholder="开始日期"
             end-placeholder="结束日期"
             value-format="YYYY-MM-DD"
-            style="width: 260px"
+            class="date-w-260"
             @change="onDateChange"
           />
         </el-form-item>
@@ -41,62 +41,104 @@
         </el-form-item>
       </el-form>
 
-      <el-table v-if="!isMobile" class="admin-table" :data="logs" v-loading="loading" border>
-        <el-table-column prop="userName" label="操作用户" width="120" />
-        <el-table-column prop="operationType" label="操作类型" width="160">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.errorMsg ? 'danger' : 'info'">{{ row.operationType || '-' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="执行结果" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.errorMsg ? 'danger' : 'success'">{{ row.errorMsg ? '失败' : '成功' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="targetId" label="目标ID" width="120" />
-        <el-table-column prop="apiPath" label="接口路径" show-overflow-tooltip />
-        <el-table-column prop="errorMsg" label="失败原因" min-width="220" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span :class="row.errorMsg ? 'error-text' : 'muted-text'">{{ row.errorMsg || '—' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="clientIp" label="客户端IP" width="130" />
-        <el-table-column prop="elapsedMs" label="耗时(ms)" width="100" align="right" />
-        <el-table-column prop="createdAt" label="操作时间" width="170">
-          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-        </el-table-column>
-        <el-table-column label="详情" width="80" align="center">
-          <template #default="{ row }">
-            <el-button link size="small" @click="showDetail(row)">查看</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div v-else class="log-card-list" v-loading="loading">
-        <div v-for="row in logs" :key="row.logId || row.createdAt" class="log-card">
-          <div class="log-card-top">
-            <div class="log-title">
-              <span class="log-user">{{ row.userName || '—' }}</span>
-              <el-tag size="small" :type="row.errorMsg ? 'danger' : 'info'">{{ row.operationType || '-' }}</el-tag>
-            </div>
-            <el-tag size="small" :type="row.errorMsg ? 'danger' : 'success'">{{ row.errorMsg ? '失败' : '成功' }}</el-tag>
+      <template v-if="listReady">
+        <div v-if="perfMode && !isMobile" class="log-virtual">
+          <div class="log-virtual-head">
+            <span>操作用户</span>
+            <span>类型</span>
+            <span>结果</span>
+            <span>目标ID</span>
+            <span>接口路径</span>
+            <span>耗时</span>
+            <span>操作时间</span>
+            <span>详情</span>
           </div>
-          <div class="log-meta">
-            <span>目标ID：{{ row.targetId || '—' }}</span>
-            <span>耗时：{{ row.elapsedMs ?? '-' }} ms</span>
-          </div>
-          <div class="log-meta">
-            <span>IP：{{ row.clientIp || '—' }}</span>
-            <span>{{ formatDate(row.createdAt) }}</span>
-          </div>
-          <div class="log-api">接口：{{ row.apiPath || '—' }}</div>
-          <div v-if="row.errorMsg" class="log-error">{{ row.errorMsg }}</div>
-          <div class="log-actions">
-            <el-button size="small" @click.stop="showDetail(row)">查看详情</el-button>
-          </div>
+          <VirtualList
+            :items="logs"
+            :item-height="44"
+            :height="listHeight"
+            key-field="logId"
+            class="log-virtual-body"
+          >
+            <template #default="{ item }">
+              <div class="log-virtual-row">
+                <span>{{ item.userName || '—' }}</span>
+                <span>
+                  <el-tag size="small" :type="item.errorMsg ? 'danger' : 'info'">{{ item.operationType || '-' }}</el-tag>
+                </span>
+                <span>
+                  <el-tag size="small" :type="item.errorMsg ? 'danger' : 'success'">{{ item.errorMsg ? '失败' : '成功' }}</el-tag>
+                </span>
+                <span>{{ item.targetId || '—' }}</span>
+                <span class="log-path">{{ item.apiPath || '—' }}</span>
+                <span class="log-ms">{{ item.elapsedMs ?? '-' }} ms</span>
+                <span>{{ formatDate(item.createdAt) }}</span>
+                <span>
+                  <el-button link size="small" @click="showDetail(item)">查看</el-button>
+                </span>
+              </div>
+            </template>
+          </VirtualList>
         </div>
-        <el-empty v-if="logs.length === 0" description="暂无日志" :image-size="60" />
-      </div>
+
+        <el-table v-else-if="!isMobile" class="admin-table perf-table" :data="logs" v-loading="loading" border>
+          <el-table-column prop="userName" label="操作用户" width="120" />
+          <el-table-column prop="operationType" label="操作类型" width="160">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.errorMsg ? 'danger' : 'info'">{{ row.operationType || '-' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="执行结果" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.errorMsg ? 'danger' : 'success'">{{ row.errorMsg ? '失败' : '成功' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="targetId" label="目标ID" width="120" />
+          <el-table-column prop="apiPath" label="接口路径" show-overflow-tooltip />
+          <el-table-column prop="errorMsg" label="失败原因" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span :class="row.errorMsg ? 'error-text' : 'muted-text'">{{ row.errorMsg || '—' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="clientIp" label="客户端IP" width="130" />
+          <el-table-column prop="elapsedMs" label="耗时(ms)" width="100" align="right" />
+          <el-table-column prop="createdAt" label="操作时间" width="170">
+            <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+          </el-table-column>
+          <el-table-column label="详情" width="80" align="center">
+            <template #default="{ row }">
+              <el-button link size="small" @click="showDetail(row)">查看</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div v-else class="log-card-list perf-section" v-loading="loading">
+          <div v-for="row in logs" :key="row.logId || row.createdAt" class="log-card">
+            <div class="log-card-top">
+              <div class="log-title">
+                <span class="log-user">{{ row.userName || '—' }}</span>
+                <el-tag size="small" :type="row.errorMsg ? 'danger' : 'info'">{{ row.operationType || '-' }}</el-tag>
+              </div>
+              <el-tag size="small" :type="row.errorMsg ? 'danger' : 'success'">{{ row.errorMsg ? '失败' : '成功' }}</el-tag>
+            </div>
+            <div class="log-meta">
+              <span>目标ID：{{ row.targetId || '—' }}</span>
+              <span>耗时：{{ row.elapsedMs ?? '-' }} ms</span>
+            </div>
+            <div class="log-meta">
+              <span>IP：{{ row.clientIp || '—' }}</span>
+              <span>{{ formatDate(row.createdAt) }}</span>
+            </div>
+            <div class="log-api">接口：{{ row.apiPath || '—' }}</div>
+            <div v-if="row.errorMsg" class="log-error">{{ row.errorMsg }}</div>
+            <div class="log-actions">
+              <el-button size="small" @click.stop="showDetail(row)">查看详情</el-button>
+            </div>
+          </div>
+          <el-empty v-if="logs.length === 0" description="暂无日志" :image-size="60" />
+        </div>
+      </template>
+      <div v-else class="table-placeholder">正在加载日志视图...</div>
 
       <el-pagination
         class="pagination"
@@ -111,7 +153,7 @@
     </el-card>
   </div>
 
-  <el-dialog v-model="detailVisible" title="日志详情" width="560px">
+  <el-dialog v-if="detailVisible" v-model="detailVisible" title="日志详情" width="560px">
     <el-descriptions :column="1" border size="small">
       <el-descriptions-item label="操作用户">{{ current.userName || '-' }}</el-descriptions-item>
       <el-descriptions-item label="操作类型">{{ current.operationType || '-' }}</el-descriptions-item>
@@ -134,6 +176,9 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { List } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { listLogs } from '@/api/log'
+import { runWhenIdle } from '@/utils/idle'
+import { formatDateTime } from '@/utils/format'
+import VirtualList from '@/components/VirtualList.vue'
 
 const loading = ref(false)
 const rawLogs = ref([])
@@ -142,6 +187,9 @@ const dateRange = ref([])
 const detailVisible = ref(false)
 const current = ref({})
 const isMobile = ref(false)
+const perfMode = import.meta.env.VITE_PERF_MODE === 'true'
+const listReady = ref(!perfMode)
+const listHeight = ref(520)
 const query = reactive({
   page: 1,
   pageSize: 20,
@@ -162,6 +210,11 @@ const updateIsMobile = () => {
   isMobile.value = window.innerWidth <= 768
 }
 
+const revealList = () => { listReady.value = true }
+const updateListHeight = () => {
+  listHeight.value = Math.max(360, window.innerHeight - 320)
+}
+
 const fetchList = async () => {
   loading.value = true
   try {
@@ -176,8 +229,14 @@ const fetchList = async () => {
     })
     rawLogs.value = res.data?.list || []
     total.value = res.data?.total || 0
+  } catch {
+    rawLogs.value = []
+    total.value = 0
   } finally {
     loading.value = false
+    if (perfMode && !listReady.value) {
+      runWhenIdle(revealList, { timeout: 1800 })
+    }
   }
 }
 
@@ -197,7 +256,7 @@ const showDetail = (row) => {
   detailVisible.value = true
 }
 
-const formatDate = (value) => (value ? String(value).replace('T', ' ').substring(0, 19) : '-')
+const formatDate = (value) => formatDateTime(value, { withSeconds: true })
 
 const exportLogs = () => {
   if (!logs.value.length) {
@@ -228,11 +287,15 @@ const exportLogs = () => {
 onMounted(() => {
   updateIsMobile()
   window.addEventListener('resize', updateIsMobile)
-  fetchList()
+  updateListHeight()
+  window.addEventListener('resize', updateListHeight)
+  runWhenIdle(() => fetchList(), { timeout: 1200 })
+  if (!perfMode) listReady.value = true
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateIsMobile)
+  window.removeEventListener('resize', updateListHeight)
 })
 </script>
 
@@ -302,10 +365,61 @@ onBeforeUnmount(() => {
   color: #e8f0ff;
 }
 
+.input-w-160 { width: 160px; }
+.select-w-120 { width: 120px; }
+.input-w-180 { width: 180px; }
+.date-w-260 { width: 260px; }
+
 .pagination {
   margin-top: 16px;
   justify-content: flex-end;
   flex-shrink: 0;
+}
+
+.table-placeholder {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--xrag-text-faint);
+  border: 1px dashed var(--xrag-border);
+  border-radius: 12px;
+  background: rgba(15, 25, 35, 0.5);
+}
+
+.log-virtual {
+  border: 1px solid var(--xrag-border);
+  border-radius: 12px;
+  background: var(--xrag-panel);
+  overflow: hidden;
+}
+.log-virtual-head,
+.log-virtual-row {
+  display: grid;
+  grid-template-columns: 100px 120px 80px 90px 1fr 90px 150px 70px;
+  gap: 8px;
+  align-items: center;
+}
+.log-virtual-head {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--xrag-text-soft);
+  background: rgba(12, 20, 32, 0.7);
+  border-bottom: 1px solid rgba(111, 134, 166, 0.2);
+}
+.log-virtual-row {
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(111, 134, 166, 0.12);
+  font-size: 12px;
+}
+.log-virtual-row:hover {
+  background: rgba(111, 134, 166, 0.08);
+}
+.log-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.log-ms {
+  text-align: right;
 }
 
 .error-text {
@@ -399,9 +513,8 @@ onBeforeUnmount(() => {
   background: #0f1923;
   color: #d0dcf0;
 }
-</style>
 
-<style scoped>
+
 .page-wrap {
   background: var(--xrag-bg) !important;
   color: var(--xrag-text) !important;
