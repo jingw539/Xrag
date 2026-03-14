@@ -6,6 +6,8 @@ RUN npm install
 RUN ROLLUP_VERSION=$(node -p "require('rollup/package.json').version") \
     && npm i -D @rollup/rollup-linux-x64-musl@${ROLLUP_VERSION} --no-save
 COPY . .
+ENV VITE_PUBLIC_ACCESS=true
+ENV VITE_PERF_MODE=true
 RUN npm run build
 
 # 运行阶段
