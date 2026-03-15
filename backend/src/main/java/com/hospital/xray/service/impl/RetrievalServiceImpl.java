@@ -184,6 +184,16 @@ public class RetrievalServiceImpl implements RetrievalService {
                 vo.setExamNo(c.getExamNo());
                 vo.setDoctorId(c.getResponsibleDoctorId());
             }
+            if (vo.getImagePath() == null || vo.getImagePath().isBlank()) {
+                ImageInfo img = imageInfoMapper.selectOne(
+                        new LambdaQueryWrapper<ImageInfo>()
+                                .eq(ImageInfo::getCaseId, vo.getCaseId())
+                                .orderByDesc(ImageInfo::getCreatedAt)
+                                .last("LIMIT 1"));
+                if (img != null && StringUtils.hasText(img.getFilePath())) {
+                    vo.setImagePath(img.getFilePath());
+                }
+            }
         }
         return results;
     }

@@ -627,12 +627,12 @@ const handleTermNormalize = async () => {
     // isAccepted === 0 ?null?
     termDialogList.value = list.filter(t => !t.isAccepted || t.isAccepted === 0)
     if (termDialogList.value.length === 0) {
-      ElMessage.success('')
+      ElMessage.success('未发现需要纠正的术语')
     } else {
       termDialogVisible.value = true
     }
   } catch {
-    // 
+    ElMessage.error('术语标准化失败，请稍后重试')
   } finally { termLoading.value = false }
 }
 
@@ -1988,7 +1988,7 @@ const handleCreateCase = async (payload) => {
   creating.value = true
   try {
     const res = await createCase(payload)
-    ElMessage.success('')
+    ElMessage.success('病例创建成功')
     createDialogVisible.value = false
     currentPage.value = 1
     await fetchCases()
