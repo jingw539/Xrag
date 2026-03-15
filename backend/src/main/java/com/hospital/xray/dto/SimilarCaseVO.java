@@ -14,4 +14,8 @@ public class SimilarCaseVO {
     private String findings;
     private String impression;
     private String cheXpertLabels;
+    private String source;
+    private Long doctorId;
+    private String sourceId;
+    private String imagePath;
 }

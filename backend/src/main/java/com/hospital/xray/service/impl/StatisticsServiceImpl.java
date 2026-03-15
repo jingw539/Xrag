@@ -24,16 +24,34 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final ReportInfoMapper reportInfoMapper;
 
     @Override
-    public StatisticsVO getOverview() {
-        long totalCases = caseInfoMapper.selectCount(null);
-        long totalReports = reportInfoMapper.selectCount(null);
-        long signedReports = reportInfoMapper.selectCount(
-                new LambdaQueryWrapper<ReportInfo>().eq(ReportInfo::getReportStatus, "SIGNED"));
+    public StatisticsVO getOverview(Long doctorId) {
+        LambdaQueryWrapper<com.hospital.xray.entity.CaseInfo> caseWrapper = new LambdaQueryWrapper<>();
+        if (doctorId != null) {
+            caseWrapper.eq(com.hospital.xray.entity.CaseInfo::getResponsibleDoctorId, doctorId);
+        }
+        long totalCases = caseInfoMapper.selectCount(caseWrapper);
+
+        LambdaQueryWrapper<ReportInfo> reportWrapper = new LambdaQueryWrapper<>();
+        if (doctorId != null) {
+            reportWrapper.eq(ReportInfo::getDoctorId, doctorId);
+        }
+        long totalReports = reportInfoMapper.selectCount(reportWrapper);
+
+        LambdaQueryWrapper<ReportInfo> signedWrapper = new LambdaQueryWrapper<>();
+        signedWrapper.eq(ReportInfo::getReportStatus, "SIGNED");
+        if (doctorId != null) {
+            signedWrapper.eq(ReportInfo::getDoctorId, doctorId);
+        }
+        long signedReports = reportInfoMapper.selectCount(signedWrapper);
 
         Map<String, Long> statusMap = new HashMap<>();
         for (String status : List.of("NONE", "AI_DRAFT", "EDITING", "SIGNED")) {
-            long cnt = reportInfoMapper.selectCount(
-                    new LambdaQueryWrapper<ReportInfo>().eq(ReportInfo::getReportStatus, status));
+            LambdaQueryWrapper<ReportInfo> statusWrapper = new LambdaQueryWrapper<>();
+            statusWrapper.eq(ReportInfo::getReportStatus, status);
+            if (doctorId != null) {
+                statusWrapper.eq(ReportInfo::getDoctorId, doctorId);
+            }
+            long cnt = reportInfoMapper.selectCount(statusWrapper);
             statusMap.put(status, cnt);
         }
 
@@ -46,16 +64,20 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public List<Map<String, Object>> getReportTrend(String startDate, String endDate, String groupBy) {
+    public List<Map<String, Object>> getReportTrend(String startDate, String endDate, String groupBy, Long doctorId) {
         LocalDate start = startDate != null ? LocalDate.parse(startDate) : LocalDate.now().minusDays(30);
         LocalDate end = endDate != null ? LocalDate.parse(endDate) : LocalDate.now();
 
-        List<ReportInfo> reports = reportInfoMapper.selectList(
-                new LambdaQueryWrapper<ReportInfo>()
-                        .ge(ReportInfo::getCreatedAt, start.atStartOfDay())
-                        .le(ReportInfo::getCreatedAt, end.atTime(23, 59, 59))
-                        .isNotNull(ReportInfo::getCreatedAt)
-                        .orderByAsc(ReportInfo::getCreatedAt));
+        LambdaQueryWrapper<ReportInfo> wrapper = new LambdaQueryWrapper<ReportInfo>()
+                .ge(ReportInfo::getCreatedAt, start.atStartOfDay())
+                .le(ReportInfo::getCreatedAt, end.atTime(23, 59, 59))
+                .isNotNull(ReportInfo::getCreatedAt)
+                .orderByAsc(ReportInfo::getCreatedAt);
+        if (doctorId != null) {
+            wrapper.eq(ReportInfo::getDoctorId, doctorId);
+        }
+
+        List<ReportInfo> reports = reportInfoMapper.selectList(wrapper);
 
         Map<String, Long> grouped = reports.stream()
             .filter(r -> r.getCreatedAt() != null)

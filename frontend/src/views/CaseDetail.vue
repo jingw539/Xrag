@@ -146,7 +146,6 @@
             <el-card header="报告内容">
               <template v-if="report">
                 <div class="report-meta">
-                  <el-tag type="info">AI置信度：{{ report.aiConfidence != null ? `${(Number(report.aiConfidence) * 100).toFixed(1)}%` : report.modelConfidence != null ? `${(Number(report.modelConfidence) * 100).toFixed(1)}%` : '-' }}</el-tag>
                   <div class="report-signer">
                     签发医生：{{ report.signedDoctorName || report.signedByName || report.signerName || '-' }}
                   </div>

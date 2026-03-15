@@ -21,6 +21,12 @@ frontend/node_modules/
 frontend/dist/
 backend/target/
 test-results/
+frontend/coverage/
+performance/lighthouse/
+temp/
+third_party/
+backend/run-local.ps1
+frontend/run-local.ps1
 
 # Temporary debug / local artifacts
 backend/*.class

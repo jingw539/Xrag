@@ -1,4 +1,4 @@
-html, body {
+﻿html, body {
   margin: 0;
   padding: 0;
   background: var(--xrag-bg);
@@ -76,6 +76,20 @@ html, body {
 
 * {
   box-sizing: border-box;
+}
+
+/* Hide all scrollbars while keeping scroll behavior */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+*::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-track {
+  background: transparent !important;
 }
 
 @keyframes xrag-float {
@@ -328,9 +342,9 @@ html, body {
   border: none !important;
 }
 
-.el-scrollbar__bar.is-vertical .el-scrollbar__thumb,
-.el-scrollbar__bar.is-horizontal .el-scrollbar__thumb {
-  background: rgba(237, 246, 250, 0.32) !important;
+.el-scrollbar__bar.is-vertical,
+.el-scrollbar__bar.is-horizontal {
+  display: none !important;
 }
 
 .el-switch.is-checked .el-switch__core {
@@ -370,3 +384,70 @@ html, body {
   border: 1px solid var(--xrag-border) !important;
   box-shadow: var(--xrag-shadow) !important;
 }
+
+/* Date picker dark theme overrides */
+.el-picker-panel,
+.el-picker-panel__body-wrapper,
+.el-picker-panel__content,
+.el-popper.is-pure {
+  background: #0f1724 !important;
+  color: var(--xrag-text) !important;
+  border-color: var(--xrag-border) !important;
+}
+.el-date-table td,
+.el-date-table th {
+  background: transparent !important;
+  color: var(--xrag-text) !important;
+}
+.el-date-table-cell .el-date-table-cell__text {
+  background: transparent !important;
+  color: var(--xrag-text) !important;
+}
+.el-date-table-cell.is-in-range .el-date-table-cell__text {
+  background: rgba(36,87,166,0.16) !important;
+  color: #e9eef5 !important;
+  border-radius: 0 !important;
+}
+.el-date-table-cell.is-range-start .el-date-table-cell__text,
+.el-date-table-cell.is-range-end .el-date-table-cell__text,
+.el-date-table-cell.is-selected .el-date-table-cell__text {
+  background: #2457a6 !important;
+  color: #fff !important;
+  border-radius: 4px !important;
+}
+
+/* force dark date picker popper */
+.el-popper .el-picker-panel,
+.el-popper .el-date-range-picker {
+  background: #0f1724 !important;
+  color: var(--xrag-text) !important;
+  border-color: var(--xrag-border) !important;
+}
+.el-popper .el-picker-panel__content,
+.el-popper .el-date-range-picker__content {
+  background: transparent !important;
+  color: var(--xrag-text) !important;
+}
+.el-popper .el-date-table,
+.el-popper .el-date-table td,
+.el-popper .el-date-table th {
+  background: transparent !important;
+  color: var(--xrag-text) !important;
+}
+.el-popper .el-date-table-cell .el-date-table-cell__text {
+  background: transparent !important;
+  color: var(--xrag-text) !important;
+}
+.el-popper .el-date-table-cell.is-in-range .el-date-table-cell__text {
+  background: rgba(36,87,166,0.16) !important;
+  color: #e9eef5 !important;
+  border-radius: 0 !important;
+}
+.el-popper .el-date-table-cell.is-range-start .el-date-table-cell__text,
+.el-popper .el-date-table-cell.is-range-end .el-date-table-cell__text,
+.el-popper .el-date-table-cell.is-selected .el-date-table-cell__text {
+  background: #2457a6 !important;
+  color: #fff !important;
+  border-radius: 4px !important;
+}
+

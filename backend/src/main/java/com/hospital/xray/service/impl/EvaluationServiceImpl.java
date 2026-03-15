@@ -24,6 +24,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 
     @Override
     public List<EvaluationRunVO> listRuns(String datasetName, String modelName) {
+        try {
         LambdaQueryWrapper<EvaluationRun> qw = new LambdaQueryWrapper<>();
         if (datasetName != null && !datasetName.isBlank()) {
             qw.eq(EvaluationRun::getDatasetName, datasetName);
@@ -40,11 +41,20 @@ public class EvaluationServiceImpl implements EvaluationService {
             result.add(vo);
         }
         return result;
+        } catch (Exception e) {
+            // Gracefully degrade when evaluation tables are missing or not populated.
+            return List.of();
+        }
     }
 
     @Override
     public List<EvaluationMetricVO> listMetrics(Long runId, String scope) {
-        List<Map<String, Object>> rows = evaluationMetricMapper.selectMetricsByRun(runId, scope);
+        List<Map<String, Object>> rows;
+        try {
+            rows = evaluationMetricMapper.selectMetricsByRun(runId, scope);
+        } catch (Exception e) {
+            return List.of();
+        }
         List<EvaluationMetricVO> result = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             EvaluationMetricVO vo = new EvaluationMetricVO();
@@ -65,6 +75,10 @@ public class EvaluationServiceImpl implements EvaluationService {
 
     @Override
     public List<Map<String, Object>> compareModels(String datasetName, String metricName, String tagName) {
-        return evaluationMetricMapper.selectModelCompare(datasetName, metricName, tagName);
+        try {
+            return evaluationMetricMapper.selectModelCompare(datasetName, metricName, tagName);
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

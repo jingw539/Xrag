@@ -1,7 +1,6 @@
 import request from '@/utils/request'
 import axios from 'axios'
 import { useUserStore } from '@/stores/user'
-import { getPreviewToken } from '@/utils/preview'
 
 export const uploadImage = (file, caseId, viewPosition, pixelSpacingXmm, pixelSpacingYmm) => {
   const formData = new FormData()
@@ -27,8 +26,6 @@ export const fetchImageBlob = (imageId, thumbnail = false) => {
   const userStore = useUserStore()
   const headers = {}
   if (userStore.token) headers.Authorization = `Bearer ${userStore.token}`
-  const previewToken = getPreviewToken()
-  if (previewToken) headers['X-Preview-Token'] = previewToken
   const suffix = thumbnail ? 'thumbnail' : 'content'
   return axios.get(`/api/images/${imageId}/${suffix}`, { responseType: 'blob', headers })
 }

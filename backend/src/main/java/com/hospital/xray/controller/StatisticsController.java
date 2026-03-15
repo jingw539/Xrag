@@ -27,8 +27,9 @@ public class StatisticsController {
 
     @Operation(summary = "Get system overview")
     @GetMapping("/overview")
-    public Result<StatisticsVO> getOverview() {
-        return Result.success(statisticsService.getOverview());
+    public Result<StatisticsVO> getOverview(
+            @RequestParam(required = false) Long doctorId) {
+        return Result.success(statisticsService.getOverview(doctorId));
     }
 
     @Operation(summary = "Get report generation trend")
@@ -37,7 +38,8 @@ public class StatisticsController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @Pattern(regexp = "^(day|week|month)$", message = "groupBy must be day, week or month")
-            @RequestParam(defaultValue = "day") String groupBy) {
-        return Result.success(statisticsService.getReportTrend(startDate, endDate, groupBy));
+            @RequestParam(defaultValue = "day") String groupBy,
+            @RequestParam(required = false) Long doctorId) {
+        return Result.success(statisticsService.getReportTrend(startDate, endDate, groupBy, doctorId));
     }
 }

@@ -96,6 +96,7 @@ public class ImageServiceImpl implements ImageService {
         if (caseInfoMapper.selectById(caseId) == null) {
             throw new BusinessException(404, "Case not found: " + caseId);
         }
+        assertCaseWritable(caseId);
 
         String contentType = file.getContentType();
         if (contentType == null || !isValidImageType(contentType, file.getOriginalFilename())) {
@@ -165,9 +166,9 @@ public class ImageServiceImpl implements ImageService {
             throw new BusinessException("Upload image failed: " + e.getMessage());
         }
     }
-@Override
+    @Override
     public List<ImageVO> listImagesByCaseId(Long caseId) {
-        assertCaseAccessible(caseId);
+        assertCaseReadable(caseId);
         return imageInfoMapper.selectList(new LambdaQueryWrapper<ImageInfo>()
                         .eq(ImageInfo::getCaseId, caseId)
                         .orderByAsc(ImageInfo::getCreatedAt))
@@ -178,7 +179,7 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public List<ImageVO> listPriorImages(Long caseId, Long currentImageId) {
-        assertCaseAccessible(caseId);
+        assertCaseReadable(caseId);
         CaseInfo currentCase = caseInfoMapper.selectById(caseId);
         if (currentCase == null || currentCase.getPatientAnonId() == null) {
             return List.of();
@@ -208,7 +209,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("影像不存在");
         }
-        assertImageAccessible(imageInfo);
+        assertImageWritable(imageInfo);
         imageInfo.setPixelSpacingXmm(dto.getPixelSpacingXmm());
         imageInfo.setPixelSpacingYmm(dto.getPixelSpacingYmm());
         imageInfoMapper.updateById(imageInfo);
@@ -222,7 +223,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("影像不存在");
         }
-        assertImageAccessible(imageInfo);
+        assertImageWritable(imageInfo);
 
         LambdaUpdateWrapper<RetrievalLog> clearRef = new LambdaUpdateWrapper<>();
         clearRef.eq(RetrievalLog::getQueryImageId, imageId)
@@ -333,7 +334,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("Image not found: " + imageId);
         }
-        assertImageAccessible(imageInfo);
+        assertImageReadable(imageInfo);
         if (isLocalPath(imageInfo.getFilePath())) {
             return readLocalBytes(imageInfo.getFilePath(), thumbnail);
         }
@@ -351,7 +352,7 @@ public class ImageServiceImpl implements ImageService {
         if (imageInfo == null) {
             throw new BusinessException("Image not found: " + imageId);
         }
-        assertImageAccessible(imageInfo);
+        assertImageReadable(imageInfo);
         if (thumbnail) {
             return "image/jpeg";
         }
@@ -492,30 +493,52 @@ private boolean isValidImageType(String contentType, String filename) {
         return path.substring(dot + 1).toLowerCase();
     }
 
-    private void assertCaseAccessible(Long caseId) {
+
+    private void assertCaseReadable(Long caseId) {
         if (!SecurityUtils.hasRole("DOCTOR")) {
             return;
         }
         Long currentUserId = SecurityUtils.getCurrentUserId();
         if (currentUserId == null) {
-            throw new BusinessException(401, "未登录");
+            throw new BusinessException(401, "Not logged in");
         }
         CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
         if (caseInfo == null) {
-            throw new BusinessException(404, "病例不存在: " + caseId);
+            throw new BusinessException(404, "Case not found: " + caseId);
+        }
+        // Read-only access is allowed for other doctors' cases.
+    }
+
+    private void assertCaseWritable(Long caseId) {
+        if (!SecurityUtils.hasRole("DOCTOR")) {
+            return;
+        }
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new BusinessException(401, "Not logged in");
+        }
+        CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
+        if (caseInfo == null) {
+            throw new BusinessException(404, "Case not found: " + caseId);
         }
         if (caseInfo.getResponsibleDoctorId() == null) {
-            throw new BusinessException(403, "病例尚未分配责任医生");
+            throw new BusinessException(403, "Case not assigned");
         }
         if (!currentUserId.equals(caseInfo.getResponsibleDoctorId())) {
-            throw new BusinessException(403, "无权访问其他医生负责的病例");
+            throw new BusinessException(403, "Cannot operate on other doctor case");
         }
     }
 
-    private void assertImageAccessible(ImageInfo imageInfo) {
+    private void assertImageReadable(ImageInfo imageInfo) {
         if (imageInfo == null) return;
-        assertCaseAccessible(imageInfo.getCaseId());
+        assertCaseReadable(imageInfo.getCaseId());
     }
+
+    private void assertImageWritable(ImageInfo imageInfo) {
+        if (imageInfo == null) return;
+        assertCaseWritable(imageInfo.getCaseId());
+    }
+
 
     private ImageMetadata extractImageMetadata(MultipartFile file) {
         String format = getFileExtension(file.getOriginalFilename());
@@ -568,7 +591,8 @@ private boolean isValidImageType(String contentType, String filename) {
                     .build();
         }
     }
-    private void deleteMinioObject(String objectName) throws Exception {
+
+    private void deleteMinioObject(String objectName) throws Exception {
         if (isLocalPath(objectName)) {
             Path path = resolveLocalPath(objectName);
             Files.deleteIfExists(path);

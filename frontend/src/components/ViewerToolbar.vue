@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="viewer-toolbar">
-    <span class="viewer-filename" :title="viewerShortcutHint">{{ viewerHeaderText }}</span>
+    <span class="viewer-filename" :title="viewerShortcutHint">{{ shortName }}</span>
     <div class="viewer-tools">
       <button class="tool-btn" title="放大（+）" @click="handleZoom(0.2)"><el-icon><ZoomIn /></el-icon></button>
       <button class="tool-btn" title="缩小（-）" @click="handleZoom(-0.2)"><el-icon><ZoomOut /></el-icon></button>
@@ -8,7 +8,7 @@
       <button class="tool-btn" title="逆时针旋转（Shift+R）" @click="handleRotate(-90)"><el-icon><RefreshLeft /></el-icon></button>
       <button class="tool-btn" title="重置视图（0 / 双击）" @click="handleReset"><el-icon><FullScreen /></el-icon></button>
       <button class="tool-btn" title="撤销（Ctrl+Z）" :disabled="!canUndo" @click="handleUndo">撤</button>
-      <button class="tool-btn" title="重做（Ctrl+Y）" :disabled="!canRedo" @click="handleRedo">重</button>
+      <button class="tool-btn" title="重做（Ctrl+Y）" :disabled="!canRedo" @click="handleRedo">重做</button>
       <button class="tool-btn" :class="compareMode && 'tool-active'" title="双屏对比" :disabled="!canCompare" @click="handleToggleCompare">对比</button>
       <span class="tool-sep-v"></span>
       <button :class="['tool-btn', annoTool === 'select' && 'tool-active']" title="选择标注（V）" @click="handleSelectTool"><el-icon><Pointer /></el-icon></button>
@@ -33,6 +33,7 @@ import {
   Crop,
   Delete
 } from '@element-plus/icons-vue'
+import { computed } from 'vue'
 const emit = defineEmits([
   'zoom',
   'rotate',
@@ -48,7 +49,21 @@ const emit = defineEmits([
   'delete-selected'
 ])
 
-defineProps({
+const handleZoom = (delta) => emit('zoom', delta)
+const handleRotate = (delta) => emit('rotate', delta)
+const handleReset = () => emit('reset')
+const handleUndo = () => emit('undo')
+const handleRedo = () => emit('redo')
+const handleToggleCompare = () => emit('toggle-compare')
+const handleSelectTool = () => emit('select-tool')
+const handleRectTool = () => emit('rect-tool')
+const handleLineTool = () => emit('line-tool')
+const handleToggleAi = () => emit('toggle-ai')
+const handleToggleDoctor = () => emit('toggle-doctor')
+const handleDeleteSelected = () => emit('delete-selected')
+
+// short filename (trim path)
+const props = defineProps({
   viewerHeaderText: { type: String, default: '' },
   viewerShortcutHint: { type: String, default: '' },
   canUndo: { type: Boolean, default: false },
@@ -63,50 +78,36 @@ defineProps({
   selectedAnnoId: { type: [Number, String, null], default: null }
 })
 
-const handleZoom = (delta) => emit('zoom', delta)
-const handleRotate = (delta) => emit('rotate', delta)
-const handleReset = () => emit('reset')
-const handleUndo = () => emit('undo')
-const handleRedo = () => emit('redo')
-const handleToggleCompare = () => emit('toggle-compare')
-const handleSelectTool = () => emit('select-tool')
-const handleRectTool = () => emit('rect-tool')
-const handleLineTool = () => emit('line-tool')
-const handleToggleAi = () => emit('toggle-ai')
-const handleToggleDoctor = () => emit('toggle-doctor')
-const handleDeleteSelected = () => emit('delete-selected')
+const shortName = computed(() => {
+  const t = props.viewerHeaderText || ''
+  const parts = t.split(/[\\/]/)
+  return parts[parts.length - 1] || t
+})
 </script>
 
 <style scoped>
 .viewer-toolbar {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--xrag-border);
   background: rgba(15, 25, 35, 0.9);
 }
 
-.viewer-filename {
-  font-size: 12px;
-  color: var(--xrag-text-soft);
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.viewer-filename { display: none; }
 
 .viewer-tools {
   display: flex;
-  align-items: center;
-  gap: 6px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: 4px;
+  align-items: center;
 }
 
 .tool-btn {
-  height: 26px;
-  min-width: 26px;
+  height: 28px;
+  min-width: 28px;
   border-radius: 6px;
   border: 1px solid var(--xrag-border);
   background: rgba(255, 255, 255, 0.02);

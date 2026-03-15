@@ -20,7 +20,6 @@
         </span>
         <span class="anno-lbl">{{ anno.label || '—' }}</span>
         <span class="anno-size">{{ formatAnnoMeasurement(anno) }}</span>
-        <span v-if="anno.confidence != null" class="anno-conf">{{ Math.round(anno.confidence * 100) }}%</span>
         <button v-if="anno.source === 'DOCTOR'" class="anno-del-btn" @click.stop="handleDelete(anno.annotationId)">×</button>
       </div>
     </div>
@@ -99,7 +98,6 @@ const handleDelete = (id) => emit('delete', id)
 .tag-dr { background: rgba(82,196,26,0.25); color: #95de64; }
 .anno-lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .anno-size { font-size: 10px; color: rgba(255,255,255,0.42); flex-shrink: 0; }
-.anno-conf { font-size: 10px; color: rgba(255,255,255,0.4); flex-shrink: 0; }
 .anno-del-btn {
   background: none;
   border: none;

@@ -15,9 +15,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -28,6 +31,24 @@ public class TermServiceImpl implements TermService {
     private final TermCorrectionMapper termCorrectionMapper;
     private final ReportInfoMapper reportInfoMapper;
     private final AiServiceClient aiServiceClient;
+
+    // Chest X-ray protected terms: do NOT replace these.
+    private static final Set<String> PROTECTED_TERMS = new HashSet<>();
+    // Manual standardization map: override AI suggestions if original matches.
+    private static final Map<String, String> STANDARD_MAP = new HashMap<>();
+
+    static {
+        // Keep precise clinical phrases (examples from current usage)
+        PROTECTED_TERMS.add("结节状高密度影");
+        PROTECTED_TERMS.add("占位性病变");
+        PROTECTED_TERMS.add("心影大小及形态");
+        PROTECTED_TERMS.add("心胸比例");
+
+        // Manual standardization examples (extend as needed)
+        STANDARD_MAP.put("心胸比", "心胸比例");
+        STANDARD_MAP.put("占位", "占位性病变");
+        STANDARD_MAP.put("结节", "结节影");
+    }
 
     @Override
     @Transactional
@@ -74,16 +95,28 @@ public class TermServiceImpl implements TermService {
             return Collections.emptyList();
         }
 
-        List<TermCorrection> entities = corrections.stream().map(c -> {
-            TermCorrection tc = new TermCorrection();
-            tc.setReportId(reportId);
-            tc.setOriginalTerm(String.valueOf(c.get("original_term")));
-            tc.setSuggestedTerm(String.valueOf(c.get("suggested_term")));
-            tc.setContextSentence(c.get("context") != null ? String.valueOf(c.get("context")) : null);
-            tc.setIsAccepted(0);
-            tc.setCreatedAt(LocalDateTime.now());
-            return tc;
-        }).collect(Collectors.toList());
+        List<TermCorrection> entities = corrections.stream()
+                .map(c -> {
+                    String original = String.valueOf(c.get("original_term"));
+                    String suggested = String.valueOf(c.get("suggested_term"));
+
+                    if (isProtectedTerm(original)) return null;
+
+                    String manual = getManualStandard(original);
+                    String finalSuggested = manual != null ? manual : suggested;
+                    if (!shouldKeepCorrection(original, finalSuggested)) return null;
+
+                    TermCorrection tc = new TermCorrection();
+                    tc.setReportId(reportId);
+                    tc.setOriginalTerm(original);
+                    tc.setSuggestedTerm(finalSuggested);
+                    tc.setContextSentence(c.get("context") != null ? String.valueOf(c.get("context")) : null);
+                    tc.setIsAccepted(0);
+                    tc.setCreatedAt(LocalDateTime.now());
+                    return tc;
+                })
+                .filter(tc -> tc != null)
+                .collect(Collectors.toList());
 
         entities.forEach(termCorrectionMapper::insert);
         return entities.stream().map(this::toVO).collect(Collectors.toList());
@@ -127,5 +160,42 @@ public class TermServiceImpl implements TermService {
         vo.setIsAccepted(tc.getIsAccepted());
         vo.setCreatedAt(tc.getCreatedAt());
         return vo;
+    }
+
+    private boolean isProtectedTerm(String term) {
+        String t = normalizeTerm(term);
+        if (t.isEmpty()) return false;
+        return PROTECTED_TERMS.stream().anyMatch(p -> normalizeTerm(p).equals(t));
+    }
+
+    private String getManualStandard(String original) {
+        String key = normalizeTerm(original);
+        if (key.isEmpty()) return null;
+        for (Map.Entry<String, String> entry : STANDARD_MAP.entrySet()) {
+            if (normalizeTerm(entry.getKey()).equals(key)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private boolean shouldKeepCorrection(String original, String suggested) {
+        if (original == null || suggested == null) return false;
+        String o = normalizeTerm(original);
+        String s = normalizeTerm(suggested);
+        if (o.isEmpty() || s.isEmpty()) return false;
+        if (o.equals(s)) return false;
+
+        // Avoid over-generalization: suggested is shorter and contained in original
+        if (o.contains(s) && s.length() < o.length()) return false;
+
+        // Avoid replacing detailed terms with overly short tokens
+        if (s.length() <= 2 && o.length() >= 4) return false;
+
+        return true;
+    }
+
+    private String normalizeTerm(String term) {
+        return term == null ? "" : term.replaceAll("\\s+", "").trim();
     }
 }

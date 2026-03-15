@@ -7,7 +7,7 @@
       </span>
       <span class="ws-patient-info">
         {{ genderLabel(caseInfo.gender) }} · {{ caseInfo.age }}岁 ·
-        {{ caseInfo.department }} · {{ formatDate(caseInfo.examTime) }}
+        {{ formatDepartment(caseInfo.department) }} · {{ formatDate(caseInfo.examTime) }}
       </span>
     </div>
     <div class="ws-actions">
@@ -43,6 +43,13 @@ defineProps({
   genderLabel: { type: Function, required: true },
   formatDate: { type: Function, required: true }
 })
+
+const formatDepartment = (value) => {
+  if (!value) return '—'
+  const v = String(value).trim()
+  if (!v || v === '???' || v === '??') return '—'
+  return v
+}
 
 const handleRegenerate = () => emit('regenerate')
 const handleMarkTypical = () => emit('mark-typical')

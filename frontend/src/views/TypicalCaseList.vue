@@ -12,8 +12,17 @@
         <el-form-item label="检查号">
           <el-input v-model="query.examNo" clearable placeholder="输入检查号" class="input-w-160" />
         </el-form-item>
-        <el-form-item label="科室">
-          <el-input v-model="query.department" clearable placeholder="如：影像科" class="input-w-140" />
+        <el-form-item label="患者ID">
+          <el-input v-model="query.patientAnonId" clearable placeholder="输入患者ID" class="input-w-160" />
+        </el-form-item>
+        <el-form-item label="性别">
+          <el-select v-model="query.gender" clearable placeholder="全部" class="input-w-140">
+            <el-option label="男" value="M" />
+            <el-option label="女" value="F" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="部位">
+          <el-input v-model="query.bodyPart" clearable placeholder="如：胸部" class="input-w-140" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchList">查询</el-button>
@@ -21,7 +30,7 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="cases" v-loading="loading" border stripe class="perf-table">
+      <el-table :data="cases" v-loading="loading" stripe class="perf-table">
         <el-table-column prop="examNo" label="检查号" width="150" />
         <el-table-column prop="patientAnonId" label="患者匿名ID" width="140" />
         <el-table-column prop="gender" label="性别" width="80" align="center">
@@ -71,14 +80,81 @@ const router = useRouter()
 const loading = ref(false)
 const cases = ref([])
 const total = ref(0)
-const query = reactive({ page: 1, pageSize: 20, isTypical: 1, examNo: '', department: '' })
+const query = reactive({
+  page: 1,
+  pageSize: 20,
+  isTypical: 1,
+  examNo: '',
+  patientAnonId: '',
+  gender: '',
+  bodyPart: ''
+})
+
+const buildMockCases = () => ([
+  {
+    caseId: 'MOCK-001',
+    examNo: 'TEST-001',
+    patientAnonId: 'P-0001',
+    gender: 'M',
+    age: 35,
+    bodyPart: '胸部',
+    examTime: '2026-03-14 12:00:00',
+    typicalTags: '结节,随访',
+    typicalRemark: '右肺下叶结节影'
+  },
+  {
+    caseId: 'MOCK-002',
+    examNo: 'TEST-002',
+    patientAnonId: 'P-0002',
+    gender: 'F',
+    age: 48,
+    bodyPart: '胸部',
+    examTime: '2026-03-13 09:20:00',
+    typicalTags: '积液',
+    typicalRemark: '右侧胸腔积液'
+  },
+  {
+    caseId: 'MOCK-003',
+    examNo: 'TEST-003',
+    patientAnonId: 'P-0003',
+    gender: 'M',
+    age: 62,
+    bodyPart: '胸部',
+    examTime: '2026-03-12 16:10:00',
+    typicalTags: '炎症',
+    typicalRemark: '双肺炎症改变'
+  }
+])
 
 const fetchList = async () => {
   loading.value = true
   try {
     const res = await listCases(query)
-    cases.value = res.data.list || []
-    total.value = res.data.total || 0
+    const raw = res.data.list || []
+    const noFilter = !query.examNo && !query.patientAnonId && !query.gender && !query.bodyPart
+    const base = (import.meta.env.DEV && raw.length === 0)
+      ? buildMockCases()
+      : raw
+    let filtered = base
+    const qExam = (query.examNo || '').trim()
+    const qPid = (query.patientAnonId || '').trim()
+    const qBody = (query.bodyPart || '').trim()
+    const qGender = (query.gender || '').toString().toUpperCase()
+    const normalizeGender = (g) => {
+      if (!g) return ''
+      const v = g.toString().toUpperCase()
+      if (v === '男' || v === 'M') return 'M'
+      if (v === '女' || v === 'F') return 'F'
+      return v
+    }
+    if (qExam) filtered = filtered.filter(c => String(c.examNo || '').includes(qExam))
+    if (qPid) filtered = filtered.filter(c => String(c.patientAnonId || '').includes(qPid))
+    if (qBody) filtered = filtered.filter(c => String(c.bodyPart || '').includes(qBody))
+    if (qGender) filtered = filtered.filter(c => normalizeGender(c.gender) === normalizeGender(qGender))
+    cases.value = filtered
+    total.value = (qExam || qPid || qBody || qGender || import.meta.env.DEV)
+      ? filtered.length
+      : (res.data.total || 0)
   } catch {
     cases.value = []
     total.value = 0
@@ -88,11 +164,24 @@ const fetchList = async () => {
 }
 
 const resetQuery = () => {
-  Object.assign(query, { page: 1, examNo: '', department: '' })
+  Object.assign(query, {
+    page: 1,
+    examNo: '',
+    patientAnonId: '',
+    gender: '',
+    bodyPart: ''
+  })
   fetchList()
 }
 
-const goDetail = (row) => router.push({ path: '/cases', query: { caseId: row.caseId } })
+const goDetail = (row) => {
+  const cid = row?.caseId
+  if (!cid || String(cid).startsWith('MOCK-')) {
+    ElMessage.info('当前为测试数据，暂无可查看详情')
+    return
+  }
+  router.push({ path: '/cases', query: { caseId: cid } })
+}
 const splitTags = (tags) => (tags ? tags.split(',').filter(Boolean) : [])
 const formatDate = (val) => formatDateTime(val)
 

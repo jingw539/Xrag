@@ -72,8 +72,19 @@ public class AiServiceClient {
     public Map<String, Object> generateReport(String imagePath, List<Map<String, Object>> similarCases) {
         String imageUrl = buildImageUrl(imagePath);
 
+        Map<String, Object> localResult = null;
+        String localFindings = "";
+        String localImpression = "";
+        boolean hasLocalDraft = false;
         if (StringUtils.hasText(localBaseUrl)) {
-            return callLocalReportService(imageUrl, similarCases);
+            try {
+                localResult = callLocalReportService(imageUrl, similarCases);
+                localFindings = localResult.get("findings") != null ? localResult.get("findings").toString() : "";
+                localImpression = localResult.get("impression") != null ? localResult.get("impression").toString() : "";
+                hasLocalDraft = StringUtils.hasText(localFindings) || StringUtils.hasText(localImpression);
+            } catch (Exception e) {
+                log.warn("Local AI failed, fallback to Qwen: {}", e.getMessage());
+            }
         }
 
         StringBuilder sb = new StringBuilder();
@@ -98,6 +109,15 @@ public class AiServiceClient {
                 if (c.get("impression") != null) sb.append("Impression: ").append(c.get("impression")).append("\n");
             }
         }
+        if (hasLocalDraft) {
+            sb.append("\nA draft report from a local model (may be English and may contain errors) is provided below. Use it as reference only; verify with the image and correct any mistakes.\n");
+            if (StringUtils.hasText(localFindings)) {
+                sb.append("\nLocal draft findings:\n").append(localFindings).append("\n");
+            }
+            if (StringUtils.hasText(localImpression)) {
+                sb.append("\nLocal draft impression:\n").append(localImpression).append("\n");
+            }
+        }
 
         sb.append("""
 
@@ -117,7 +137,18 @@ public class AiServiceClient {
                 }
                 """.stripIndent());
 
-        return callQwenVL(sb.toString(), imageUrl);
+        Map<String, Object> qwenResult;
+        try {
+            qwenResult = callQwenVL(sb.toString(), imageUrl);
+        } catch (Exception e) {
+            if (localResult != null) {
+                log.warn("Qwen failed, fallback to local draft: {}", e.getMessage());
+                return localResult;
+            }
+            throw e;
+        }
+        qwenResult.putIfAbsent("prompt", sb.toString());
+        return qwenResult;
     }
 
     /**
@@ -135,6 +166,15 @@ public class AiServiceClient {
 
                 草稿：
                 """.stripIndent());
+        polishBuilder.append("""
+                Additional constraints (strict):
+                - Do NOT change correct medical terms into more generic or shorter ones.
+                - Do NOT change measurements, sizes, locations, laterality, or counts.
+                - Do NOT add new findings that are not in the original draft.
+                - Do NOT remove existing findings unless they are clearly duplicated.
+                - If unsure, keep the original wording.
+                """.stripIndent());
+
         polishBuilder.append("影像所见：").append(findings != null ? findings : "").append("\n");
         polishBuilder.append("影像印象：").append(impression != null ? impression : "").append("\n\n");
         polishBuilder.append("""
@@ -193,7 +233,12 @@ public class AiServiceClient {
     public Map<String, Object> analyzeTerms(String reportText) {
         StringBuilder termBuilder = new StringBuilder();
         termBuilder.append("""
-                You are a medical terminology expert. Identify non-standard or outdated terms in the CXR report and suggest standardized alternatives.
+                You are a medical terminology expert for chest X-ray reports.
+                Identify only clearly incorrect, non-standard, or outdated terms and suggest standardized alternatives.
+                Do NOT generalize or shorten precise clinical phrases. Do NOT replace detailed terms with more generic ones.
+                Do NOT replace with abbreviations unless the abbreviation is the standard form.
+                If you are not sure a term is wrong, do NOT suggest a correction.
+                Prefer corrections that are more specific or equally specific in meaning.
 
                 Report text:
                 """.stripIndent());

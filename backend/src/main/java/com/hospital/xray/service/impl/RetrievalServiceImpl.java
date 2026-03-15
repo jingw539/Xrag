@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -57,8 +58,11 @@ public class RetrievalServiceImpl implements RetrievalService {
         List<SimilarCaseVO> imageCases = retrieveByImage(caseId, image, topK);
         List<SimilarCaseVO> textCases = retrieveByRag(caseId, imageId, topK);
         List<SimilarCaseVO> similarCases = mergeSimilarCases(imageCases, textCases, topK);
+        attachCaseDoctor(similarCases);
+        enrichWithLatestReports(similarCases);
         if (similarCases.isEmpty()) {
             similarCases = retrieveTypicalCases(caseId, topK);
+            attachCaseDoctor(similarCases);
         }
         int elapsedMs = (int) (System.currentTimeMillis() - startMs);
 
@@ -122,6 +126,14 @@ public class RetrievalServiceImpl implements RetrievalService {
                         .ne(CaseInfo::getCaseId, excludeCaseId)
                         .orderByDesc(CaseInfo::getExamTime)
                         .last("LIMIT " + topK));
+        if (typicalCases.isEmpty()) {
+            typicalCases = caseInfoMapper.selectList(
+                    new LambdaQueryWrapper<CaseInfo>()
+                            .ne(CaseInfo::getCaseId, excludeCaseId)
+                            .eq(CaseInfo::getReportStatus, "SIGNED")
+                            .orderByDesc(CaseInfo::getExamTime)
+                            .last("LIMIT " + topK));
+        }
 
         List<Long> caseIds = typicalCases.stream()
                 .map(CaseInfo::getCaseId)
@@ -134,12 +146,13 @@ public class RetrievalServiceImpl implements RetrievalService {
             SimilarCaseVO vo = new SimilarCaseVO();
             vo.setCaseId(tc.getCaseId());
             vo.setExamNo(tc.getExamNo());
-            vo.setSimilarityScore(new BigDecimal("1.00"));
+            vo.setDoctorId(tc.getResponsibleDoctorId());
+            // Typical fallback is not a similarity match; avoid misleading 100% scores.
+            vo.setSimilarityScore(null);
+            vo.setSource("TYPICAL");
             if (report != null) {
-                vo.setFindings(report.getFinalFindings() != null
-                        ? report.getFinalFindings() : report.getAiFindings());
-                vo.setImpression(report.getFinalImpression() != null
-                        ? report.getFinalImpression() : report.getAiImpression());
+                vo.setFindings(pickText(report.getFinalFindings(), report.getAiFindings()));
+                vo.setImpression(pickText(report.getFinalImpression(), report.getAiImpression()));
             }
             result.add(vo);
         }
@@ -152,6 +165,9 @@ public class RetrievalServiceImpl implements RetrievalService {
         if (queryText.isBlank()) return List.of();
         List<SimilarCaseVO> results = ragServiceClient.searchSimilarCases(queryText, topK);
         if (results.isEmpty()) return results;
+        results.forEach(v -> {
+            if (v != null) v.setSource("RAG");
+        });
         List<Long> caseIds = results.stream()
                 .map(SimilarCaseVO::getCaseId)
                 .filter(Objects::nonNull)
@@ -164,7 +180,10 @@ public class RetrievalServiceImpl implements RetrievalService {
         for (SimilarCaseVO vo : results) {
             if (vo.getCaseId() == null) continue;
             CaseInfo c = caseMap.get(vo.getCaseId());
-            if (c != null) vo.setExamNo(c.getExamNo());
+            if (c != null) {
+                vo.setExamNo(c.getExamNo());
+                vo.setDoctorId(c.getResponsibleDoctorId());
+            }
         }
         return results;
     }
@@ -173,6 +192,9 @@ public class RetrievalServiceImpl implements RetrievalService {
         if (image == null || !aiServiceClient.isLocalEnabled()) return List.of();
         if (isDicomImage(image)) return List.of();
         List<SimilarCaseVO> results = aiServiceClient.searchSimilarCasesByImage(image.getFilePath(), caseId, topK);
+        results.forEach(v -> {
+            if (v != null) v.setSource("IMAGE");
+        });
         return results.stream()
                 .filter(v -> v.getCaseId() != null && !v.getCaseId().equals(caseId))
                 .collect(Collectors.toList());
@@ -208,6 +230,12 @@ public class RetrievalServiceImpl implements RetrievalService {
                         BigDecimal avg = existing.getSimilarityScore().add(vo.getSimilarityScore())
                                 .divide(new BigDecimal("2"), 6, RoundingMode.HALF_UP);
                         existing.setSimilarityScore(avg);
+                    }
+                    if (existing.getSource() == null || existing.getSource().isBlank()) {
+                        existing.setSource(vo.getSource());
+                    } else if (vo.getSource() != null && !vo.getSource().isBlank()
+                            && !Objects.equals(existing.getSource(), vo.getSource())) {
+                        existing.setSource("MIXED");
                     }
                     if (existing.getFindings() == null || existing.getFindings().isBlank()) {
                         existing.setFindings(vo.getFindings());
@@ -259,7 +287,27 @@ public class RetrievalServiceImpl implements RetrievalService {
                 if (!labels.isBlank()) return labels;
             }
         }
-        return "";
+        StringBuilder sb = new StringBuilder();
+        if (caseId != null) {
+            CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
+            if (caseInfo != null) {
+                if (StringUtils.hasText(caseInfo.getBodyPart())) sb.append(caseInfo.getBodyPart()).append(" ");
+                if (StringUtils.hasText(caseInfo.getGender())) sb.append(caseInfo.getGender()).append(" ");
+                if (caseInfo.getAge() != null) sb.append(caseInfo.getAge()).append("岁 ");
+                if (StringUtils.hasText(caseInfo.getDepartment())) sb.append(caseInfo.getDepartment()).append(" ");
+            }
+        }
+        if (imageId != null) {
+            ImageInfo imageInfo = imageInfoMapper.selectById(imageId);
+            if (imageInfo != null && StringUtils.hasText(imageInfo.getViewPosition())) {
+                sb.append("体位 ").append(imageInfo.getViewPosition()).append(" ");
+            }
+        }
+        if (!sb.isEmpty()) {
+            sb.append("胸部X光 报告");
+            return sb.toString().trim();
+        }
+        return "胸部X光 报告";
     }
 
     private RetrievalResultVO toVO(RetrievalLog retrievalLog) {
@@ -304,19 +352,34 @@ public class RetrievalServiceImpl implements RetrievalService {
             SimilarCaseVO vo = new SimilarCaseVO();
             vo.setCaseId(caseId);
             CaseInfo c = caseMap.get(caseId);
-            if (c != null) vo.setExamNo(c.getExamNo());
+            if (c != null) {
+                vo.setExamNo(c.getExamNo());
+                vo.setDoctorId(c.getResponsibleDoctorId());
+            }
             BigDecimal score = i < scoreList.size() ? scoreList.get(i) : BigDecimal.ZERO;
             vo.setSimilarityScore(score);
             ReportInfo r = latestReportMap.get(caseId);
             if (r != null) {
-                vo.setFindings(r.getFinalFindings() != null
-                        ? r.getFinalFindings() : r.getAiFindings());
-                vo.setImpression(r.getFinalImpression() != null
-                        ? r.getFinalImpression() : r.getAiImpression());
+                vo.setFindings(pickText(r.getFinalFindings(), r.getAiFindings()));
+                vo.setImpression(pickText(r.getFinalImpression(), r.getAiImpression()));
             }
             result.add(vo);
         }
         return result;
+    }
+
+    private String pickText(String primary, String fallback) {
+        if (isUsefulText(primary)) return primary.trim();
+        if (isUsefulText(fallback)) return fallback.trim();
+        return "";
+    }
+
+    private boolean isUsefulText(String text) {
+        if (!StringUtils.hasText(text)) return false;
+        String trimmed = text.trim();
+        if (trimmed.length() < 2) return false;
+        String cleaned = trimmed.replaceAll("[\\p{P}\\p{S}\\s]", "");
+        return cleaned.length() >= 2;
     }
 
     private Map<Long, ReportInfo> fetchLatestReports(List<Long> caseIds) {
@@ -324,4 +387,49 @@ public class RetrievalServiceImpl implements RetrievalService {
         return reportInfoMapper.selectLatestByCaseIds(caseIds).stream()
                 .collect(Collectors.toMap(ReportInfo::getCaseId, r -> r, (a, b) -> a));
     }
+
+    private void enrichWithLatestReports(List<SimilarCaseVO> items) {
+        if (items == null || items.isEmpty()) return;
+        List<Long> caseIds = items.stream()
+                .map(SimilarCaseVO::getCaseId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (caseIds.isEmpty()) return;
+        Map<Long, ReportInfo> latestReportMap = fetchLatestReports(caseIds);
+        for (SimilarCaseVO vo : items) {
+            if (vo == null || vo.getCaseId() == null) continue;
+            if (isUsefulText(vo.getFindings()) && isUsefulText(vo.getImpression())) continue;
+            ReportInfo r = latestReportMap.get(vo.getCaseId());
+            if (r == null) continue;
+            if (!isUsefulText(vo.getFindings())) {
+                vo.setFindings(pickText(r.getFinalFindings(), r.getAiFindings()));
+            }
+            if (!isUsefulText(vo.getImpression())) {
+                vo.setImpression(pickText(r.getFinalImpression(), r.getAiImpression()));
+            }
+        }
+    }
+
+    private void attachCaseDoctor(List<SimilarCaseVO> items) {
+        if (items == null || items.isEmpty()) return;
+        List<Long> caseIds = items.stream()
+                .map(SimilarCaseVO::getCaseId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (caseIds.isEmpty()) return;
+        Map<Long, CaseInfo> caseMap = caseInfoMapper.selectBatchIds(caseIds).stream()
+                .collect(Collectors.toMap(CaseInfo::getCaseId, c -> c, (a, b) -> a));
+        for (SimilarCaseVO vo : items) {
+            if (vo == null || vo.getCaseId() == null) continue;
+            CaseInfo c = caseMap.get(vo.getCaseId());
+            if (c != null) {
+                if (!StringUtils.hasText(vo.getExamNo())) vo.setExamNo(c.getExamNo());
+                if (vo.getDoctorId() == null) vo.setDoctorId(c.getResponsibleDoctorId());
+            }
+        }
+    }
+
+    // Note: read-only access is allowed for other doctors' cases at the UI layer.
 }

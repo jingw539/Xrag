@@ -2,7 +2,6 @@
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
-import { getPreviewToken } from '@/utils/preview'
 
 const request = axios.create({
   baseURL: '/api',
@@ -30,10 +29,6 @@ request.interceptors.request.use(
     const userStore = useUserStore()
     if (userStore.token) {
       config.headers.Authorization = `Bearer ${userStore.token}`
-    }
-    const previewToken = getPreviewToken()
-    if (previewToken) {
-      config.headers['X-Preview-Token'] = previewToken
     }
     // Strip null/empty-string params so Spring's @DateTimeFormat binding doesn't fail
     if (config.params) {
@@ -77,15 +72,6 @@ request.interceptors.response.use(
     
     if (!response) {
       ElMessage.error('网络错误，请检查网络连接')
-      return Promise.reject(error)
-    }
-    const previewToken = getPreviewToken()
-    if (previewToken) {
-      if (response.status === 403) {
-        ElMessage.error('预览模式为只读，无法执行该操作')
-      } else {
-        ElMessage.error(response.data?.message || '请求失败')
-      }
       return Promise.reject(error)
     }
     const status = response.status

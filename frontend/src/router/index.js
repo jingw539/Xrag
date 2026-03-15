@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { loadPreviewToken } from '@/utils/preview'
 
 const resolveHomePath = (userStore) => {
   if (userStore.isAdmin) return '/users'
@@ -36,38 +35,6 @@ const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-  const publicAccess = import.meta.env.VITE_PUBLIC_ACCESS === 'true'
-  if (publicAccess) {
-    if (!userStore.userInfo?.roleCode) {
-      userStore.setUserInfo({
-        username: 'public',
-        realName: '公共访问',
-        roleCode: 'ADMIN'
-      })
-    }
-    if (to.path === '/login') {
-      next(resolveHomePath(userStore))
-    } else {
-      next()
-    }
-    return
-  }
-  const previewToken = loadPreviewToken()
-  if (previewToken) {
-    if (!userStore.userInfo?.roleCode) {
-      userStore.setUserInfo({
-        username: 'preview',
-        realName: 'Preview User',
-        roleCode: 'ADMIN'
-      })
-    }
-    if (to.path === '/login') {
-      next(resolveHomePath(userStore))
-    } else {
-      next()
-    }
-    return
-  }
   if (to.meta.requiresAuth !== false && !userStore.token) {
     next('/login')
   } else if (to.path === '/login' && userStore.token) {

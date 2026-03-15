@@ -160,7 +160,7 @@ public class CaseServiceImpl implements CaseService {
             throw new CaseNotFoundException(caseId);
         }
 
-        assertCaseAccessible(caseInfo);
+        assertCaseReadable(caseInfo);
 
         if (caseInfo.getReportStatus() != null && !"NONE".equals(caseInfo.getReportStatus())) {
             Long reportCount = reportInfoMapper.selectCount(
@@ -238,6 +238,7 @@ public class CaseServiceImpl implements CaseService {
         if (caseInfo == null) {
             throw new CaseNotFoundException(caseId);
         }
+        assertCaseWritable(caseInfo);
         
         if (StringUtils.hasText(dto.getPatientAnonId())) {
             caseInfo.setPatientAnonId(dto.getPatientAnonId());
@@ -431,22 +432,37 @@ public class CaseServiceImpl implements CaseService {
         }
     }
 
-    private void assertCaseAccessible(CaseInfo caseInfo) {
+
+    private void assertCaseReadable(CaseInfo caseInfo) {
         if (!SecurityUtils.hasRole("DOCTOR")) {
             return;
         }
-
         Long currentUserId = SecurityUtils.getCurrentUserId();
         if (currentUserId == null) {
-            throw new BusinessException(401, "未登录");
+            throw new BusinessException(401, "Not logged in");
+        }
+        if (caseInfo == null) {
+            throw new BusinessException(404, "Case not found");
+        }
+        // Read-only access is allowed for other doctors' cases.
+    }
+
+    private void assertCaseWritable(CaseInfo caseInfo) {
+        if (!SecurityUtils.hasRole("DOCTOR")) {
+            return;
+        }
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new BusinessException(401, "Not logged in");
         }
         if (caseInfo.getResponsibleDoctorId() == null) {
-            throw new BusinessException(403, "病例尚未分配责任医生");
+            throw new BusinessException(403, "Case not assigned");
         }
         if (!currentUserId.equals(caseInfo.getResponsibleDoctorId())) {
-            throw new BusinessException(403, "无权操作其他医生负责的病例");
+            throw new BusinessException(403, "Cannot operate on other doctor case");
         }
     }
+
 
     /**
      */

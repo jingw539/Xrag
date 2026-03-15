@@ -7,7 +7,7 @@ import java.util.Map;
 
 public interface StatisticsService {
 
-    StatisticsVO getOverview();
+    StatisticsVO getOverview(Long doctorId);
 
-    List<Map<String, Object>> getReportTrend(String startDate, String endDate, String groupBy);
+    List<Map<String, Object>> getReportTrend(String startDate, String endDate, String groupBy, Long doctorId);
 }

@@ -1,9 +1,6 @@
 package com.hospital.xray.config;
 
 import com.hospital.xray.security.JwtAuthenticationFilter;
-import com.hospital.xray.security.PermitAllMockAuthFilter;
-import com.hospital.xray.security.PreviewReadOnlyFilter;
-import com.hospital.xray.security.PreviewTokenAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -35,8 +32,6 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final PreviewTokenAuthFilter previewTokenAuthFilter;
-    private final PreviewReadOnlyFilter previewReadOnlyFilter;
 
     @Value("${app.security.expose-docs:false}")
     private boolean exposeDocs;
@@ -44,8 +39,6 @@ public class SecurityConfig {
     @Value("${app.security.expose-actuator:false}")
     private boolean exposeActuator;
 
-    @Value("${app.security.permit-all:false}")
-    private boolean permitAll;
 
     @Value("${app.security.public-endpoints:}")
     private String extraPublicEndpoints;
@@ -57,7 +50,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         List<String> publicEndpoints = new ArrayList<>(List.of(
                 "/api/auth/**",
-                "/favicon.ico"
+                "/favicon.ico",
+                "/api/retrieval/**"
         ));
         if (exposeActuator) {
             publicEndpoints.add("/actuator/**");
@@ -86,24 +80,14 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> {
-                auth.requestMatchers(publicEndpoints.toArray(String[]::new)).permitAll();
-                if (permitAll) {
-                    auth.anyRequest().permitAll();
-                } else {
-                    auth.anyRequest().authenticated();
-                }
-            })
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(publicEndpoints.toArray(String[]::new)).permitAll()
+                .anyRequest().authenticated()
+            )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint())
             )
-            .addFilterBefore(previewTokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(previewReadOnlyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        if (permitAll) {
-            http.addFilterAfter(new PermitAllMockAuthFilter(), UsernamePasswordAuthenticationFilter.class);
-        }
 
         return http.build();
     }

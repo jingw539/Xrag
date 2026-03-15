@@ -257,7 +257,7 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public ReportDetailVO getById(Long reportId) {
         ReportInfo report = reportInfoMapper.selectById(reportId);
-        assertDoctorOwnsCase(report != null ? report.getCaseId() : null, false);
+        assertCaseReadable(report != null ? report.getCaseId() : null);
         if (report == null) throw new BusinessException(404, "Report not found");
         return toDetailVO(report);
     }
@@ -265,7 +265,7 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public PageResult<ReportVO> listReports(ReportQueryDTO queryDTO) {
         if (queryDTO.getCaseId() != null) {
-            assertDoctorOwnsCase(queryDTO.getCaseId(), false);
+            assertCaseReadable(queryDTO.getCaseId());
         } else if (SecurityUtils.hasRole("DOCTOR")) {
             queryDTO.setDoctorId(SecurityUtils.getCurrentUserId());
         }
@@ -301,7 +301,7 @@ public class ReportServiceImpl implements ReportService {
     public List<ReportEditHistoryVO> getEditHistory(Long reportId) {
         ReportInfo report = reportInfoMapper.selectById(reportId);
         if (report == null) throw new BusinessException(404, "Report not found");
-        assertDoctorOwnsCase(report.getCaseId(), false);
+        assertCaseReadable(report.getCaseId());
         List<ReportEditHistory> histories = editHistoryMapper.selectList(
                         new LambdaQueryWrapper<ReportEditHistory>()
                                 .eq(ReportEditHistory::getReportId, reportId)
@@ -485,5 +485,19 @@ public class ReportServiceImpl implements ReportService {
         if (!caseInfo.getResponsibleDoctorId().equals(currentUserId)) {
             throw new BusinessException(403, "Cannot operate on another doctor case");
         }
+    }
+
+    private void assertCaseReadable(Long caseId) {
+        if (!SecurityUtils.hasRole("DOCTOR")) {
+            return;
+        }
+        if (caseId == null) {
+            throw new BusinessException(404, "Case not found");
+        }
+        CaseInfo caseInfo = caseInfoMapper.selectById(caseId);
+        if (caseInfo == null) {
+            throw new BusinessException(404, "Case not found");
+        }
+        // Read-only access allowed for doctors even if not responsible.
     }
 }

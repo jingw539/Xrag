@@ -67,15 +67,15 @@
           </span>
         </div>
         <div class="card-info">
-          {{ genderLabel(c.gender) }} · {{ c.age }}岁 · {{ c.department || '—' }}
+          {{ genderLabel(c.gender) }} · {{ c.age }}岁 · {{ formatDepartment(c.department) }}
         </div>
         <div class="card-meta">
           <template v-if="!c.reportStatus || c.reportStatus === 'NONE'">
-            <span class="meta-tag meta-tag-body">{{ c.bodyPart || '胸部' }}</span>
+            <span class="meta-tag meta-tag-body">{{ formatBodyPart(c.bodyPart) }}</span>
           </template>
           <template v-else-if="c.reportStatus === 'AI_DRAFT'">
             <span class="meta-tag meta-tag-ai">
-              AI {{ c.modelConfidence ? Math.round(c.modelConfidence * 100) + '%' : '草稿' }}
+              AI 草稿
             </span>
           </template>
           <template v-else-if="c.reportStatus === 'EDITING'">
@@ -156,6 +156,18 @@ const handleBatchGenerate = () => emit('batch-generate')
 const handleLoadMore = () => emit('load-more')
 const handleCreate = () => emit('create')
 const handleCancelBatch = () => emit('cancel-batch')
+const formatDepartment = (value) => {
+  if (!value) return '—'
+  const v = String(value).trim()
+  if (!v || v === '???' || v === '??') return '—'
+  return v
+}
+const formatBodyPart = (value) => {
+  if (!value) return '胸部'
+  const v = String(value).trim()
+  if (!v || v === '???' || v === '??') return '胸部'
+  return v
+}
 const handleImport = (file) => {
   emit('import', file)
   return false
@@ -251,9 +263,6 @@ const goTypical = () => router.push('/typical-cases')
   overflow-y: auto;
   padding: 0 8px 8px;
 }
-.case-list::-webkit-scrollbar { width: 4px; }
-.case-list::-webkit-scrollbar-track { background: transparent; }
-.case-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
 
 .case-card {
   padding: 10px 10px;

@@ -31,7 +31,7 @@
           <template v-if="!userStore.isAdmin">
             <el-menu-item index="/statistics">
               <el-icon><DataAnalysis /></el-icon>
-              <template #title>质控统计</template>
+              <template #title>统计分析</template>
             </el-menu-item>
           </template>
 
@@ -112,7 +112,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getMe } from '@/api/auth'
-import { isPreviewMode } from '@/utils/preview'
 import {
   Folder,
   Star,
@@ -131,13 +130,12 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const collapsed = ref(false)
-const publicAccess = import.meta.env.VITE_PUBLIC_ACCESS === 'true'
 const isMobile = ref(false)
 const mobileMenuOpen = ref(false)
 const PAGE_NAME_MAP = {
   '/cases': '诊断工作',
   '/typical-cases': '典型病例',
-  '/statistics': '质控统计',
+  '/statistics': '统计分析',
   '/users': '用户管理',
   '/config': '系统配置',
   '/logs': '操作日志'
@@ -181,7 +179,6 @@ const handleCommand = async (command) => {
 }
 
 const refreshUserInfo = async () => {
-  if (isPreviewMode() || publicAccess) return
   try {
     const res = await getMe()
     if (res.data) userStore.setUserInfo(res.data)
